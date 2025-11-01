@@ -1,0 +1,105 @@
+# AI Models Configuration - OpenRouter
+# Last Updated: 2025-11-01
+
+# ===== OpenRouter Configuration =====
+openrouter:
+  base_url: "https://openrouter.ai/api/v1"
+  api_key_env: "OPENROUTER_API_KEY"
+
+# ===== Model Assignments by Agent =====
+agents:
+  research:
+    model: "gemini-2.5-flash"
+    provider: "gemini-cli"  # Use Gemini CLI for FREE Google Search
+    temperature: 0.3
+    max_tokens: 8000
+    description: "Web research and SEO analysis (FREE)"
+
+  writing:
+    model: "qwen/qwq-32b-preview"  # Qwen3-Max equivalent on OpenRouter
+    provider: "openrouter"
+    temperature: 0.7
+    max_tokens: 4000
+    description: "German blog post generation (1500-2500 words)"
+    cost_per_1m_input: 1.60
+    cost_per_1m_output: 6.40
+
+  repurposing:
+    model: "qwen/qwq-32b-preview"  # Same as writing for consistency
+    provider: "openrouter"
+    temperature: 0.8
+    max_tokens: 1500
+    description: "German social media content (4 platforms)"
+    cost_per_1m_input: 1.60
+    cost_per_1m_output: 6.40
+
+  publishing:
+    model: "qwen/qwq-32b-preview"
+    provider: "openrouter"
+    temperature: 0.5
+    max_tokens: 500
+    description: "Publishing coordination and status updates"
+    cost_per_1m_input: 1.60
+    cost_per_1m_output: 6.40
+
+# ===== Alternative Models (for fallback or experimentation) =====
+alternatives:
+  premium_writing:
+    model: "anthropic/claude-sonnet-4"
+    provider: "openrouter"
+    temperature: 0.7
+    max_tokens: 4000
+    description: "Premium German content (if Qwen3-Max quality insufficient)"
+    cost_per_1m_input: 3.00
+    cost_per_1m_output: 15.00
+
+  budget_writing:
+    model: "deepseek/deepseek-chat"
+    provider: "openrouter"
+    temperature: 0.7
+    max_tokens: 4000
+    description: "Budget option (lower German quality)"
+    cost_per_1m_input: 0.14
+    cost_per_1m_output: 0.28
+
+  research_api:
+    model: "google/gemini-2.0-flash"
+    provider: "openrouter"
+    temperature: 0.3
+    max_tokens: 8000
+    description: "Fallback if Gemini CLI fails"
+    cost_per_1m_input: 0.00  # FREE
+    cost_per_1m_output: 0.00
+
+# ===== Cost Estimation =====
+cost_per_bundle:
+  research: 0.00  # FREE (Gemini CLI)
+  writing: 0.64   # 200K input + 50K output
+  fact_checking: 0.08  # 50K additional tokens
+  repurposing: 0.26  # 80K input + 30K output (4 platforms)
+  total: 0.98     # Without images
+
+# ===== Content Language =====
+language:
+  primary: "de"  # German
+  fallback: "en"  # English
+
+# ===== Rate Limiting =====
+rate_limits:
+  openrouter:
+    requests_per_minute: 60
+    requests_per_second: 1
+
+  notion:
+    requests_per_second: 2.5  # Safety margin from 3 req/sec limit
+
+# ===== Model Selection Guidelines =====
+# - research: Gemini CLI (FREE + native Google Search)
+# - writing: Qwen3-Max (best German quality vs cost)
+# - repurposing: Qwen3-Max (consistency with blog voice)
+# - publishing: Qwen3-Max (lightweight coordination)
+#
+# Switch to alternatives if:
+# - Qwen3-Max quality insufficient → anthropic/claude-sonnet-4
+# - Cost constraints → deepseek/deepseek-chat
+# - Gemini CLI unavailable → google/gemini-2.0-flash via OpenRouter

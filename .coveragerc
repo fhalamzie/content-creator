@@ -1,0 +1,43 @@
+[run]
+# Coverage configuration for Content Creator System
+
+source = src
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */site-packages/*
+    */.venv/*
+
+[report]
+# Reporting options
+precision = 2
+show_missing = True
+skip_covered = False
+
+# Fail if coverage below target
+fail_under = 80
+
+# Exclude lines from coverage
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Debug-only code
+    def __repr__
+    if self\.debug
+
+    # Type checking
+    if TYPE_CHECKING:
+    if typing\.TYPE_CHECKING:
+
+    # Abstract methods
+    @abstract
+    raise NotImplementedError
+
+    # Safety valves
+    except ImportError
+    if __name__ == .__main__.:
+
+[html]
+directory = htmlcov

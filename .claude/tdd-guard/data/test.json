@@ -1,0 +1,359 @@
+{
+  "testModules": [
+    {
+      "moduleId": "tests/test_cache_manager.py",
+      "tests": [
+        {
+          "name": "test_creates_cache_directory_if_not_exists",
+          "fullName": "tests/test_cache_manager.py::TestCacheManagerInitialization::test_creates_cache_directory_if_not_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_subdirectories_on_init",
+          "fullName": "tests/test_cache_manager.py::TestCacheManagerInitialization::test_creates_subdirectories_on_init",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_blog_post_creates_markdown_file",
+          "fullName": "tests/test_cache_manager.py::TestBlogPostOperations::test_write_blog_post_creates_markdown_file",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_blog_post_creates_metadata_file",
+          "fullName": "tests/test_cache_manager.py::TestBlogPostOperations::test_write_blog_post_creates_metadata_file",
+          "state": "passed"
+        },
+        {
+          "name": "test_read_blog_post_returns_content_and_metadata",
+          "fullName": "tests/test_cache_manager.py::TestBlogPostOperations::test_read_blog_post_returns_content_and_metadata",
+          "state": "passed"
+        },
+        {
+          "name": "test_read_blog_post_raises_error_if_not_exists",
+          "fullName": "tests/test_cache_manager.py::TestBlogPostOperations::test_read_blog_post_raises_error_if_not_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_blog_posts_returns_all_slugs",
+          "fullName": "tests/test_cache_manager.py::TestBlogPostOperations::test_list_blog_posts_returns_all_slugs",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_blog_posts_returns_empty_list_if_none",
+          "fullName": "tests/test_cache_manager.py::TestBlogPostOperations::test_list_blog_posts_returns_empty_list_if_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_social_post_creates_markdown_file",
+          "fullName": "tests/test_cache_manager.py::TestSocialPostOperations::test_write_social_post_creates_markdown_file",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_social_post_for_multiple_platforms",
+          "fullName": "tests/test_cache_manager.py::TestSocialPostOperations::test_write_social_post_for_multiple_platforms",
+          "state": "passed"
+        },
+        {
+          "name": "test_read_social_post_raises_error_if_not_exists",
+          "fullName": "tests/test_cache_manager.py::TestSocialPostOperations::test_read_social_post_raises_error_if_not_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_list_social_posts_for_slug",
+          "fullName": "tests/test_cache_manager.py::TestSocialPostOperations::test_list_social_posts_for_slug",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_research_data_creates_json_file",
+          "fullName": "tests/test_cache_manager.py::TestResearchDataOperations::test_write_research_data_creates_json_file",
+          "state": "passed"
+        },
+        {
+          "name": "test_read_research_data_returns_dict",
+          "fullName": "tests/test_cache_manager.py::TestResearchDataOperations::test_read_research_data_returns_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_read_research_data_raises_error_if_not_exists",
+          "fullName": "tests/test_cache_manager.py::TestResearchDataOperations::test_read_research_data_raises_error_if_not_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_sync_log_creates_json_file",
+          "fullName": "tests/test_cache_manager.py::TestSyncLogOperations::test_write_sync_log_creates_json_file",
+          "state": "passed"
+        },
+        {
+          "name": "test_read_sync_log_returns_dict",
+          "fullName": "tests/test_cache_manager.py::TestSyncLogOperations::test_read_sync_log_returns_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_read_sync_log_returns_empty_dict_if_not_exists",
+          "fullName": "tests/test_cache_manager.py::TestSyncLogOperations::test_read_sync_log_returns_empty_dict_if_not_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_blog_post_with_empty_content",
+          "fullName": "tests/test_cache_manager.py::TestErrorHandling::test_write_blog_post_with_empty_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_blog_post_with_special_characters_in_slug",
+          "fullName": "tests/test_cache_manager.py::TestErrorHandling::test_write_blog_post_with_special_characters_in_slug",
+          "state": "passed"
+        },
+        {
+          "name": "test_write_social_post_with_invalid_platform",
+          "fullName": "tests/test_cache_manager.py::TestErrorHandling::test_write_social_post_with_invalid_platform",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_corrupted_json_gracefully",
+          "fullName": "tests/test_cache_manager.py::TestErrorHandling::test_handles_corrupted_json_gracefully",
+          "state": "passed"
+        },
+        {
+          "name": "test_clear_blog_post_removes_files",
+          "fullName": "tests/test_cache_manager.py::TestCacheClearance::test_clear_blog_post_removes_files",
+          "state": "passed"
+        },
+        {
+          "name": "test_clear_all_cache_removes_all_files",
+          "fullName": "tests/test_cache_manager.py::TestCacheClearance::test_clear_all_cache_removes_all_files",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_notion_integration/test_notion_client.py",
+      "tests": [
+        {
+          "name": "test_creates_with_token",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestNotionClientInitialization::test_creates_with_token",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_with_custom_rate_limit",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestNotionClientInitialization::test_creates_with_custom_rate_limit",
+          "state": "passed"
+        },
+        {
+          "name": "test_validates_token_not_empty",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestNotionClientInitialization::test_validates_token_not_empty",
+          "state": "passed"
+        },
+        {
+          "name": "test_validates_token_not_none",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestNotionClientInitialization::test_validates_token_not_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_query_database_returns_results",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestDatabaseQueries::test_query_database_returns_results",
+          "state": "passed"
+        },
+        {
+          "name": "test_query_database_with_filter",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestDatabaseQueries::test_query_database_with_filter",
+          "state": "passed"
+        },
+        {
+          "name": "test_query_database_with_sorts",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestDatabaseQueries::test_query_database_with_sorts",
+          "state": "passed"
+        },
+        {
+          "name": "test_query_database_respects_rate_limit",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestDatabaseQueries::test_query_database_respects_rate_limit",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_page_in_database",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestPageOperations::test_create_page_in_database",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_page_properties",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestPageOperations::test_update_page_properties",
+          "state": "passed"
+        },
+        {
+          "name": "test_retrieve_page",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestPageOperations::test_retrieve_page",
+          "state": "passed"
+        },
+        {
+          "name": "test_archive_page",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestPageOperations::test_archive_page",
+          "state": "passed"
+        },
+        {
+          "name": "test_append_blocks_to_page",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestBlockOperations::test_append_blocks_to_page",
+          "state": "passed"
+        },
+        {
+          "name": "test_retrieve_block_children",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestBlockOperations::test_retrieve_block_children",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_rate_limit_error",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestErrorHandling::test_handles_rate_limit_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_auth_error",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestErrorHandling::test_handles_auth_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_not_found_error",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestErrorHandling::test_handles_not_found_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_generic_api_error",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestErrorHandling::test_handles_generic_api_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_retries_on_transient_errors",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestErrorHandling::test_retries_on_transient_errors",
+          "state": "passed"
+        },
+        {
+          "name": "test_gives_up_after_max_retries",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestErrorHandling::test_gives_up_after_max_retries",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_database",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestDatabaseCreation::test_create_database",
+          "state": "passed"
+        },
+        {
+          "name": "test_tracks_api_call_statistics",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestStatistics::test_tracks_api_call_statistics",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_statistics",
+          "fullName": "tests/test_notion_integration/test_notion_client.py::TestStatistics::test_reset_statistics",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_notion_integration/test_rate_limiter.py",
+      "tests": [
+        {
+          "name": "test_creates_with_default_rate",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestRateLimiterInitialization::test_creates_with_default_rate",
+          "state": "passed"
+        },
+        {
+          "name": "test_creates_with_custom_rate",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestRateLimiterInitialization::test_creates_with_custom_rate",
+          "state": "passed"
+        },
+        {
+          "name": "test_validates_positive_rate",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestRateLimiterInitialization::test_validates_positive_rate",
+          "state": "passed"
+        },
+        {
+          "name": "test_allows_single_request_immediately",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestBasicRateLimiting::test_allows_single_request_immediately",
+          "state": "passed"
+        },
+        {
+          "name": "test_delays_rapid_requests",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestBasicRateLimiting::test_delays_rapid_requests",
+          "state": "passed"
+        },
+        {
+          "name": "test_enforces_rate_over_multiple_requests",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestBasicRateLimiting::test_enforces_rate_over_multiple_requests",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_eta_for_pending_requests",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestETACalculation::test_calculate_eta_for_pending_requests",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_eta_with_zero_requests",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestETACalculation::test_calculate_eta_with_zero_requests",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_eta_with_different_rates",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestETACalculation::test_calculate_eta_with_different_rates",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_eta_accounts_for_elapsed_time",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestETACalculation::test_calculate_eta_accounts_for_elapsed_time",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_concurrent_requests",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestThreadSafety::test_handles_concurrent_requests",
+          "state": "passed"
+        },
+        {
+          "name": "test_maintains_rate_under_concurrent_load",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestThreadSafety::test_maintains_rate_under_concurrent_load",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_clears_request_history",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestResetFunctionality::test_reset_clears_request_history",
+          "state": "passed"
+        },
+        {
+          "name": "test_can_use_as_context_manager",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestContextManager::test_can_use_as_context_manager",
+          "state": "passed"
+        },
+        {
+          "name": "test_context_manager_enforces_rate_limit",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestContextManager::test_context_manager_enforces_rate_limit",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_very_high_rate",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestEdgeCases::test_handles_very_high_rate",
+          "state": "passed"
+        },
+        {
+          "name": "test_handles_very_low_rate",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestEdgeCases::test_handles_very_low_rate",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_eta_with_fractional_requests",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestEdgeCases::test_calculate_eta_with_fractional_requests",
+          "state": "passed"
+        },
+        {
+          "name": "test_tracks_total_requests",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestStatistics::test_tracks_total_requests",
+          "state": "passed"
+        },
+        {
+          "name": "test_tracks_average_wait_time",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestStatistics::test_tracks_average_wait_time",
+          "state": "passed"
+        },
+        {
+          "name": "test_stats_reset_after_reset",
+          "fullName": "tests/test_notion_integration/test_rate_limiter.py::TestStatistics::test_stats_reset_after_reset",
+          "state": "passed"
+        }
+      ]
+    }
+  ]
+}
