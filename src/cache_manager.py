@@ -287,6 +287,84 @@ class CacheManager:
 
     # ==================== Cache Clearance ====================
 
+    def get_cached_blog_posts(self) -> List[Dict[str, Any]]:
+        """
+        Get all cached blog posts.
+
+        Returns:
+            List of dicts with 'slug', 'content', 'metadata'
+        """
+        slugs = self.list_blog_posts()
+        posts = []
+
+        for slug in slugs:
+            try:
+                post_data = self.read_blog_post(slug)
+                posts.append({
+                    'slug': slug,
+                    'content': post_data['content'],
+                    'metadata': post_data['metadata']
+                })
+            except Exception as e:
+                logger.warning(f"Failed to read cached blog post {slug}: {e}")
+
+        logger.info(f"Retrieved {len(posts)} cached blog posts")
+        return posts
+
+    def get_cached_social_posts(self) -> List[Dict[str, Any]]:
+        """
+        Get all cached social posts.
+
+        Returns:
+            List of dicts with 'platform', 'content', 'blog_slug'
+        """
+        # Get all blog slugs first
+        blog_slugs = self.list_blog_posts()
+        social_posts = []
+
+        for slug in blog_slugs:
+            platforms = self.list_social_posts(slug)
+            for platform in platforms:
+                try:
+                    content = self.read_social_post(slug, platform)
+                    social_posts.append({
+                        'platform': platform,
+                        'content': content,
+                        'blog_slug': slug
+                    })
+                except Exception as e:
+                    logger.warning(f"Failed to read social post {slug}/{platform}: {e}")
+
+        logger.info(f"Retrieved {len(social_posts)} cached social posts")
+        return social_posts
+
+    def save_blog_post(
+        self,
+        content: str,
+        metadata: Dict[str, Any],
+        topic: str
+    ) -> str:
+        """
+        Save blog post to cache (convenience wrapper for write_blog_post).
+
+        Args:
+            content: Blog post markdown content
+            metadata: Blog post metadata
+            topic: Topic (used to generate slug)
+
+        Returns:
+            Cache file path
+        """
+        # Generate slug from topic
+        slug = topic.lower().replace(' ', '-').replace('/', '-')[:50]
+
+        # Write to cache
+        self.write_blog_post(slug=slug, content=content, metadata=metadata)
+
+        # Return cache path
+        cache_path = self.cache_dir / "blog_posts" / f"{slug}.md"
+        return str(cache_path)
+
     def clear_all_cache(self) -> None:
         """
         Remove all cached content (DESTRUCTIVE).
