@@ -2,6 +2,36 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 004: Phase 2 - Core Agents & Complete Content Pipeline (2025-11-01)
+
+Completed Phase 2 using strict TDD. Built complete content generation pipeline: Research → Writing → Cache → Notion Sync. All 171 tests passing with 94.87% coverage.
+
+**Components Implemented** (5/5 + Integration):
+- German Prompts (2 files) - blog_de.md + social_de.md (4 platforms)
+- BaseAgent (100% coverage, 25 tests) - OpenRouter integration, retry logic, cost tracking
+- ResearchAgent (97.06% coverage, 23 tests) - Gemini CLI (FREE), API fallback
+- WritingAgent (97.70% coverage, 22 tests) - Template-based, 4 brand voices, SEO extraction
+- SyncManager (93.20% coverage, 22 tests) - Batch sync, rate limiting, progress callbacks, ETA
+- Integration Tests (11 tests) - Complete pipeline tests, error recovery, batch operations
+
+**Test Results**:
+- 171 tests passed (0 failures)
+- 94.87% code coverage (585/585 statements)
+- Test suite: 53 seconds, all integration tests passing
+- TDD approach: 100% success rate (zero bugs in integration)
+
+**Complete Pipeline Working**:
+- Research (Gemini CLI, FREE) → Writing (Qwen3-Max, German, $0.64) → Cache (*.md) → Notion (rate-limited 2.5 req/sec)
+- Progress tracking with real-time ETA calculation
+- Partial failure handling (continues on error)
+- Cache persistence (survives API failures)
+
+**Next Steps**: Phase 3 - Streamlit UI (setup page, progress tracking, ETA display)
+
+**See**: [Full details](docs/sessions/004-phase-2-core-agents.md)
+
+---
+
 ## Session 003: Phase 1 Foundation - Complete TDD Implementation (2025-11-01)
 
 Completed all Phase 1 foundation components using test-driven development. Built infrastructure for content caching, Notion API integration, and database setup.
