@@ -138,7 +138,7 @@ def test_generate_success(mock_openai_client):
     client_instance.chat.completions.create.assert_called_once()
     call_kwargs = client_instance.chat.completions.create.call_args.kwargs
 
-    assert call_kwargs['model'] == "qwen/qwq-32b-preview"
+    assert call_kwargs['model'] == "qwen/qwen3-235b-a22b"
     assert call_kwargs['messages'] == [
         {"role": "system", "content": "You are a German content writer"},
         {"role": "user", "content": "Write a blog post about AI"}

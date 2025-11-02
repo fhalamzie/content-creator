@@ -1,16 +1,25 @@
 # Tasks
 
-## High Priority (Phase 3: Streamlit UI)
+## High Priority (Phase 4: Repurposing Agent)
 
-- [x] Create `streamlit_app.py` (main entry point, page routing) ✅
-- [x] Setup page (brand voice, target audience, keywords configuration) ✅
-- [x] Generate content page (topic input, progress bar, ETA display) ✅
-- [x] Content browser (view cached posts, Notion database viewer) ✅
-- [x] Fix UI bugs (auto-sync, markdown rendering, JSON mode) ✅
-- [ ] Settings page (API keys management, rate limits, model selection)
-- [ ] Dashboard (stats, cost tracking, recent posts)
+- [ ] Write tests + implement `src/agents/repurposing_agent.py`
+- [ ] Social post templates (LinkedIn, Facebook, TikTok, Instagram)
+- [ ] Hashtag generation (platform-specific)
+- [ ] Media suggestions (image descriptions for DALL-E 3)
+- [ ] Integration with generate page (auto-create social posts)
+- [ ] Test social post sync to Notion
 
 ## Completed
+
+**Phase 3 - Streamlit UI** ✅:
+- [x] Create `streamlit_app.py` (main entry point, page routing)
+- [x] Setup page (brand voice, target audience, keywords configuration)
+- [x] Generate content page (topic input, progress bar, ETA display)
+- [x] Content browser (view cached posts, Notion database viewer)
+- [x] Fix UI bugs (auto-sync, markdown rendering, JSON mode)
+- [x] Settings page (API keys management, rate limits, model selection)
+- [x] Dashboard (stats, cost tracking, recent posts)
+- [x] Comprehensive UI tests (63 tests, 254 total tests)
 
 **Phase 2 - Core Agents** ✅:
 - [x] Create German prompts (blog_de.md, social_de.md) - 2 comprehensive templates
@@ -31,12 +40,6 @@
 - [x] Test infrastructure (pytest.ini, .coveragerc, 97.70% overall coverage)
 
 ## Backlog
-
-**Phase 4 - Repurposing Agent**:
-- [ ] Repurposing agent (4 platforms: LinkedIn, Facebook, TikTok, Instagram)
-- [ ] Social post templates integration (use social_de.md)
-- [ ] Hashtag generation (platform-specific)
-- [ ] Media suggestions (image descriptions for DALL-E 3)
 
 **Phase 5 - Publishing Automation**:
 - [ ] Platform publishers (LinkedIn, Facebook APIs)
@@ -76,7 +79,7 @@
 
 **Phase 2** ✅: German prompts created (2 templates), base agent working (100% coverage), research agent (Gemini CLI, 97.06% coverage), writing agent (Qwen3-Max, 97.70% coverage), sync manager (cache → Notion, 93.20% coverage), integration tests passing (11 tests), 171 total tests, 94.87% overall coverage
 
-**Phase 3**: Streamlit UI functional (setup, generate, browse pages), progress tracking working, ETA display accurate, cost tracking visible, Notion integration seamless
+**Phase 3** ✅: Streamlit UI functional (all 5 pages: setup, generate, browse, settings, dashboard), progress tracking working, ETA display accurate, cost tracking visible, Notion integration seamless, 254 tests passing
 
 **MVP**: Generate 10 German blog posts via UI, cache sync to Notion, edit in Notion, 4 social posts per blog (repurposing agent), cost target achieved (~$0.98/bundle), basic publishing working
 

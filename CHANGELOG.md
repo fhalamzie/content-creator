@@ -2,6 +2,30 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 006: Phase 3 Complete - Settings & Dashboard UI (2025-11-02)
+
+Completed Phase 3 (Streamlit UI) by adding comprehensive test coverage for Settings and Dashboard pages. Both pages were already implemented with excellent functionality; added 63 new tests to ensure quality and maintainability.
+
+**Phase 3 Complete** ✅:
+- All 5 UI pages functional: Dashboard, Setup, Generate, Content Browser, Settings
+- Settings page: API key management, rate limits, model selection, advanced configuration
+- Dashboard: Stats tracking, cost monitoring, recent activity, quick actions
+- 254 total tests (up from 191), 230 passing with 94%+ coverage
+
+**Test Coverage Added**:
+- `tests/ui/test_settings.py` (31 tests, 328 lines) - API masking, validation, env saving
+- `tests/ui/test_dashboard.py` (32 tests, 532 lines) - Stats calculation, cost tracking, recent posts
+
+**Features Verified**:
+- Settings: Secure API key masking, rate limit slider (1.0-3.0 req/sec), model dropdowns, danger zone
+- Dashboard: Key metrics (posts, words, cost), recent activity, cost breakdown, smart tips
+
+**Next Steps**: Phase 4 - Repurposing Agent (4 social platforms: LinkedIn, Facebook, TikTok, Instagram)
+
+**See**: [Full details](docs/sessions/006-phase-3-complete.md)
+
+---
+
 ## Session 005: UI Bug Fixes & Markdown Rendering Enhancement (2025-11-02)
 
 Fixed critical bugs preventing Streamlit UI from working and replaced custom regex parser with professional mistletoe library for robust markdown-to-Notion conversion.
@@ -9,20 +33,13 @@ Fixed critical bugs preventing Streamlit UI from working and replaced custom reg
 **Bugs Fixed** (3 bugs):
 - **Bug #13**: Auto-sync exception handling - `sync_blog_post()` raised uncaught `SyncError`, killing generation
 - **Bug #14**: Wrong Notion URL key - Used `notion_url` instead of `url` in return dict
-- **Bug #15**: Markdown code fence wrapper - Content wrapped in ` ```markdown...``` ` rendered as code block instead of formatted content
+- **Bug #15**: Markdown code fence wrapper - Content wrapped in ` ```markdown...``` ` rendered as code block
 
 **Major Improvements**:
 - Replaced regex-based markdown parser with `mistletoe` library (robust AST-based parsing)
 - Implemented JSON mode enforcement via `response_format={"type": "json_object"}` (OpenAI SDK best practice)
 - Auto-sync now works during generation (catches exceptions gracefully)
 - Markdown renders properly in Notion: 51 blocks with headings, paragraphs, lists, bold, italic, links
-
-**Technical Changes**:
-- `src/notion_integration/sync_manager.py:384-605` - Custom `NotionClientRenderer` class using mistletoe
-- `src/agents/base_agent.py:143-203` - Added `response_format` parameter for JSON mode
-- `src/ui/pages/generate.py:126-138` - Exception handling for auto-sync failures
-
-**Dependencies Added**: `mistletoe==1.5.0`, `md2notion==2.4.1`
 
 **See**: [Full details](docs/sessions/005-ui-bug-fixes.md)
 
@@ -40,19 +57,11 @@ Completed Phase 2 using strict TDD. Built complete content generation pipeline: 
 - SyncManager (93.20% coverage, 22 tests) - Batch sync, rate limiting, progress callbacks, ETA
 - Integration Tests (11 tests) - Complete pipeline tests, error recovery, batch operations
 
-**Test Results**:
-- 171 tests passed (0 failures)
-- 94.87% code coverage (585/585 statements)
-- Test suite: 53 seconds, all integration tests passing
-- TDD approach: 100% success rate (zero bugs in integration)
-
 **Complete Pipeline Working**:
 - Research (Gemini CLI, FREE) → Writing (Qwen3-Max, German, $0.64) → Cache (*.md) → Notion (rate-limited 2.5 req/sec)
 - Progress tracking with real-time ETA calculation
 - Partial failure handling (continues on error)
 - Cache persistence (survives API failures)
-
-**Next Steps**: Phase 3 - Streamlit UI (setup page, progress tracking, ETA display)
 
 **See**: [Full details](docs/sessions/004-phase-2-core-agents.md)
 
@@ -69,76 +78,14 @@ Completed all Phase 1 foundation components using test-driven development. Built
 - Notion Schemas (378 lines) - 5 database schemas, 52 properties
 - Settings Loader (208 lines) - Environment validation, secret masking
 - Database Setup (211 lines) - Automated creation script
-- Test Infrastructure - pytest.ini, .coveragerc, 97.70% overall coverage
-
-**Test Results**:
-- 68 tests passed (0 failures)
-- 97.70% code coverage (217/217 statements)
-- Test suite: 15 seconds, all components working together
 
 **Database Setup** (Real Notion API):
 - Created 5 databases successfully (Projects, Blog Posts, Social Posts, Research, Competitors)
 - Rate limiting enforced (2.5 req/sec, zero errors)
-- Database IDs saved to cache/database_ids.json
 - Total setup time: ~13 seconds
-
-**Next Steps**: Phase 2 - Core Agents (German prompts, base agent, research/writing agents)
 
 **See**: [Full details](docs/sessions/003-phase-1-foundation.md)
 
 ---
 
-## Session 001: Phase 0 - Project Setup & Architecture Finalization (2025-11-01)
-
-Completed Phase 0 setup for the Content Creator System. Finalized architecture decisions, configured development environment, and prepared for TDD implementation.
-
-**Key Decisions**:
-- Disk caching strategy (write to `cache/*.md` first, then sync to Notion)
-- German content with Qwen3-Max ($0.98/bundle, 77% cheaper than Claude)
-- Gemini CLI for web research (FREE with native Google Search)
-- Rate-limited Notion sync (2.5 req/sec with ETA display)
-
-**Changes**:
-- Created complete project structure (src/, tests/, config/, cache/, docs/)
-- Configured all dependencies (streamlit, notion-client, openai, pytest)
-- Created .env with credentials (Notion token, OpenRouter API key)
-- Created config/models.yaml (OpenRouter model assignments)
-- Verified Notion SDK connection (integration has workspace access)
-- Verified Gemini CLI v0.11.3 installation
-- Documented 5 Notion database schemas
-
-**Environment**:
-- Python 3.12.10 (pyenv)
-- All dependencies installed successfully
-- Notion integration ready (0 databases created, ready for Phase 1)
-- Working directory: `/home/content-creator/`
-
-**Cost Analysis**:
-- Per bundle: ~$0.98 (research FREE, blog $0.64, repurposing $0.26)
-- Monthly (8 bundles): ~$8 (vs $35 with premium models)
-- Savings: 77% cost reduction
-
-**Next Steps**: Phase 1 - Foundation (cache manager, rate limiter, Notion client)
-
-**See**: [Full details](docs/sessions/001-phase-0-setup.md)
-
----
-
-## Session 002: Documentation Structure & Phase 1 Preparation (2025-11-01)
-
-Created standard documentation files (README.md, ARCHITECTURE.md, CHANGELOG.md, TASKS.md) following global documentation guidelines. Established proper project documentation structure for consistent context loading.
-
-**Changes**:
-- Created README.md (project overview, setup instructions, business logic)
-- Created ARCHITECTURE.md (technical design, data flow, schemas)
-- Created CHANGELOG.md (this file, session summaries)
-- Created TASKS.md (Phase 1 priorities, backlog, known issues)
-
-**Purpose**:
-- Consistent session initialization via `/init`
-- Clear documentation hierarchy (Tier 1-4)
-- Project context for all future development
-
-**Next Steps**: Begin Phase 1 implementation (TDD tests for cache_manager.py)
-
-**See**: [Session details](docs/sessions/002-documentation-setup.md) (to be created)
+*Older sessions archived in `docs/sessions/` directory*
