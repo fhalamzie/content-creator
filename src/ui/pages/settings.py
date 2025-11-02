@@ -266,8 +266,21 @@ def render_advanced():
         # Enable features
         st.caption("**Feature Flags:**")
         enable_research = st.checkbox("Enable Web Research", value=True)
-        enable_fact_check = st.checkbox("Enable Fact Checking", value=True)
+        enable_fact_check = st.checkbox("Enable Fact Checking", value=True, help="4-layer hallucination detection with Gemini CLI (FREE)")
         enable_auto_sync = st.checkbox("Enable Auto-Sync to Notion", value=True)
+
+        # Fact-checking thoroughness (only shown if enabled)
+        fact_check_thoroughness = "medium"
+        if enable_fact_check:
+            st.caption("**Fact-Checking Configuration:**")
+            fact_check_thoroughness = st.select_slider(
+                "Thoroughness Level",
+                options=["basic", "medium", "thorough"],
+                value=os.getenv("FACT_CHECK_THOROUGHNESS", "medium"),
+                help="Basic: URLs only (~6s, FREE) | Medium: URLs + top 5 claims (~16s, FREE) | Thorough: All claims (~30s, FREE)"
+            )
+            time_estimates = {'basic': '~6s', 'medium': '~16s', 'thorough': '~30s'}
+            st.caption(f"⏱️ Estimated time: {time_estimates[fact_check_thoroughness]} | 💰 Cost: $0.00 (FREE)")
 
         # Submit
         if st.form_submit_button("💾 Save Advanced Settings", type="primary"):
@@ -275,9 +288,11 @@ def render_advanced():
             save_env_variable("LOG_LEVEL", log_level)
             save_env_variable("ENABLE_RESEARCH", str(enable_research))
             save_env_variable("ENABLE_FACT_CHECK", str(enable_fact_check))
+            save_env_variable("FACT_CHECK_THOROUGHNESS", fact_check_thoroughness)
             save_env_variable("ENABLE_AUTO_SYNC", str(enable_auto_sync))
 
             st.success("✅ Advanced settings updated!")
+            st.info("💡 Fact-checking uses Gemini CLI (FREE) - no cost impact")
 
     # Danger zone
     st.divider()

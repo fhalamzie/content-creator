@@ -17,6 +17,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.agents.research_agent import ResearchAgent
 from src.agents.writing_agent import WritingAgent
+from src.agents.fact_checker_agent import FactCheckerAgent
+from src.agents.competitor_research_agent import CompetitorResearchAgent
+from src.agents.keyword_research_agent import KeywordResearchAgent
 from src.notion_integration.sync_manager import SyncManager
 from src.cache_manager import CacheManager
 
@@ -57,6 +60,8 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
 
         # Initialize components
         cache_manager = CacheManager()
+        competitor_agent = CompetitorResearchAgent(api_key=api_key, cache_dir=str(cache_manager.cache_dir))
+        keyword_agent = KeywordResearchAgent(api_key=api_key, cache_dir=str(cache_manager.cache_dir))
         research_agent = ResearchAgent(api_key=api_key)
         writing_agent = WritingAgent(api_key=api_key)
 
@@ -66,26 +71,62 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
         notion_client = NotionClient(token=notion_token)
         sync_manager = SyncManager(cache_manager=cache_manager, notion_client=notion_client)
 
-        # Stage 1: Research (20%)
-        status_placeholder.info("🔍 Researching topic...")
+        # Stage 0: Competitor Research (10%)
+        status_placeholder.info("🔎 Analyzing competitors...")
+        progress_placeholder.progress(0.1)
+
+        competitor_data = competitor_agent.research_competitors(
+            topic=topic,
+            language="de",
+            max_competitors=5,
+            include_content_analysis=True,
+            save_to_cache=True
+        )
+
+        # Stage 1: Keyword Research (20%)
+        status_placeholder.info("🎯 Researching keywords...")
         progress_placeholder.progress(0.2)
+
+        keyword_data = keyword_agent.research_keywords(
+            topic=topic,
+            language="de",
+            target_audience=project_config.get("target_audience", "Business professionals"),
+            keyword_count=10,
+            save_to_cache=True
+        )
+
+        # Stage 2: Topic Research (30%)
+        status_placeholder.info("🔍 Researching topic...")
+        progress_placeholder.progress(0.3)
 
         research_data = research_agent.research(topic=topic, language="de")
 
-        # Stage 2: Writing (60%)
+        # Stage 3: Writing (50%)
         status_placeholder.info("✍️ Writing German blog post...")
-        progress_placeholder.progress(0.6)
+        progress_placeholder.progress(0.5)
 
-        # Parse keywords from project config
-        keywords_str = project_config.get("keywords", "")
-        keywords_list = [k.strip() for k in keywords_str.split(",") if k.strip()] if keywords_str else []
-        primary_keyword = keywords_list[0] if keywords_list else None
-        secondary_keywords = keywords_list[1:] if len(keywords_list) > 1 else None
+        # Use keywords from keyword research (primary source)
+        primary_keyword = keyword_data['primary_keyword']['keyword']
+        secondary_keywords = [kw['keyword'] for kw in keyword_data['secondary_keywords'][:5]]
+
+        # Merge research data with competitor and keyword insights
+        enhanced_research_data = {
+            **research_data,
+            'competitor_insights': {
+                'content_gaps': competitor_data['content_gaps'],
+                'trending_topics': competitor_data['trending_topics']
+            },
+            'seo_insights': {
+                'primary_keyword': keyword_data['primary_keyword'],
+                'long_tail_keywords': [kw['keyword'] for kw in keyword_data['long_tail_keywords'][:3]],
+                'related_questions': keyword_data['related_questions'][:3]
+            }
+        }
 
         # Generate blog post
         blog_result = writing_agent.write_blog(
             topic=topic,
-            research_data=research_data,
+            research_data=enhanced_research_data,
             brand_voice=project_config.get("brand_voice", "Professional"),
             target_audience=project_config.get("target_audience", "Business professionals"),
             primary_keyword=primary_keyword,
@@ -93,16 +134,79 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
             save_to_cache=False  # We'll handle caching separately
         )
 
-        # Stage 3: Cache (80%)
+        # Stage 2.5: Fact-Checking (70%) - NEW!
+        fact_check_enabled = os.getenv("ENABLE_FACT_CHECK", "true").lower() == "true"
+        thoroughness = os.getenv("FACT_CHECK_THOROUGHNESS", "medium")
+
+        if fact_check_enabled:
+            status_placeholder.info("🔍 Fact-checking content...")
+            progress_placeholder.progress(0.7)
+
+            fact_checker = FactCheckerAgent(api_key=api_key)
+            fact_check_result = fact_checker.verify_content(
+                content=blog_result.get("content", ""),
+                thoroughness=thoroughness
+            )
+
+            # Show fact-check results
+            if not fact_check_result.get('valid', True):
+                st.warning(f"⚠️ Fact-check found {len(fact_check_result.get('hallucinations', []))} issues")
+
+                with st.expander("📊 View Fact-Check Report", expanded=True):
+                    st.code(fact_check_result.get('report', 'No report available'))
+
+                    # Show metrics
+                    col1, col2, col3 = st.columns(3)
+                    layers = fact_check_result.get('layers', {})
+
+                    if 'consistency' in layers:
+                        consistency_score = layers['consistency'].get('score', 0) * 10
+                        col1.metric("Consistency", f"{consistency_score:.1f}/10")
+
+                    if 'urls' in layers:
+                        urls_real = layers['urls'].get('urls_real', 0)
+                        urls_total = layers['urls'].get('urls_checked', 0)
+                        col2.metric("Valid URLs", f"{urls_real}/{urls_total}")
+
+                    if 'quality' in layers:
+                        quality_score = layers['quality'].get('quality_score', 0)
+                        col3.metric("Quality", f"{quality_score:.1f}/10")
+
+                # Option to use corrected content
+                use_corrected = st.checkbox("Use AI-corrected content (removes fake URLs)", value=False)
+                if use_corrected and 'corrected_content' in fact_check_result:
+                    blog_result['content'] = fact_check_result['corrected_content']
+                    st.success("✅ Using corrected content")
+
+                # Require confirmation to proceed
+                proceed = st.button("Proceed Despite Issues")
+                if not proceed and not use_corrected:
+                    st.stop()  # Don't continue generation
+            else:
+                st.success("✅ Fact-check passed - No issues detected!")
+
+        # Stage 4: Cache (80%)
         status_placeholder.info("💾 Writing to cache...")
         progress_placeholder.progress(0.8)
 
-        # Prepare metadata for cache
+        # Prepare metadata for cache (includes all research data)
         metadata = {
             **blog_result.get("metadata", {}),
             "seo": blog_result.get("seo", {}),
             "cost": blog_result.get("cost", 0),
-            "sources": research_data.get("sources", [])
+            "sources": research_data.get("sources", []),
+            "competitor_analysis": {
+                "competitors": len(competitor_data['competitors']),
+                "content_gaps": competitor_data['content_gaps'],
+                "trending_topics": competitor_data['trending_topics'],
+                "recommendation": competitor_data['recommendation']
+            },
+            "keyword_research": {
+                "primary_keyword": keyword_data['primary_keyword'],
+                "secondary_keywords": [kw['keyword'] for kw in keyword_data['secondary_keywords'][:5]],
+                "long_tail_keywords": [kw['keyword'] for kw in keyword_data['long_tail_keywords'][:3]],
+                "related_questions": keyword_data['related_questions'][:3]
+            }
         }
 
         # Save to cache (returns slug)
@@ -112,7 +216,7 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
             topic=topic
         )
 
-        # Stage 4: Sync to Notion (100%)
+        # Stage 5: Sync to Notion (100%)
         status_placeholder.info("☁️ Syncing to Notion...")
 
         def progress_callback(current, total, eta_seconds):
@@ -152,6 +256,10 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
             "stats": {
                 "word_count": metadata.get("word_count", 0),
                 "research_sources": len(research_data.get("sources", [])),
+                "competitors_analyzed": len(competitor_data['competitors']),
+                "keywords_found": len(keyword_data['secondary_keywords']) + 1,  # +1 for primary
+                "primary_keyword": keyword_data['primary_keyword']['keyword'],
+                "content_gaps": len(competitor_data['content_gaps']),
                 "cost": blog_result.get("cost", 0.98)
             }
         }
@@ -247,16 +355,27 @@ def render():
             with result_placeholder.container():
                 st.success("✅ Content generated successfully!")
 
-                # Show stats
+                # Show stats - Row 1
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("Word Count", result["stats"]["word_count"])
                 with col2:
-                    st.metric("Sources", result["stats"]["research_sources"])
+                    st.metric("Keywords", result["stats"]["keywords_found"])
                 with col3:
                     st.metric("Cost", f"${result['stats']['cost']:.2f}")
                 with col4:
                     st.metric("Time", f"{elapsed_time:.1f}s")
+
+                # Show stats - Row 2
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Competitors", result["stats"]["competitors_analyzed"])
+                with col2:
+                    st.metric("Sources", result["stats"]["research_sources"])
+                with col3:
+                    st.metric("Content Gaps", result["stats"]["content_gaps"])
+                with col4:
+                    st.caption(f"🎯 **Primary**: {result['stats']['primary_keyword']}")
 
                 # Notion link
                 if result.get("notion_url"):
