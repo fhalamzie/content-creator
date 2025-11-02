@@ -210,7 +210,8 @@ class ResearchAgent(BaseAgent):
             f"- sources: Array of {{url, title, snippet}}\n"
             f"- keywords: Array of relevant keywords\n"
             f"- summary: Brief research summary\n\n"
-            f"Language: {language_name}"
+            f"Language: {language_name}\n\n"
+            f"IMPORTANT: You must return valid JSON only, no additional text."
         )
 
         user_prompt = (
@@ -218,10 +219,11 @@ class ResearchAgent(BaseAgent):
             f"Return comprehensive research results in JSON format."
         )
 
-        # Call API
+        # Call API with JSON mode enabled
         result = self.generate(
             prompt=user_prompt,
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
+            response_format={"type": "json_object"}
         )
 
         # Parse JSON from content

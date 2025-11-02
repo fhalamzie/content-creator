@@ -2,6 +2,32 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 005: UI Bug Fixes & Markdown Rendering Enhancement (2025-11-02)
+
+Fixed critical bugs preventing Streamlit UI from working and replaced custom regex parser with professional mistletoe library for robust markdown-to-Notion conversion.
+
+**Bugs Fixed** (3 bugs):
+- **Bug #13**: Auto-sync exception handling - `sync_blog_post()` raised uncaught `SyncError`, killing generation
+- **Bug #14**: Wrong Notion URL key - Used `notion_url` instead of `url` in return dict
+- **Bug #15**: Markdown code fence wrapper - Content wrapped in ` ```markdown...``` ` rendered as code block instead of formatted content
+
+**Major Improvements**:
+- Replaced regex-based markdown parser with `mistletoe` library (robust AST-based parsing)
+- Implemented JSON mode enforcement via `response_format={"type": "json_object"}` (OpenAI SDK best practice)
+- Auto-sync now works during generation (catches exceptions gracefully)
+- Markdown renders properly in Notion: 51 blocks with headings, paragraphs, lists, bold, italic, links
+
+**Technical Changes**:
+- `src/notion_integration/sync_manager.py:384-605` - Custom `NotionClientRenderer` class using mistletoe
+- `src/agents/base_agent.py:143-203` - Added `response_format` parameter for JSON mode
+- `src/ui/pages/generate.py:126-138` - Exception handling for auto-sync failures
+
+**Dependencies Added**: `mistletoe==1.5.0`, `md2notion==2.4.1`
+
+**See**: [Full details](docs/sessions/005-ui-bug-fixes.md)
+
+---
+
 ## Session 004: Phase 2 - Core Agents & Complete Content Pipeline (2025-11-01)
 
 Completed Phase 2 using strict TDD. Built complete content generation pipeline: Research → Writing → Cache → Notion Sync. All 171 tests passing with 94.87% coverage.

@@ -66,6 +66,30 @@ def mock_cache_manager():
         }
     ]
 
+    # Mock read_blog_post to return data based on slug
+    def read_blog_post_side_effect(slug):
+        blog_posts = {
+            'test-post-1': {
+                'content': '# Test Post 1\n\nContent here...',
+                'metadata': {
+                    'topic': 'Test Topic 1',
+                    'word_count': 1500,
+                    'language': 'de'
+                }
+            },
+            'test-post-2': {
+                'content': '# Test Post 2\n\nContent here...',
+                'metadata': {
+                    'topic': 'Test Topic 2',
+                    'word_count': 2000,
+                    'language': 'de'
+                }
+            }
+        }
+        return blog_posts.get(slug, {'content': '', 'metadata': {}})
+
+    mock_cm.read_blog_post.side_effect = read_blog_post_side_effect
+
     return mock_cm
 
 
@@ -137,14 +161,8 @@ def test_sync_manager_init_creates_components_if_not_provided():
 
 def test_sync_blog_post_success(mock_cache_manager, mock_notion_client, mock_rate_limiter):
     """Test successful single blog post sync"""
-    sync_manager = SyncManager(
-        cache_manager=mock_cache_manager,
-        notion_client=mock_notion_client,
-        rate_limiter=mock_rate_limiter
-    )
-
-    blog_data = {
-        'slug': 'test-post',
+    # Mock cache_manager.read_blog_post to return test data
+    mock_cache_manager.read_blog_post.return_value = {
         'content': '# Test Post\n\nContent',
         'metadata': {
             'topic': 'Test Topic',
@@ -152,7 +170,13 @@ def test_sync_blog_post_success(mock_cache_manager, mock_notion_client, mock_rat
         }
     }
 
-    result = sync_manager.sync_blog_post(blog_data)
+    sync_manager = SyncManager(
+        cache_manager=mock_cache_manager,
+        notion_client=mock_notion_client,
+        rate_limiter=mock_rate_limiter
+    )
+
+    result = sync_manager.sync_blog_post('test-post')
 
     # Verify result
     assert result['success'] is True
@@ -168,6 +192,12 @@ def test_sync_blog_post_success(mock_cache_manager, mock_notion_client, mock_rat
 
 def test_sync_blog_post_with_progress_callback(mock_cache_manager, mock_notion_client, mock_rate_limiter):
     """Test blog post sync with progress callback"""
+    # Mock cache_manager.read_blog_post
+    mock_cache_manager.read_blog_post.return_value = {
+        'content': '# Test Post',
+        'metadata': {'topic': 'Test'}
+    }
+
     sync_manager = SyncManager(
         cache_manager=mock_cache_manager,
         notion_client=mock_notion_client,
@@ -176,13 +206,7 @@ def test_sync_blog_post_with_progress_callback(mock_cache_manager, mock_notion_c
 
     progress_callback = Mock()
 
-    blog_data = {
-        'slug': 'test-post',
-        'content': '# Test Post',
-        'metadata': {'topic': 'Test'}
-    }
-
-    sync_manager.sync_blog_post(blog_data, progress_callback=progress_callback)
+    sync_manager.sync_blog_post('test-post', progress_callback=progress_callback)
 
     # Verify callback was called
     progress_callback.assert_called()
@@ -190,6 +214,12 @@ def test_sync_blog_post_with_progress_callback(mock_cache_manager, mock_notion_c
 
 def test_sync_blog_post_handles_notion_error(mock_cache_manager, mock_notion_client, mock_rate_limiter):
     """Test error handling when Notion API fails"""
+    # Mock cache_manager.read_blog_post
+    mock_cache_manager.read_blog_post.return_value = {
+        'content': '# Test',
+        'metadata': {'topic': 'Test'}
+    }
+
     mock_notion_client.create_page.side_effect = Exception("Notion API error")
 
     sync_manager = SyncManager(
@@ -198,14 +228,8 @@ def test_sync_blog_post_handles_notion_error(mock_cache_manager, mock_notion_cli
         rate_limiter=mock_rate_limiter
     )
 
-    blog_data = {
-        'slug': 'test-post',
-        'content': '# Test',
-        'metadata': {'topic': 'Test'}
-    }
-
     with pytest.raises(SyncError, match="Failed to sync blog post"):
-        sync_manager.sync_blog_post(blog_data)
+        sync_manager.sync_blog_post('test-post')
 
 
 # ==================== Batch Blog Post Sync Tests ====================
@@ -414,6 +438,12 @@ def test_sync_logs_errors(mock_cache_manager, mock_notion_client, mock_rate_limi
     import logging
     caplog.set_level(logging.ERROR)
 
+    # Mock cache_manager.read_blog_post
+    mock_cache_manager.read_blog_post.return_value = {
+        'content': '# Test',
+        'metadata': {'topic': 'Test'}
+    }
+
     mock_notion_client.create_page.side_effect = Exception("Sync error")
 
     sync_manager = SyncManager(
@@ -423,12 +453,7 @@ def test_sync_logs_errors(mock_cache_manager, mock_notion_client, mock_rate_limi
     )
 
     try:
-        blog_data = {
-            'slug': 'test',
-            'content': '# Test',
-            'metadata': {'topic': 'Test'}
-        }
-        sync_manager.sync_blog_post(blog_data)
+        sync_manager.sync_blog_post('test')
     except SyncError:
         pass
 
@@ -440,6 +465,12 @@ def test_sync_logs_errors(mock_cache_manager, mock_notion_client, mock_rate_limi
 
 def test_sync_retries_on_failure(mock_cache_manager, mock_notion_client, mock_rate_limiter):
     """Test retry logic on transient failures"""
+    # Mock cache_manager.read_blog_post
+    mock_cache_manager.read_blog_post.return_value = {
+        'content': '# Test',
+        'metadata': {'topic': 'Test'}
+    }
+
     # Fail twice, succeed on third
     mock_notion_client.create_page.side_effect = [
         Exception("Transient error 1"),
@@ -454,13 +485,7 @@ def test_sync_retries_on_failure(mock_cache_manager, mock_notion_client, mock_ra
         max_retries=3
     )
 
-    blog_data = {
-        'slug': 'test',
-        'content': '# Test',
-        'metadata': {'topic': 'Test'}
-    }
-
-    result = sync_manager.sync_blog_post(blog_data)
+    result = sync_manager.sync_blog_post('test')
 
     # Should succeed after retries
     assert result['success'] is True
@@ -471,6 +496,12 @@ def test_sync_retries_on_failure(mock_cache_manager, mock_notion_client, mock_ra
 
 def test_sync_fails_after_max_retries(mock_cache_manager, mock_notion_client, mock_rate_limiter):
     """Test failure after exceeding max retries"""
+    # Mock cache_manager.read_blog_post
+    mock_cache_manager.read_blog_post.return_value = {
+        'content': '# Test',
+        'metadata': {'topic': 'Test'}
+    }
+
     mock_notion_client.create_page.side_effect = Exception("Persistent error")
 
     sync_manager = SyncManager(
@@ -480,14 +511,8 @@ def test_sync_fails_after_max_retries(mock_cache_manager, mock_notion_client, mo
         max_retries=3
     )
 
-    blog_data = {
-        'slug': 'test',
-        'content': '# Test',
-        'metadata': {'topic': 'Test'}
-    }
-
     with pytest.raises(SyncError):
-        sync_manager.sync_blog_post(blog_data)
+        sync_manager.sync_blog_post('test')
 
     # Verify 3 attempts made
     assert mock_notion_client.create_page.call_count == 3

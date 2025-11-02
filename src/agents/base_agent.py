@@ -145,7 +145,8 @@ class BaseAgent:
         prompt: str,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None
+        max_tokens: Optional[int] = None,
+        response_format: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """
         Generate text using OpenRouter API.
@@ -155,6 +156,7 @@ class BaseAgent:
             system_prompt: Optional system prompt
             temperature: Optional temperature override
             max_tokens: Optional max_tokens override
+            response_format: Optional response format (e.g., {"type": "json_object"})
 
         Returns:
             Dict with:
@@ -168,7 +170,8 @@ class BaseAgent:
         logger.info(
             f"Generating text: agent={self.agent_type}, "
             f"model={self.model}, "
-            f"prompt_length={len(prompt)}"
+            f"prompt_length={len(prompt)}, "
+            f"response_format={response_format}"
         )
 
         # Build messages
@@ -185,12 +188,19 @@ class BaseAgent:
         last_error = None
         for attempt in range(self.MAX_RETRIES):
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=temp,
-                    max_tokens=tokens
-                )
+                # Build API call parameters
+                api_params = {
+                    'model': self.model,
+                    'messages': messages,
+                    'temperature': temp,
+                    'max_tokens': tokens
+                }
+
+                # Add response_format if specified
+                if response_format:
+                    api_params['response_format'] = response_format
+
+                response = self.client.chat.completions.create(**api_params)
 
                 # Extract content
                 content = response.choices[0].message.content

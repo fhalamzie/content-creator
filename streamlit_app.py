@@ -1,0 +1,99 @@
+"""Content Creator System - Main Streamlit Application
+
+AI-powered German content generation with Notion editorial interface.
+Cost-optimized ($8/month) using Qwen3-Max and Gemini CLI.
+"""
+
+import streamlit as st
+from pathlib import Path
+import sys
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+# Import pages
+from ui.pages import dashboard, setup, generate, content_browser, settings
+
+
+def init_session_state():
+    """Initialize session state variables."""
+    if "project_config" not in st.session_state:
+        st.session_state.project_config = {}
+
+    if "generation_history" not in st.session_state:
+        st.session_state.generation_history = []
+
+    if "current_page" not in st.session_state:
+        st.session_state.current_page = "Dashboard"
+
+
+def render_sidebar():
+    """Render navigation sidebar."""
+    with st.sidebar:
+        st.title("🤖 Content Creator")
+        st.caption("AI-powered German content generation")
+
+        st.divider()
+
+        # Navigation menu
+        pages = {
+            "📊 Dashboard": "Dashboard",
+            "⚙️ Setup": "Setup",
+            "✨ Generate": "Generate",
+            "📚 Content Browser": "Content Browser",
+            "🔧 Settings": "Settings"
+        }
+
+        for label, page_name in pages.items():
+            if st.button(
+                label,
+                key=f"nav_{page_name}",
+                use_container_width=True,
+                type="primary" if st.session_state.current_page == page_name else "secondary"
+            ):
+                st.session_state.current_page = page_name
+                st.rerun()
+
+        st.divider()
+
+        # Footer info
+        st.caption("💰 Cost: ~$8/month")
+        st.caption("🇩🇪 Language: German")
+        st.caption("📝 Model: Qwen3-Max")
+
+
+def main():
+    """Main application entry point."""
+    # Page config
+    st.set_page_config(
+        page_title="Content Creator System",
+        page_icon="🤖",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+
+    # Initialize session state
+    init_session_state()
+
+    # Render sidebar navigation
+    render_sidebar()
+
+    # Route to current page
+    page = st.session_state.current_page
+
+    if page == "Dashboard":
+        dashboard.render()
+    elif page == "Setup":
+        setup.render()
+    elif page == "Generate":
+        generate.render()
+    elif page == "Content Browser":
+        content_browser.render()
+    elif page == "Settings":
+        settings.render()
+    else:
+        st.error(f"Unknown page: {page}")
+
+
+if __name__ == "__main__":
+    main()

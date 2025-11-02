@@ -9,38 +9,40 @@ openrouter:
 # ===== Model Assignments by Agent =====
 agents:
   research:
-    model: "gemini-2.5-flash"
-    provider: "gemini-cli"  # Use Gemini CLI for FREE Google Search
+    model: "qwen/qwen3-235b-a22b"
+    provider: "openrouter"
     temperature: 0.3
     max_tokens: 8000
-    description: "Web research and SEO analysis (FREE)"
+    description: "Web research and SEO analysis"
+    cost_per_1m_input: 1.00
+    cost_per_1m_output: 1.00
 
   writing:
-    model: "qwen/qwq-32b-preview"  # Qwen3-Max equivalent on OpenRouter
+    model: "qwen/qwen3-235b-a22b"
     provider: "openrouter"
     temperature: 0.7
     max_tokens: 4000
     description: "German blog post generation (1500-2500 words)"
-    cost_per_1m_input: 1.60
-    cost_per_1m_output: 6.40
+    cost_per_1m_input: 1.00
+    cost_per_1m_output: 1.00
 
   repurposing:
-    model: "qwen/qwq-32b-preview"  # Same as writing for consistency
+    model: "qwen/qwen3-235b-a22b"
     provider: "openrouter"
     temperature: 0.8
     max_tokens: 1500
     description: "German social media content (4 platforms)"
-    cost_per_1m_input: 1.60
-    cost_per_1m_output: 6.40
+    cost_per_1m_input: 1.00
+    cost_per_1m_output: 1.00
 
   publishing:
-    model: "qwen/qwq-32b-preview"
+    model: "qwen/qwen3-235b-a22b"
     provider: "openrouter"
     temperature: 0.5
     max_tokens: 500
     description: "Publishing coordination and status updates"
-    cost_per_1m_input: 1.60
-    cost_per_1m_output: 6.40
+    cost_per_1m_input: 1.00
+    cost_per_1m_output: 1.00
 
 # ===== Alternative Models (for fallback or experimentation) =====
 alternatives:
@@ -63,13 +65,13 @@ alternatives:
     cost_per_1m_output: 0.28
 
   research_api:
-    model: "google/gemini-2.0-flash"
+    model: "qwen/qwen3-235b-a22b"
     provider: "openrouter"
     temperature: 0.3
     max_tokens: 8000
     description: "Fallback if Gemini CLI fails"
-    cost_per_1m_input: 0.00  # FREE
-    cost_per_1m_output: 0.00
+    cost_per_1m_input: 1.00
+    cost_per_1m_output: 1.00
 
 # ===== Cost Estimation =====
 cost_per_bundle:

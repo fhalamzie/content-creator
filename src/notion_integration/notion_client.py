@@ -48,13 +48,14 @@ class NotionClient:
         )
     """
 
-    def __init__(self, token: str, rate_limit: float = 2.5):
+    def __init__(self, token: str, rate_limit: float = 2.5, database_ids_path: str = "cache/database_ids.json"):
         """
         Initialize Notion client.
 
         Args:
             token: Notion integration token
             rate_limit: Requests per second (default: 2.5)
+            database_ids_path: Path to database IDs JSON file
 
         Raises:
             ValueError: If token is empty or None
@@ -66,7 +67,28 @@ class NotionClient:
         self.rate_limiter = RateLimiter(rate=rate_limit)
         self._total_api_calls = 0
 
+        # Load database IDs from cache
+        self.database_ids = self._load_database_ids(database_ids_path)
+
         logger.info(f"NotionClient initialized with rate_limit={rate_limit}")
+
+    def _load_database_ids(self, path: str) -> Dict[str, str]:
+        """Load database IDs from cache file."""
+        import json
+        from pathlib import Path
+
+        cache_path = Path(path)
+        if not cache_path.exists():
+            logger.warning(f"Database IDs file not found: {path}, returning empty dict")
+            return {}
+
+        try:
+            with open(cache_path, 'r') as f:
+                data = json.load(f)
+                return data.get('databases', {})
+        except Exception as e:
+            logger.error(f"Failed to load database IDs from {path}: {e}")
+            return {}
 
     # ==================== Database Operations ====================
 

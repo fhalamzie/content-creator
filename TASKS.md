@@ -2,10 +2,11 @@
 
 ## High Priority (Phase 3: Streamlit UI)
 
-- [ ] Create `streamlit_app.py` (main entry point, page routing)
-- [ ] Setup page (brand voice, target audience, keywords configuration)
-- [ ] Generate content page (topic input, progress bar, ETA display)
-- [ ] Content browser (view cached posts, Notion database viewer)
+- [x] Create `streamlit_app.py` (main entry point, page routing) ✅
+- [x] Setup page (brand voice, target audience, keywords configuration) ✅
+- [x] Generate content page (topic input, progress bar, ETA display) ✅
+- [x] Content browser (view cached posts, Notion database viewer) ✅
+- [x] Fix UI bugs (auto-sync, markdown rendering, JSON mode) ✅
 - [ ] Settings page (API keys management, rate limits, model selection)
 - [ ] Dashboard (stats, cost tracking, recent posts)
 
@@ -57,6 +58,7 @@
   - Blog Posts → Project (relation)
   - Social Posts → Blog Post (relation)
   - Research Data → Blog Post (relation)
+- WritingAgent wraps content in ` ```markdown...``` ` fence (workaround: strip before parsing)
 
 ## Technical Debt
 
