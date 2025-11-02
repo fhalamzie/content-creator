@@ -5,6 +5,11 @@ AI-powered content generation system that creates SEO-optimized German blog post
 ## Features
 
 - **German Content Generation** - Native German blog posts (1500-2500 words) using Qwen3-Max
+- **4-Layer Fact-Checking** ⭐ NEW - AI-powered hallucination detection (100% FREE with Gemini CLI)
+  - Layer 1: Internal consistency (contradictions, implausible claims)
+  - Layer 2: URL validation (fake citations, dead links)
+  - Layer 3: Web research verification (false claims, fake studies)
+  - Layer 4: Content quality (vague claims, weasel words, missing attribution)
 - **Multi-Platform Repurposing** - Automatic social media variants (LinkedIn, Facebook, TikTok, Instagram)
 - **Notion Integration** - Edit generated content in Notion before publishing
 - **Cost-Optimized** - ~$8/month (77% cheaper than premium models)
@@ -14,26 +19,131 @@ AI-powered content generation system that creates SEO-optimized German blog post
 
 ## Business Logic
 
+### AI Agent Architecture
+
+The system uses **6 specialized AI agents**, each with a specific purpose:
+
+#### 1. **CompetitorResearchAgent** 🔎
+**Purpose**: Analyze 5 competitors to find content gaps and strategic opportunities
+
+**Why**: Don't write content that's already saturated. Find underserved topics where you can win.
+
+**What it does**:
+- Identifies 5 main competitors in your niche
+- Analyzes their content strategies (strengths/weaknesses)
+- Finds **content gaps** (topics they ignore)
+- Spots trending topics in your industry
+- Provides strategic recommendation
+
+**Output**: "Write about GDPR for German SMBs" (gap) vs "Generic cloud intro" (saturated)
+
+**Cost**: FREE (Gemini CLI)
+
+#### 2. **KeywordResearchAgent** 🎯
+**Purpose**: Find the best SEO keywords to target (primary + secondary + long-tail)
+
+**Why**: Ensure your content ranks in search engines and reaches your target audience.
+
+**What it does**:
+- Finds 1 primary keyword (best fit for topic)
+- Finds 10 secondary keywords (semantic variations)
+- Generates 3-5 long-tail keywords (specific phrases, 3-5 words)
+- Includes "People also ask" questions
+- Provides search volume, competition, difficulty scores
+
+**Output**: Primary: "Cloud Computing für KMU", Long-tail: "Cloud-Migration GDPR-konform"
+
+**Cost**: FREE (Gemini CLI)
+
+#### 3. **ResearchAgent** 🔍
+**Purpose**: Gather web sources and factual data about your topic
+
+**Why**: Ensure content is accurate, well-researched, and includes authoritative citations.
+
+**What it does**:
+- Web search via Gemini CLI
+- Extracts sources (URL, title, snippet)
+- Generates research summary
+- Provides keyword suggestions
+
+**Output**: 5-10 authoritative sources with summaries
+
+**Cost**: FREE (Gemini CLI)
+
+#### 4. **WritingAgent** ✍️
+**Purpose**: Generate SEO-optimized German blog post (1500-2500 words)
+
+**Why**: Create high-quality, native German content tailored to your brand voice and audience.
+
+**What it does**:
+- Uses research + competitor insights + keywords
+- Writes in German with proper grammar and cultural context
+- Applies brand voice (Professional/Casual/Technical/Friendly)
+- Includes SEO metadata (meta description, alt texts, internal links)
+- Extracts citations from research sources
+
+**Output**: 1800-word German blog post with SEO optimization
+
+**Cost**: $0.64 per post (Qwen3-Max)
+
+#### 5. **FactCheckerAgent** ✅
+**Purpose**: Verify content accuracy and detect hallucinations (4-layer verification)
+
+**Why**: Prevent publishing false information, fake URLs, or unverifiable claims.
+
+**What it does**:
+- **Layer 1 (Consistency)**: Detects contradictions within the content
+- **Layer 2 (URLs)**: Verifies all URLs actually exist (HTTP HEAD requests)
+- **Layer 3 (Claims)**: Web-searches top 5 claims to verify accuracy
+- **Layer 4 (Quality)**: Detects "bullshit" (vague, meaningless statements)
+
+**Output**: Fact-check report with issues flagged, or ✅ pass
+
+**Cost**: $0.08 per post (Qwen3-Max)
+
+#### 6. **RepurposingAgent** 📱 (Coming Soon)
+**Purpose**: Transform blog post into 4 social media variants
+
+**Why**: Maximize content ROI by reaching audiences on LinkedIn, Facebook, TikTok, Instagram.
+
+**What it does**:
+- Platform-specific formatting (character limits, hashtags)
+- Extracts key takeaways for social posts
+- Generates hashtags (platform-specific)
+- Suggests media (image descriptions for DALL-E 3)
+
+**Output**: 4 social posts ready to publish
+
+**Cost**: $0.26 per bundle (Qwen3-Max)
+
+---
+
 ### Content Pipeline
 
-1. **Research Phase** - Gemini CLI performs web research with Google Search (FREE)
-2. **Writing Phase** - Qwen3-Max generates German blog posts with citations
-3. **Repurposing Phase** - Creates 4 social media variants in German
-4. **Cache Phase** - Writes all content to disk (`cache/*.md`)
-5. **Sync Phase** - Rate-limited upload to Notion (2.5 req/sec)
-6. **Editorial Phase** - Human review and editing in Notion
-7. **Publishing Phase** - Automated posting to LinkedIn, Facebook
+The agents work together in this sequence:
+
+1. **Competitor Research Phase** (10%) - Find content gaps and opportunities
+2. **Keyword Research Phase** (20%) - Identify best SEO keywords
+3. **Topic Research Phase** (30%) - Gather web sources and data
+4. **Writing Phase** (50%) - Generate blog post with all insights
+5. **Fact-Checking Phase** (70%) ⭐ - 4-layer verification (optional, ~16s)
+6. **Cache Phase** (80%) - Save to disk with full metadata
+7. **Sync Phase** (100%) - Upload to Notion (rate-limited 2.5 req/sec)
+8. **Editorial Phase** - Human review and editing in Notion
+9. **Publishing Phase** - Automated posting to social platforms
 
 ### Cost Structure
 
-| Component | Model | Cost |
-|-----------|-------|------|
-| Research | Gemini CLI | FREE |
-| Blog Writing | Qwen3-Max | $0.64 |
-| Fact-Checking | Qwen3-Max | $0.08 |
-| Social Repurposing | Qwen3-Max | $0.26 |
-| **Total per bundle** | | **$0.98** |
-| **Monthly (8 bundles)** | | **~$8** |
+| Component | Agent | Model | Cost |
+|-----------|-------|-------|------|
+| Competitor Research | CompetitorResearchAgent | Gemini CLI | FREE |
+| Keyword Research | KeywordResearchAgent | Gemini CLI | FREE |
+| Topic Research | ResearchAgent | Gemini CLI | FREE |
+| Blog Writing | WritingAgent | Qwen3-Max | $0.64 |
+| Fact-Checking | FactCheckerAgent | Qwen3-Max | $0.08 |
+| Social Repurposing | RepurposingAgent | Qwen3-Max | $0.26 |
+| **Total per bundle** | | | **$0.98** |
+| **Monthly (8 bundles)** | | | **~$8** |
 
 ### Content Quality
 

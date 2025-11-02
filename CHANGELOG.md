@@ -2,6 +2,33 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 007: Competitor & Keyword Research Agents (2025-11-02)
+
+Implemented two strategic research agents that transform content generation from generic topic writing to SEO-optimized, competitively-differentiated content. Both agents use FREE Gemini CLI, adding zero cost while providing massive strategic value.
+
+**New Agents Implemented** ✅:
+- **CompetitorResearchAgent** (405 lines, 24 tests) - Finds content gaps and strategic opportunities
+- **KeywordResearchAgent** (420 lines, 27 tests) - SEO keyword research with difficulty scoring
+
+**Strategic Value**:
+- Competitor agent finds what competitors DON'T do (gaps), not what they do (avoids saturated topics)
+- Keyword agent provides primary + 10 secondary + long-tail keywords with search volume/competition/difficulty
+- Content differentiation: "GDPR for German SMBs" (gap) vs "Generic cloud intro" (saturated)
+- SEO optimization: Long-tail keywords (low competition, high intent)
+
+**Pipeline Enhancement** (3 stages → 5 stages):
+- Stage 0: Competitor Research (10%) - Analyze 5 competitors, find gaps
+- Stage 1: Keyword Research (20%) - Find best SEO keywords
+- Stage 2: Topic Research (30%) - Web sources
+- Stage 3: Writing (50%) - Blog with competitor + keyword insights
+- Stage 4+: Fact-check + Cache + Sync (100%)
+
+**Cost Impact**: **$0.98/post** (unchanged - both agents FREE via Gemini CLI)
+
+**See**: [Full details](docs/sessions/007-competitor-keyword-research-agents.md)
+
+---
+
 ## Session 006: Phase 3 Complete - Settings & Dashboard UI (2025-11-02)
 
 Completed Phase 3 (Streamlit UI) by adding comprehensive test coverage for Settings and Dashboard pages. Both pages were already implemented with excellent functionality; added 63 new tests to ensure quality and maintainability.

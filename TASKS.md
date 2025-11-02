@@ -11,6 +11,16 @@
 
 ## Completed
 
+**Research Agents** ✅ (Session 007):
+- [x] Write tests + implement `src/agents/competitor_research_agent.py` (100% coverage, 24 tests)
+- [x] Write tests + implement `src/agents/keyword_research_agent.py` (100% coverage, 27 tests)
+- [x] Create competitor research spec (docs/competitor_research_agent_spec.md)
+- [x] Create keyword research spec (docs/keyword_research_agent_spec.md)
+- [x] Integrate both agents into generation pipeline (5-stage pipeline)
+- [x] Update UI to show enhanced stats (8 metrics: competitors, keywords, gaps)
+- [x] Add research data to blog post metadata (competitor + keyword insights)
+- [x] Document agent reasoning in README.md (AI Agent Architecture section)
+
 **Phase 3 - Streamlit UI** ✅:
 - [x] Create `streamlit_app.py` (main entry point, page routing)
 - [x] Setup page (brand voice, target audience, keywords configuration)
@@ -51,7 +61,10 @@
 - [ ] Media creator (DALL-E 3 hero images)
 - [ ] Analytics dashboard (performance tracking)
 - [ ] Plagiarism checker integration
-- [ ] Competitor monitoring
+- [ ] Competitor tracking over time (detect strategy changes)
+- [ ] Keyword trend tracking (seasonal patterns)
+- [ ] Export competitor analysis to Notion "Competitors" database
+- [ ] Export keyword research to Notion "Research Data" database
 - [ ] A/B testing for social posts
 - [ ] Multi-language support (add blog_en.md)
 
@@ -62,6 +75,7 @@
   - Social Posts → Blog Post (relation)
   - Research Data → Blog Post (relation)
 - WritingAgent wraps content in ` ```markdown...``` ` fence (workaround: strip before parsing)
+- ~~f-string syntax error in settings.py:282~~ ✅ Fixed (Session 007)
 
 ## Technical Debt
 
