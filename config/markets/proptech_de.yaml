@@ -1,0 +1,83 @@
+# German PropTech Market Configuration
+# =====================================
+# Universal Topic Research Agent - Market-specific config
+#
+# Usage:
+#   from src.utils.config_loader import ConfigLoader
+#   loader = ConfigLoader()
+#   config = loader.load("proptech_de")
+
+# === Market Configuration ===
+domain: SaaS
+market: Germany
+language: de
+vertical: Proptech
+
+# Target audience for content optimization
+target_audience: German SMBs in real estate and property management
+
+# Seed keywords for intelligent feed discovery
+# These keywords kick-start the 2-stage discovery process:
+#   Stage 1: OPML seeds + Gemini CLI expansion (FREE)
+#   Stage 2: SerpAPI (3/day) + feedfinder2
+seed_keywords:
+  - PropTech
+  - Smart Building
+  - Immobilien SaaS
+  - DSGVO
+  - Hausverwaltung
+  - Digitalisierung Immobilien
+  - IoT Gebäude
+
+# Known competitors for analysis
+competitor_urls:
+  - https://www.immobilienscout24.de
+  - https://www.propstack.de
+  - https://www.casavi.de
+  - https://www.haufe.de/immobilien
+
+# === Collector Configuration ===
+collectors:
+  # RSS Feed Collection
+  rss_enabled: true
+
+  # Reddit Collection
+  reddit_enabled: true
+  reddit_subreddits:
+    - de
+    - Finanzen
+    - PropTech
+    - realestate_de
+
+  # Google Trends
+  trends_enabled: true
+
+  # Autocomplete Suggestions
+  autocomplete_enabled: true
+
+  # Custom RSS Feeds (OPML seed list)
+  # These are curated German tech/business feeds
+  custom_feeds:
+    # German Tech News
+    - https://www.heise.de/rss/heise-atom.xml
+    - https://t3n.de/rss.xml
+    - https://www.golem.de/rss.php
+
+    # Business & Startups
+    - https://www.gruenderszene.de/feed
+    - https://www.deutsche-startups.de/feed/
+
+    # PropTech Specific
+    - https://www.immobilienmanager.de/rss/news.xml
+    - https://www.haufe.de/immobilien/rss.xml
+
+# === Scheduling Configuration ===
+scheduling:
+  # Daily collection time (24-hour format)
+  collection_time: "02:00"
+
+  # Day of week for Notion sync
+  notion_sync_day: monday
+
+  # How many days to look back for content
+  lookback_days: 7

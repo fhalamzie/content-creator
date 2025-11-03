@@ -1,0 +1,75 @@
+# French Fashion E-commerce Configuration
+# ========================================
+# Universal Topic Research Agent - Market-specific config
+#
+# Usage:
+#   from src.utils.config_loader import ConfigLoader
+#   loader = ConfigLoader()
+#   config = loader.load("fashion_fr")
+
+# === Market Configuration ===
+domain: E-commerce
+market: France
+language: fr
+vertical: Fashion
+
+# Target audience for content optimization
+target_audience: French fashion consumers and online shoppers
+
+# Seed keywords for intelligent feed discovery
+seed_keywords:
+  - Mode
+  - E-commerce Mode
+  - Fashion Tech
+  - Shopping en ligne
+  - Tendances Mode
+  - Streetwear
+  - Luxe
+
+# Known competitors for analysis
+competitor_urls:
+  - https://www.zalando.fr
+  - https://www.asos.fr
+  - https://www.vestiairecollective.com
+  - https://www.farfetch.com/fr
+
+# === Collector Configuration ===
+collectors:
+  # RSS Feed Collection
+  rss_enabled: true
+
+  # Reddit Collection
+  reddit_enabled: true
+  reddit_subreddits:
+    - france
+    - FrenchFashion
+    - femalefashionadvice
+    - malefashionadvice
+
+  # Google Trends
+  trends_enabled: true
+
+  # Autocomplete Suggestions
+  autocomplete_enabled: true
+
+  # Custom RSS Feeds (OPML seed list)
+  custom_feeds:
+    # French Fashion News
+    - https://www.vogue.fr/feed
+    - https://www.elle.fr/rss.xml
+    - https://www.madmoizelle.com/feed
+
+    # Tech & E-commerce
+    - https://www.frenchweb.fr/feed
+    - https://www.journaldunet.com/rss/
+
+# === Scheduling Configuration ===
+scheduling:
+  # Daily collection time (24-hour format)
+  collection_time: "03:00"
+
+  # Day of week for Notion sync
+  notion_sync_day: wednesday
+
+  # How many days to look back for content
+  lookback_days: 14

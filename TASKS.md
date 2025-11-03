@@ -1,6 +1,40 @@
 # Tasks
 
-## High Priority (Phase 4: Repurposing Agent)
+## High Priority (Universal Topic Research Agent - Phase 1)
+
+**See**: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for complete plan (1,400+ lines)
+
+**Week 1: Foundation** (Current Focus - 3/7 Complete, 42.9%):
+- [x] Central logging system (`src/utils/logger.py` with structlog) ✅
+- [x] Unified `Document` model (`src/models/document.py`) ✅
+- [x] Configuration system (`src/utils/config_loader.py`) ✅
+- [x] Example configs (`config/markets/proptech_de.yaml`, `fashion_fr.yaml`) ✅
+- [ ] SQLite schema (documents, topics, research_reports tables)
+- [ ] LLM processor (`src/processors/llm_processor.py` - qwen-turbo via OpenRouter)
+- [ ] Deduplicator (`src/processors/deduplicator.py` - MinHash/LSH)
+- [ ] Huey task queue setup (`src/tasks/huey_tasks.py`)
+
+**Week 2: Core Collectors**:
+- [ ] RSS collector (`src/collectors/rss_collector.py` - feedparser + trafilatura)
+- [ ] Reddit collector (`src/collectors/reddit_collector.py` - PRAW)
+- [ ] Trends collector (`src/collectors/trends_collector.py` - pytrends)
+- [ ] Autocomplete collector (`src/collectors/autocomplete_collector.py`)
+- [ ] Intelligent feed discovery (`src/collectors/feed_discovery.py` - DuckDuckGo SERP)
+- [ ] Topic clustering (qwen-turbo batch call)
+- [ ] Entity extraction (qwen-turbo)
+- [ ] Deep research wrapper (`src/research/deep_researcher.py` - gpt-researcher)
+- [ ] 5-stage content pipeline (`src/agents/content_pipeline.py`)
+- [ ] Notion sync for topics
+
+**Acceptance Criteria**:
+- [ ] Discovers 50+ unique topics/week for test config
+- [ ] Deduplication rate <5%
+- [ ] Language detection >95% accurate
+- [ ] Deep research generates 5-6 page reports with citations
+- [ ] Top 10 topics sync to Notion successfully
+- [ ] Runs automated (daily collection at 2 AM)
+
+## High Priority (Content Creator - Phase 4: Repurposing Agent)
 
 - [ ] Write tests + implement `src/agents/repurposing_agent.py`
 - [ ] Social post templates (LinkedIn, Facebook, TikTok, Instagram)
@@ -10,6 +44,26 @@
 - [ ] Test social post sync to Notion
 
 ## Completed
+
+**Universal Topic Research Agent - Week 1 Foundation (Part 1)** ✅ (Session 008):
+- [x] Central Logging System (100% coverage, 20 tests, structlog)
+- [x] Document Model (100% coverage, 20 tests, Pydantic V2)
+- [x] Configuration System (93.94% coverage, 20 tests, YAML + validation)
+- [x] Example configs (proptech_de.yaml, fashion_fr.yaml)
+- [x] Config documentation (README.md)
+- [x] TDD workflow established (test-first, 96.23% overall coverage)
+
+**Universal Topic Research Agent - Planning** ✅ (Session 008):
+- [x] Synthesize 7 planning documents into single IMPLEMENTATION_PLAN.md (1,400+ lines)
+- [x] LLM-first strategy design (replace 5GB NLP dependencies with qwen-turbo)
+- [x] Intelligent feed discovery architecture (4-stage, zero manual input)
+- [x] Modular architecture design (layered, no import circles, DI pattern)
+- [x] Central logging system design (structlog)
+- [x] Integrate competitor & keyword research agents (already implemented)
+- [x] Enhanced 5-stage content pipeline design
+- [x] Update requirements-topic-research.txt (LLM-first dependencies)
+- [x] Delete redundant planning docs (7 files, ~150KB)
+- [x] Document phase 1-3 implementation roadmap
 
 **Research Agents** ✅ (Session 007):
 - [x] Write tests + implement `src/agents/competitor_research_agent.py` (100% coverage, 24 tests)
@@ -51,7 +105,31 @@
 
 ## Backlog
 
-**Phase 5 - Publishing Automation**:
+**Universal Topic Research Agent - Phase 2** (Week 3-4):
+- [ ] SERP Top 10 analyzer (RankCraft-AI pattern, DuckDuckGo)
+- [ ] Content scoring algorithm (0-100 scale)
+- [ ] Keyword density + variations analysis
+- [ ] Readability scoring (textstat)
+- [ ] Entity coverage analysis
+- [ ] Topic authority detection (LLM-based clustering)
+- [ ] Content gap analysis (competitors vs ours)
+- [ ] Difficulty scoring (personalized)
+- [ ] Internal linking suggestions
+- [ ] Performance tracking setup
+
+**Universal Topic Research Agent - Phase 3** (Week 5-6):
+- [ ] Postgres migration (keep SQLite for dev)
+- [ ] pgvector for similarity search
+- [ ] Huey + Redis (if distributed workers needed)
+- [ ] Source reliability scoring
+- [ ] Compliance logging (robots.txt, attribution)
+- [ ] Test with 3+ different configs (validate universal design)
+- [ ] Feed manager UI (Streamlit)
+- [ ] Analytics dashboard (source performance)
+- [ ] Multi-platform publishing (WordPress, Webflow, Medium)
+- [ ] Google Search Console integration
+
+**Content Creator - Phase 5 (Publishing Automation)**:
 - [ ] Platform publishers (LinkedIn, Facebook APIs)
 - [ ] Publishing agent + background service (APScheduler)
 - [ ] Publisher deployment (PM2 or Streamlit thread)
@@ -89,20 +167,26 @@
 
 ## Success Criteria
 
-**Phase 1** ✅: All tasks complete, cache system working (100% coverage), Notion connection (rate-limited, 93.67% coverage), 5 databases created, test infrastructure (97.70% coverage)
+**Universal Topic Research Agent**:
+- **Phase 1 MVP**: Discovers 50+ unique topics/week, <5% duplicates, >95% language accuracy, 5-6 page reports with citations, top 10 topics sync to Notion, automated daily collection
+- **Phase 2 Intelligence**: Content scores match commercial tools, 20+ content gaps identified, difficulty scores accurate, 100+ keywords analyzed
+- **Phase 3 Production**: Handles 3+ niches simultaneously, Postgres supports 100K+ documents, analytics dashboard shows ROI per source, multi-platform publishing works
 
-**Phase 2** ✅: German prompts created (2 templates), base agent working (100% coverage), research agent (Gemini CLI, 97.06% coverage), writing agent (Qwen3-Max, 97.70% coverage), sync manager (cache → Notion, 93.20% coverage), integration tests passing (11 tests), 171 total tests, 94.87% overall coverage
-
-**Phase 3** ✅: Streamlit UI functional (all 5 pages: setup, generate, browse, settings, dashboard), progress tracking working, ETA display accurate, cost tracking visible, Notion integration seamless, 254 tests passing
-
-**MVP**: Generate 10 German blog posts via UI, cache sync to Notion, edit in Notion, 4 social posts per blog (repurposing agent), cost target achieved (~$0.98/bundle), basic publishing working
-
-**Production**: 100 posts generated/published, logging in place, documentation complete, publisher stable, German quality validated by native speakers, rate limiting working, analytics dashboard functional
+**Content Creator**:
+- **Phase 1** ✅: All tasks complete, cache system working (100% coverage), Notion connection (rate-limited, 93.67% coverage), 5 databases created, test infrastructure (97.70% coverage)
+- **Phase 2** ✅: German prompts created (2 templates), base agent working (100% coverage), research agent (Gemini CLI, 97.06% coverage), writing agent (Qwen3-Max, 97.70% coverage), sync manager (cache → Notion, 93.20% coverage), integration tests passing (11 tests), 171 total tests, 94.87% overall coverage
+- **Phase 3** ✅: Streamlit UI functional (all 5 pages: setup, generate, browse, settings, dashboard), progress tracking working, ETA display accurate, cost tracking visible, Notion integration seamless, 254 tests passing
+- **Phase 4 MVP**: Generate 10 German blog posts via UI, cache sync to Notion, edit in Notion, 4 social posts per blog (repurposing agent), cost target achieved (~$0.98/bundle), basic publishing working
+- **Phase 5 Production**: 100 posts generated/published, logging in place, documentation complete, publisher stable, German quality validated by native speakers, rate limiting working, analytics dashboard functional
 
 ## Notes
 
 - **TDD**: Write tests before implementation
 - **Coverage**: 80% minimum, 100% for critical paths
-- **Cost Target**: ~$0.98/bundle
+- **Cost Targets**:
+  - Content Creator: ~$0.98/bundle
+  - Topic Research Agent: ~$0.003/month for MVP (LLM-first strategy)
 
-**Detailed info**: See [PLAN.md](PLAN.md) for comprehensive implementation plan
+**Detailed Plans**:
+- **Universal Topic Research Agent**: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) (1,400+ lines, single source of truth)
+- **Content Creator**: [PLAN.md](PLAN.md) (original implementation plan)
