@@ -16,10 +16,10 @@
 
 **Week 1 Metrics**: 160 tests passing, 94.67% coverage, 100% TDD compliance
 
-**Week 2: Core Collectors** (1/10 complete, 10%):
+**Week 2: Core Collectors** (3/10 complete, 30%):
 - [x] Feed discovery (`src/collectors/feed_discovery.py`) - 558 lines, 21 tests, 92.69% coverage ✅
-- [ ] RSS collector (`src/collectors/rss_collector.py` - feedparser + trafilatura)
-- [ ] Reddit collector (`src/collectors/reddit_collector.py` - PRAW)
+- [x] RSS collector (`src/collectors/rss_collector.py`) - 606 lines, 26 tests, 90.23% coverage ✅
+- [x] Reddit collector (`src/collectors/reddit_collector.py`) - 517 lines, 21 tests, 85.71% coverage ✅
 - [ ] Trends collector (`src/collectors/trends_collector.py` - pytrends)
 - [ ] Autocomplete collector (`src/collectors/autocomplete_collector.py`)
 - [ ] Topic clustering (`src/processors/clustering.py` - TF-IDF + HDBSCAN)
@@ -30,8 +30,8 @@
 
 **Week 2: E2E Testing** (Required for ALL components):
 - [x] Feed Discovery E2E - Integration test with real config ✅
-- [ ] RSS Collector E2E - Fetch 50+ articles from real feeds, validate dedup
-- [ ] Reddit Collector E2E - Connect to r/de, fetch posts, validate Document creation
+- [x] RSS Collector E2E - 13 integration tests with real feeds (Heise.de, GitHub Atom) ✅
+- [x] Reddit Collector E2E - 11 integration tests with real subreddits (r/de, r/Python) ✅
 - [ ] Trends Collector E2E - Query German PropTech trends, validate data
 - [ ] Autocomplete Collector E2E - Get suggestions for seed keywords
 - [ ] Full Pipeline E2E - Feed Discovery → RSS Collection → Dedup → Clustering → Deep Research → Notion Sync

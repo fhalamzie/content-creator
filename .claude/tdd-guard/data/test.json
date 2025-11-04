@@ -1,111 +1,246 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/collectors/test_feed_discovery.py",
+      "moduleId": "tests/unit/collectors/test_reddit_collector.py",
       "tests": [
         {
-          "name": "test_load_opml_seeds_parses_correctly",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_load_opml_seeds_parses_correctly",
+          "name": "test_reddit_collector_initialization",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_reddit_collector_initialization",
           "state": "passed"
         },
         {
-          "name": "test_load_opml_seeds_handles_missing_file",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_load_opml_seeds_handles_missing_file",
+          "name": "test_reddit_collector_creates_cache_dir",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_reddit_collector_creates_cache_dir",
           "state": "passed"
         },
         {
-          "name": "test_expand_keywords_with_gemini_cli_success",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_expand_keywords_with_gemini_cli_success",
+          "name": "test_reddit_authentication",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_reddit_authentication",
           "state": "passed"
         },
         {
-          "name": "test_expand_keywords_with_gemini_cli_failure_fallback",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_expand_keywords_with_gemini_cli_failure_fallback",
+          "name": "test_collect_from_subreddit_hot",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_collect_from_subreddit_hot",
           "state": "passed"
         },
         {
-          "name": "test_expand_keywords_retry_logic",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_expand_keywords_retry_logic",
+          "name": "test_collect_from_subreddit_new",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_collect_from_subreddit_new",
           "state": "passed"
         },
         {
-          "name": "test_stage1_combines_opml_and_custom_feeds",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_stage1_combines_opml_and_custom_feeds",
+          "name": "test_collect_from_subreddit_top_with_time_filter",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_collect_from_subreddit_top_with_time_filter",
           "state": "passed"
         },
         {
-          "name": "test_serpapi_search_returns_domains",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_serpapi_search_returns_domains",
+          "name": "test_extract_top_comments",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_extract_top_comments",
           "state": "passed"
         },
         {
-          "name": "test_serpapi_circuit_breaker_enforces_daily_limit",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_serpapi_circuit_breaker_enforces_daily_limit",
+          "name": "test_extract_comments_handles_deleted",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_extract_comments_handles_deleted",
           "state": "passed"
         },
         {
-          "name": "test_serpapi_cache_prevents_duplicate_queries",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_serpapi_cache_prevents_duplicate_queries",
+          "name": "test_document_creation_from_submission",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_document_creation_from_submission",
           "state": "passed"
         },
         {
-          "name": "test_serpapi_cache_expires_after_30_days",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_serpapi_cache_expires_after_30_days",
+          "name": "test_document_includes_metadata",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_document_includes_metadata",
           "state": "passed"
         },
         {
-          "name": "test_feedfinder_discovers_feeds_from_domain",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_feedfinder_discovers_feeds_from_domain",
+          "name": "test_subreddit_health_initialization",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_subreddit_health_initialization",
           "state": "passed"
         },
         {
-          "name": "test_feedfinder_handles_no_feeds_found",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_feedfinder_handles_no_feeds_found",
+          "name": "test_subreddit_health_success_tracking",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_subreddit_health_success_tracking",
           "state": "passed"
         },
         {
-          "name": "test_stage2_integrates_serpapi_and_feedfinder",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_stage2_integrates_serpapi_and_feedfinder",
+          "name": "test_subreddit_health_failure_tracking",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_subreddit_health_failure_tracking",
           "state": "passed"
         },
         {
-          "name": "test_discover_feeds_runs_both_stages",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_discover_feeds_runs_both_stages",
+          "name": "test_filter_by_minimum_score",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_filter_by_minimum_score",
           "state": "passed"
         },
         {
-          "name": "test_discover_feeds_deduplicates_urls",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_discover_feeds_deduplicates_urls",
+          "name": "test_rate_limiting_enforcement",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_rate_limiting_enforcement",
           "state": "passed"
         },
         {
-          "name": "test_discover_feeds_returns_metadata",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_discover_feeds_returns_metadata",
+          "name": "test_handles_private_subreddit",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_handles_private_subreddit",
           "state": "passed"
         },
         {
-          "name": "test_discover_feeds_continues_on_partial_failure",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_discover_feeds_continues_on_partial_failure",
+          "name": "test_handles_not_found_subreddit",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_handles_not_found_subreddit",
           "state": "passed"
         },
         {
-          "name": "test_serpapi_handles_rate_limit_error",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_serpapi_handles_rate_limit_error",
+          "name": "test_collect_from_multiple_subreddits",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_collect_from_multiple_subreddits",
           "state": "passed"
         },
         {
-          "name": "test_feedfinder_handles_network_timeout",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_feedfinder_handles_network_timeout",
+          "name": "test_collect_from_subreddits_with_failures",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_collect_from_subreddits_with_failures",
           "state": "passed"
         },
         {
-          "name": "test_get_discovery_stats_returns_counts",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_get_discovery_stats_returns_counts",
+          "name": "test_collection_statistics",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_collection_statistics",
           "state": "passed"
         },
         {
-          "name": "test_reset_daily_limit_resets_counter",
-          "fullName": "tests/unit/collectors/test_feed_discovery.py::test_reset_daily_limit_resets_counter",
+          "name": "test_filters_low_quality_posts",
+          "fullName": "tests/unit/collectors/test_reddit_collector.py::test_filters_low_quality_posts",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/collectors/test_rss_collector.py",
+      "tests": [
+        {
+          "name": "test_rss_collector_initialization",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_rss_collector_initialization",
+          "state": "passed"
+        },
+        {
+          "name": "test_rss_collector_creates_cache_dir",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_rss_collector_creates_cache_dir",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_from_feed_success",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_collect_from_feed_success",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_from_feed_malformed",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_collect_from_feed_malformed",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_from_feed_empty",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_collect_from_feed_empty",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_from_feed_with_etag",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_collect_from_feed_with_etag",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_full_content_success",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_extract_full_content_success",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_full_content_fallback_to_summary",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_extract_full_content_fallback_to_summary",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_full_content_timeout",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_extract_full_content_timeout",
+          "state": "passed"
+        },
+        {
+          "name": "test_feed_health_initialization",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_feed_health_initialization",
+          "state": "passed"
+        },
+        {
+          "name": "test_feed_health_success_tracking",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_feed_health_success_tracking",
+          "state": "passed"
+        },
+        {
+          "name": "test_feed_health_failure_tracking",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_feed_health_failure_tracking",
+          "state": "passed"
+        },
+        {
+          "name": "test_should_skip_unhealthy_feed",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_should_skip_unhealthy_feed",
+          "state": "passed"
+        },
+        {
+          "name": "test_should_not_skip_healthy_feed",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_should_not_skip_healthy_feed",
+          "state": "passed"
+        },
+        {
+          "name": "test_per_host_rate_limiting",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_per_host_rate_limiting",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_creation_with_all_fields",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_document_creation_with_all_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_document_id_generation",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_document_id_generation",
+          "state": "passed"
+        },
+        {
+          "name": "test_skip_duplicate_documents",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_skip_duplicate_documents",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_from_multiple_feeds",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_collect_from_multiple_feeds",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_from_feeds_with_failures",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_collect_from_feeds_with_failures",
+          "state": "passed"
+        },
+        {
+          "name": "test_save_and_load_feed_cache",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_save_and_load_feed_cache",
+          "state": "passed"
+        },
+        {
+          "name": "test_cache_expiry",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_cache_expiry",
+          "state": "passed"
+        },
+        {
+          "name": "test_network_error_handling",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_network_error_handling",
+          "state": "passed"
+        },
+        {
+          "name": "test_invalid_url_handling",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_invalid_url_handling",
+          "state": "passed"
+        },
+        {
+          "name": "test_collection_statistics",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_collection_statistics",
+          "state": "passed"
+        },
+        {
+          "name": "test_statistics_with_failures",
+          "fullName": "tests/unit/collectors/test_rss_collector.py::test_statistics_with_failures",
           "state": "passed"
         }
       ]
