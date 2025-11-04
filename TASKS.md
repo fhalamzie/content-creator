@@ -16,25 +16,35 @@
 
 **Week 1 Metrics**: 160 tests passing, 94.67% coverage, 100% TDD compliance
 
-**Week 2: Core Collectors**:
+**Week 2: Core Collectors** (1/10 complete, 10%):
+- [x] Feed discovery (`src/collectors/feed_discovery.py`) - 558 lines, 21 tests, 92.69% coverage ✅
 - [ ] RSS collector (`src/collectors/rss_collector.py` - feedparser + trafilatura)
 - [ ] Reddit collector (`src/collectors/reddit_collector.py` - PRAW)
 - [ ] Trends collector (`src/collectors/trends_collector.py` - pytrends)
 - [ ] Autocomplete collector (`src/collectors/autocomplete_collector.py`)
-- [ ] Intelligent feed discovery (`src/collectors/feed_discovery.py` - DuckDuckGo SERP)
-- [ ] Topic clustering (qwen-turbo batch call)
-- [ ] Entity extraction (qwen-turbo)
+- [ ] Topic clustering (`src/processors/clustering.py` - TF-IDF + HDBSCAN)
+- [ ] Entity extraction (qwen-turbo via LLM processor)
 - [ ] Deep research wrapper (`src/research/deep_researcher.py` - gpt-researcher)
 - [ ] 5-stage content pipeline (`src/agents/content_pipeline.py`)
 - [ ] Notion sync for topics
 
-**Acceptance Criteria**:
-- [ ] Discovers 50+ unique topics/week for test config
-- [ ] Deduplication rate <5%
-- [ ] Language detection >95% accurate
-- [ ] Deep research generates 5-6 page reports with citations
-- [ ] Top 10 topics sync to Notion successfully
-- [ ] Runs automated (daily collection at 2 AM)
+**Week 2: E2E Testing** (Required for ALL components):
+- [x] Feed Discovery E2E - Integration test with real config ✅
+- [ ] RSS Collector E2E - Fetch 50+ articles from real feeds, validate dedup
+- [ ] Reddit Collector E2E - Connect to r/de, fetch posts, validate Document creation
+- [ ] Trends Collector E2E - Query German PropTech trends, validate data
+- [ ] Autocomplete Collector E2E - Get suggestions for seed keywords
+- [ ] Full Pipeline E2E - Feed Discovery → RSS Collection → Dedup → Clustering → Deep Research → Notion Sync
+- [ ] Playwright E2E (if UI components exist) - Test Streamlit UI for topic review
+- [ ] API Endpoint E2E - Test Huey task queue endpoints (daily collection, sync)
+
+**Acceptance Criteria** (Validated via E2E Tests):
+- [ ] Discovers 50+ unique topics/week for test config (E2E: Full pipeline)
+- [ ] Deduplication rate <5% (E2E: RSS collector with known duplicates)
+- [ ] Language detection >95% accurate (E2E: Multi-language document set)
+- [ ] Deep research generates 5-6 page reports with citations (E2E: Real topic research)
+- [ ] Top 10 topics sync to Notion successfully (E2E: Notion API integration)
+- [ ] Runs automated (daily collection at 2 AM) (E2E: Huey cron trigger test)
 
 ## High Priority (Content Creator - Phase 4: Repurposing Agent)
 

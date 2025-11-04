@@ -48,6 +48,13 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Task queue databases
+tasks.db
+dlq.db
+test.db
+*.db-shm
+*.db-wal
 .tox/
 .hypothesis/
 
