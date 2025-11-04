@@ -2,6 +2,26 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 020: Stage 3 Gemini CLI Fallback Implementation (2025-11-04)
+
+**Investigated gpt-researcher Issues**: Deep dive revealed 3 critical bugs: (1) duplicate `llm_provider` parameter, (2) requires OPENAI_API_KEY even with google_genai provider, (3) langchain version conflicts (needs <1.0, but google_genai needs >=1.0). Conclusion: gpt-researcher 0.14.4 not production-ready.
+
+**Implemented Gemini CLI Fallback**: Added `_gemini_cli_fallback()` method to DeepResearcher (lines 277-358). Automatically falls back to Gemini CLI when gpt-researcher fails. Generates 800-1200 word research reports without citations. Uses same contextualized query building as gpt-researcher. Proper error handling for quota/timeout/CLI issues.
+
+**Disabled Stage 3 Temporarily**: Changed `enable_deep_research` default to `False` due to Gemini API quota exhaustion (2025-11-04). Added URGENT reminder in TASKS.md to enable tomorrow (2025-11-05) when quota resets. Pipeline stages 1,2,4,5 fully functional.
+
+**Files Modified**:
+- `src/research/deep_researcher.py:197-211,277-358` - Gemini CLI fallback with exception handling
+- `src/agents/content_pipeline.py:73` - Changed `enable_deep_research` default to False
+- `TASKS.md:3-10,190-205` - Added urgent reminder and updated known issues
+- `docs/sessions/020-stage3-gemini-cli-fallback.md` - Full investigation and implementation docs
+
+**Action Required**: Enable Stage 3 tomorrow by changing `enable_deep_research=True` and testing with `/tmp/test_gemini_fallback.py`.
+
+**See**: [Full details](docs/sessions/020-stage3-gemini-cli-fallback.md)
+
+---
+
 ## Session 019: LangChain Dependency Fix & Pipeline Testing (2025-11-04)
 
 **Fixed Critical Dependency Issue**: Resolved `No module named 'langchain.docstore'` error blocking entire ContentPipeline. Root cause: gpt-researcher 0.14.4 requires langchain<1.0, but langchain 1.0.3 was installed (breaking change in 1.0 removed `langchain.docstore` module).

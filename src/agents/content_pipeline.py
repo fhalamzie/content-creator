@@ -70,7 +70,7 @@ class ContentPipeline:
         deep_researcher,
         max_competitors: int = 5,
         max_keywords: int = 10,
-        enable_deep_research: bool = True
+        enable_deep_research: bool = False
     ):
         """
         Initialize content pipeline
@@ -81,7 +81,7 @@ class ContentPipeline:
             deep_researcher: DeepResearcher instance
             max_competitors: Maximum competitors to analyze (default: 5)
             max_keywords: Maximum keywords to research (default: 10)
-            enable_deep_research: Enable deep research stage (default: True)
+            enable_deep_research: Enable deep research stage (default: False, enable tomorrow when Gemini quota resets)
 
         Raises:
             ContentPipelineError: If required agents are missing

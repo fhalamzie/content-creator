@@ -23,6 +23,8 @@ Example:
 
 from typing import Dict, List, Optional
 from datetime import datetime
+import subprocess
+import json
 
 from src.utils.logger import get_logger
 
@@ -193,9 +195,20 @@ class DeepResearcher:
             return result
 
         except Exception as e:
-            self.failed_research += 1
-            logger.error("research_failed", topic=topic, error=str(e))
-            raise DeepResearchError(f"Research failed for '{topic}': {e}")
+            # Try Gemini CLI fallback
+            logger.warning("gpt_researcher_failed_trying_fallback", topic=topic, error=str(e))
+            try:
+                return await self._gemini_cli_fallback(
+                    topic=topic,
+                    contextualized_query=contextualized_query,
+                    config=config
+                )
+            except Exception as fallback_error:
+                self.failed_research += 1
+                logger.error("research_failed_all_methods", topic=topic,
+                           gpt_researcher_error=str(e),
+                           fallback_error=str(fallback_error))
+                raise DeepResearchError(f"Research failed for '{topic}': {e}")
 
     def _build_query(
         self,
@@ -260,6 +273,89 @@ class DeepResearcher:
         logger.debug("query_built", original_topic=topic, contextualized_query=query)
 
         return query
+
+    async def _gemini_cli_fallback(
+        self,
+        topic: str,
+        contextualized_query: str,
+        config: Dict
+    ) -> Dict:
+        """
+        Fallback research method using Gemini CLI directly
+
+        This method is used when gpt-researcher fails (e.g., due to dependency issues).
+        It uses Gemini CLI to generate a research report without citations.
+
+        Args:
+            topic: Original topic
+            contextualized_query: Contextualized query with domain/market/language
+            config: Research config
+
+        Returns:
+            Dictionary with report, sources (empty list), word_count, researched_at
+        """
+        logger.info("using_gemini_cli_fallback", topic=topic)
+
+        # Build research prompt
+        prompt = f"""You are a professional research analyst. Write a comprehensive research report about:
+
+{contextualized_query}
+
+Requirements:
+- Write a detailed 800-1200 word research report
+- Use markdown formatting with clear sections
+- Include an executive summary
+- Cover current trends, key insights, and future outlook
+- Be factual and analytical
+- Write in {config.get('language', 'English')} language if applicable
+
+Format the report with these sections:
+# Executive Summary
+# Current State
+# Key Trends
+# Market Analysis
+# Future Outlook
+# Conclusion"""
+
+        # Use Gemini CLI
+        try:
+            result = subprocess.run(
+                ['gemini', 'chat', prompt],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=True
+            )
+
+            report = result.stdout.strip()
+
+            if not report or len(report) < 100:
+                raise DeepResearchError("Gemini CLI returned empty or invalid report")
+
+            word_count = len(report.split())
+
+            result_dict = {
+                'topic': topic,
+                'report': report,
+                'sources': [],  # No sources from Gemini CLI
+                'word_count': word_count,
+                'researched_at': datetime.now().isoformat()
+            }
+
+            logger.info(
+                "gemini_cli_fallback_complete",
+                topic=topic,
+                word_count=word_count
+            )
+
+            return result_dict
+
+        except subprocess.TimeoutExpired:
+            raise DeepResearchError("Gemini CLI timeout after 60 seconds")
+        except subprocess.CalledProcessError as e:
+            raise DeepResearchError(f"Gemini CLI failed: {e.stderr}")
+        except FileNotFoundError:
+            raise DeepResearchError("Gemini CLI not found. Install with: npm install -g @google/generative-ai-cli")
 
     def get_statistics(self) -> Dict:
         """

@@ -1,5 +1,14 @@
 # Tasks
 
+## 🔥 URGENT - Tomorrow (2025-11-05)
+
+- [ ] **Enable Stage 3 (Deep Research) in ContentPipeline** - Gemini API quota resets
+  - Change `enable_deep_research=False` to `True` in `src/agents/content_pipeline.py:73`
+  - Gemini CLI fallback implemented in Session 020
+  - Test with: `python /tmp/test_gemini_fallback.py`
+  - Verify full 5-stage pipeline works end-to-end
+  - See: Session 020 docs for details
+
 ## High Priority (Universal Topic Research Agent - Phase 1)
 
 **See**: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for complete plan (1,400+ lines)
@@ -178,15 +187,22 @@
 
 ## Known Issues
 
-- **ContentPipeline Stage 3 disabled** - gpt-researcher 0.14.4 has bug (duplicate `llm_provider` parameter)
-  - Workaround: Set `enable_deep_research=False` when initializing ContentPipeline
-  - Fix: Upgrade to gpt-researcher 0.15+ or patch locally
-  - Impact: Deep research reports not generated, stages 1,2,4,5 fully functional
-  - See: Session 019 docs for details
+- **ContentPipeline Stage 3 disabled temporarily** - Gemini API quota exhausted (2025-11-04)
+  - Currently disabled: `enable_deep_research=False` (default in ContentPipeline)
+  - Gemini CLI fallback implemented in Session 020 (works without citations)
+  - **ACTION REQUIRED**: Enable tomorrow (2025-11-05) when quota resets
+  - See: Session 020 docs for Gemini CLI fallback implementation
+  - Impact: Deep research reports not generated today, stages 1,2,4,5 fully functional
+- **gpt-researcher has multiple bugs** - Not recommended for use
+  - Bug 1: Duplicate `llm_provider` parameter in create_chat_completion()
+  - Bug 2: Requires OPENAI_API_KEY even when using google_genai provider
+  - Bug 3: langchain version conflicts (requires <1.0, but google_genai requires >=1.0)
+  - Solution: Use Gemini CLI fallback instead (implemented in Session 020)
+  - See: Session 019 & 020 docs for full investigation
 - **LangChain version pinned to <1.0** - gpt-researcher 0.14.4 incompatible with langchain 1.0+
   - Breaking change in langchain 1.0 removed `langchain.docstore` module
   - Version pins in `requirements-topic-research.txt` prevent upgrade
-  - Will be resolved when gpt-researcher adds langchain 1.0 support
+  - Will be resolved when gpt-researcher adds langchain 1.0 support OR we fully migrate to Gemini CLI
 - Notion API limitation: Relation properties require manual configuration in UI
   - Blog Posts → Project (relation)
   - Social Posts → Blog Post (relation)
