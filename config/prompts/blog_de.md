@@ -39,6 +39,13 @@ Schreiben Sie einen umfassenden, informativen Blog-Beitrag auf Deutsch zum gegeb
 - **Originalität**: Keine kopierten Inhalte, eigene Perspektive einbringen
 - **Kultureller Kontext**: Deutsche/europäische Beispiele und Referenzen
 
+### ⚠️ KRITISCHE REGEL: Keine erfundenen Quellen
+- **NUR echte URLs verwenden**: Zitieren Sie AUSSCHLIESSLICH URLs aus den bereitgestellten Research-Daten
+- **Keine erfundenen Links**: Erstellen Sie KEINE fake URLs oder nicht existierende Webseiten
+- **Keine internen Links**: Schlagen Sie KEINE internen Verlinkungen vor (diese werden separat erstellt)
+- **Wenn keine Quelle verfügbar**: Formulieren Sie allgemein ohne URL-Angabe
+- **Validierung**: Jede URL muss aus dem Abschnitt "Kontext (Research-Daten)" stammen
+
 ### Formatierung
 - Kurze Absätze (2-4 Sätze)
 - Bullet Points für Listen
@@ -75,9 +82,13 @@ Schreiben Sie einen umfassenden, informativen Blog-Beitrag auf Deutsch zum gegeb
 
 ## Quellen
 
-1. [Quelle 1 mit URL]
-2. [Quelle 2 mit URL]
-3. [Quelle 3 mit URL]
+⚠️ **NUR URLs aus den Research-Daten verwenden! Keine erfundenen Links!**
+
+1. [Titel - URL aus Research-Daten]
+2. [Titel - URL aus Research-Daten]
+3. [Titel - URL aus Research-Daten]
+
+Falls keine passenden URLs in den Research-Daten: Geben Sie "Keine spezifischen Quellen in Research-Daten gefunden" an.
 
 ---
 
@@ -90,10 +101,7 @@ Schreiben Sie einen umfassenden, informativen Blog-Beitrag auf Deutsch zum gegeb
 - Bild 2: [Beschreibung]
 - Bild 3: [Beschreibung]
 
-**Interne Verlinkung**:
-- [Verwandtes Thema 1]
-- [Verwandtes Thema 2]
-- [Verwandtes Thema 3]
+⚠️ **KEINE internen Verlinkungen vorschlagen** - diese werden separat durch das CMS erstellt.
 ```
 
 ## Wichtige Hinweise
@@ -103,6 +111,19 @@ Schreiben Sie einen umfassenden, informativen Blog-Beitrag auf Deutsch zum gegeb
 3. **Aktualität**: Beziehen Sie aktuelle Trends und Entwicklungen ein
 4. **Call-to-Action**: Subtil, nicht aufdringlich (z.B. "Mehr erfahren", "Jetzt testen")
 5. **Quellenqualität**: Nur seriöse Quellen (Fachmagazine, Studien, etablierte Medien)
+
+## ⚠️ ABSOLUTES VERBOT
+
+**ERFINDEN SIE KEINE URLs!**
+- Jede URL muss aus den "Kontext (Research-Daten)" stammen
+- Keine fake Siemens-Links, keine erfundenen BMWi-URLs, keine nicht existierenden Studien
+- Lieber weniger Quellen als erfundene Quellen
+- Bei fehlenden Quellen: Schreiben Sie "Quelle nicht in Research-Daten verfügbar"
+
+**KEINE INTERNEN LINKS VORSCHLAGEN!**
+- Schlagen Sie KEINE internen Artikel vor
+- Keine Links zu nicht existierenden Seiten
+- Das CMS fügt interne Links automatisch hinzu
 
 ## Beispiel Brand Voices
 

@@ -44,6 +44,15 @@ agents:
     cost_per_1m_input: 1.00
     cost_per_1m_output: 1.00
 
+  fact_checker:
+    model: "qwen/qwen3-235b-a22b"
+    provider: "openrouter"
+    temperature: 0.3
+    max_tokens: 2000
+    description: "URL validation and hallucination detection (optional AI verification)"
+    cost_per_1m_input: 1.00
+    cost_per_1m_output: 1.00
+
 # ===== Alternative Models (for fallback or experimentation) =====
 alternatives:
   premium_writing:

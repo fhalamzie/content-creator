@@ -1,21 +1,836 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_notion_integration/test_sync_manager.py",
+      "moduleId": "tests/unit/test_logger.py",
       "tests": [
         {
-          "name": "test_sync_blog_post_success",
-          "fullName": "tests/test_notion_integration/test_sync_manager.py::test_sync_blog_post_success",
+          "name": "test_setup_logging_default_level",
+          "fullName": "tests/unit/test_logger.py::TestLoggingSetup::test_setup_logging_default_level",
           "state": "passed"
         },
         {
-          "name": "test_sync_blog_post_with_progress_callback",
-          "fullName": "tests/test_notion_integration/test_sync_manager.py::test_sync_blog_post_with_progress_callback",
+          "name": "test_setup_logging_custom_level",
+          "fullName": "tests/unit/test_logger.py::TestLoggingSetup::test_setup_logging_custom_level",
           "state": "passed"
         },
         {
-          "name": "test_sync_blog_post_handles_notion_error",
-          "fullName": "tests/test_notion_integration/test_sync_manager.py::test_sync_blog_post_handles_notion_error",
+          "name": "test_setup_logging_invalid_level_raises_error",
+          "fullName": "tests/unit/test_logger.py::TestLoggingSetup::test_setup_logging_invalid_level_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_logger_returns_bound_logger",
+          "fullName": "tests/unit/test_logger.py::TestGetLogger::test_get_logger_returns_bound_logger",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_logger_different_names",
+          "fullName": "tests/unit/test_logger.py::TestGetLogger::test_get_logger_different_names",
+          "state": "passed"
+        },
+        {
+          "name": "test_log_info_structured_output",
+          "fullName": "tests/unit/test_logger.py::TestStructuredLogging::test_log_info_structured_output",
+          "state": "passed"
+        },
+        {
+          "name": "test_log_error_structured_output",
+          "fullName": "tests/unit/test_logger.py::TestStructuredLogging::test_log_error_structured_output",
+          "state": "passed"
+        },
+        {
+          "name": "test_log_debug_structured_output",
+          "fullName": "tests/unit/test_logger.py::TestStructuredLogging::test_log_debug_structured_output",
+          "state": "passed"
+        },
+        {
+          "name": "test_log_warning_structured_output",
+          "fullName": "tests/unit/test_logger.py::TestStructuredLogging::test_log_warning_structured_output",
+          "state": "passed"
+        },
+        {
+          "name": "test_info_level_filters_debug",
+          "fullName": "tests/unit/test_logger.py::TestLogLevels::test_info_level_filters_debug",
+          "state": "passed"
+        },
+        {
+          "name": "test_error_level_filters_info_and_debug",
+          "fullName": "tests/unit/test_logger.py::TestLogLevels::test_error_level_filters_info_and_debug",
+          "state": "passed"
+        },
+        {
+          "name": "test_debug_level_shows_all",
+          "fullName": "tests/unit/test_logger.py::TestLogLevels::test_debug_level_shows_all",
+          "state": "passed"
+        },
+        {
+          "name": "test_log_wal_size_metric",
+          "fullName": "tests/unit/test_logger.py::TestMetricsHooks::test_log_wal_size_metric",
+          "state": "passed"
+        },
+        {
+          "name": "test_log_api_usage_metric",
+          "fullName": "tests/unit/test_logger.py::TestMetricsHooks::test_log_api_usage_metric",
+          "state": "passed"
+        },
+        {
+          "name": "test_log_error_rate_metric",
+          "fullName": "tests/unit/test_logger.py::TestMetricsHooks::test_log_error_rate_metric",
+          "state": "passed"
+        },
+        {
+          "name": "test_log_cache_hit_rate_metric",
+          "fullName": "tests/unit/test_logger.py::TestMetricsHooks::test_log_cache_hit_rate_metric",
+          "state": "passed"
+        },
+        {
+          "name": "test_collection_started_pattern",
+          "fullName": "tests/unit/test_logger.py::TestLoggerUsagePatterns::test_collection_started_pattern",
+          "state": "passed"
+        },
+        {
+          "name": "test_collection_success_pattern",
+          "fullName": "tests/unit/test_logger.py::TestLoggerUsagePatterns::test_collection_success_pattern",
+          "state": "passed"
+        },
+        {
+          "name": "test_collection_failed_pattern",
+          "fullName": "tests/unit/test_logger.py::TestLoggerUsagePatterns::test_collection_failed_pattern",
+          "state": "passed"
+        },
+        {
+          "name": "test_nested_context_pattern",
+          "fullName": "tests/unit/test_logger.py::TestLoggerUsagePatterns::test_nested_context_pattern",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/test_document.py",
+      "tests": [
+        {
+          "name": "test_create_document_with_required_fields_only",
+          "fullName": "tests/unit/test_document.py::TestDocumentCreation::test_create_document_with_required_fields_only",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_document_with_all_fields",
+          "fullName": "tests/unit/test_document.py::TestDocumentCreation::test_create_document_with_all_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_missing_required_field_raises_error",
+          "fullName": "tests/unit/test_document.py::TestDocumentCreation::test_missing_required_field_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_summary_is_none",
+          "fullName": "tests/unit/test_document.py::TestDocumentDefaults::test_default_summary_is_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_author_is_none",
+          "fullName": "tests/unit/test_document.py::TestDocumentDefaults::test_default_author_is_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_entities_is_none",
+          "fullName": "tests/unit/test_document.py::TestDocumentDefaults::test_default_entities_is_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_keywords_is_none",
+          "fullName": "tests/unit/test_document.py::TestDocumentDefaults::test_default_keywords_is_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_reliability_score_is_0_5",
+          "fullName": "tests/unit/test_document.py::TestDocumentDefaults::test_default_reliability_score_is_0_5",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_paywall_is_false",
+          "fullName": "tests/unit/test_document.py::TestDocumentDefaults::test_default_paywall_is_false",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_status_is_new",
+          "fullName": "tests/unit/test_document.py::TestDocumentDefaults::test_default_status_is_new",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_dict",
+          "fullName": "tests/unit/test_document.py::TestDocumentSerialization::test_to_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_to_json",
+          "fullName": "tests/unit/test_document.py::TestDocumentSerialization::test_to_json",
+          "state": "passed"
+        },
+        {
+          "name": "test_from_dict",
+          "fullName": "tests/unit/test_document.py::TestDocumentSerialization::test_from_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_language_iso_639_1_format",
+          "fullName": "tests/unit/test_document.py::TestDocumentValidation::test_language_iso_639_1_format",
+          "state": "passed"
+        },
+        {
+          "name": "test_reliability_score_range",
+          "fullName": "tests/unit/test_document.py::TestDocumentValidation::test_reliability_score_range",
+          "state": "passed"
+        },
+        {
+          "name": "test_status_values",
+          "fullName": "tests/unit/test_document.py::TestDocumentValidation::test_status_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_is_processed",
+          "fullName": "tests/unit/test_document.py::TestDocumentHelpers::test_is_processed",
+          "state": "passed"
+        },
+        {
+          "name": "test_is_not_processed",
+          "fullName": "tests/unit/test_document.py::TestDocumentHelpers::test_is_not_processed",
+          "state": "passed"
+        },
+        {
+          "name": "test_has_entities",
+          "fullName": "tests/unit/test_document.py::TestDocumentHelpers::test_has_entities",
+          "state": "passed"
+        },
+        {
+          "name": "test_has_keywords",
+          "fullName": "tests/unit/test_document.py::TestDocumentHelpers::test_has_keywords",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/test_config_loader.py",
+      "tests": [
+        {
+          "name": "test_create_market_config_with_required_fields",
+          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_create_market_config_with_required_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_market_config_with_optional_fields",
+          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_create_market_config_with_optional_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_missing_required_field_raises_error",
+          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_missing_required_field_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_seed_keywords_cannot_be_empty",
+          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_seed_keywords_cannot_be_empty",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_collector_config_with_defaults",
+          "fullName": "tests/unit/test_config_loader.py::TestCollectorConfig::test_create_collector_config_with_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_collector_config_with_custom_values",
+          "fullName": "tests/unit/test_config_loader.py::TestCollectorConfig::test_create_collector_config_with_custom_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_scheduling_config_with_defaults",
+          "fullName": "tests/unit/test_config_loader.py::TestSchedulingConfig::test_create_scheduling_config_with_defaults",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_scheduling_config_with_custom_values",
+          "fullName": "tests/unit/test_config_loader.py::TestSchedulingConfig::test_create_scheduling_config_with_custom_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_config_from_yaml",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_config_from_yaml",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_config_from_yaml_with_minimal_fields",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_config_from_yaml_with_minimal_fields",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_nonexistent_config_raises_error",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_nonexistent_config_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_invalid_yaml_raises_error",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_invalid_yaml_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_config_missing_required_field_raises_error",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_config_missing_required_field_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_collectors_all_enabled",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderDefaults::test_default_collectors_all_enabled",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_scheduling",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderDefaults::test_default_scheduling",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_multiple_configs",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderMultipleConfigs::test_load_multiple_configs",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_opml_feeds",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderHelpers::test_get_opml_feeds",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_reddit_subreddits",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderHelpers::test_get_reddit_subreddits",
+          "state": "passed"
+        },
+        {
+          "name": "test_language_iso_639_1_format",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigValidation::test_language_iso_639_1_format",
+          "state": "passed"
+        },
+        {
+          "name": "test_seed_keywords_minimum_one",
+          "fullName": "tests/unit/test_config_loader.py::TestConfigValidation::test_seed_keywords_minimum_one",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/database/test_sqlite_manager.py",
+      "tests": [
+        {
+          "name": "test_init_creates_database_file",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerInit::test_init_creates_database_file",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_creates_documents_table",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerInit::test_init_creates_documents_table",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_creates_topics_table",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerInit::test_init_creates_topics_table",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_creates_research_reports_table",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerInit::test_init_creates_research_reports_table",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_creates_indexes",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerInit::test_init_creates_indexes",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_creates_fts_table",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerInit::test_init_creates_fts_table",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_idempotent",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerInit::test_init_idempotent",
+          "state": "passed"
+        },
+        {
+          "name": "test_insert_document",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_insert_document",
+          "state": "passed"
+        },
+        {
+          "name": "test_insert_document_duplicate_id_raises_error",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_insert_document_duplicate_id_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_document_not_found_returns_none",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_get_document_not_found_returns_none",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_document",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_update_document",
+          "state": "passed"
+        },
+        {
+          "name": "test_delete_document",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_delete_document",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_documents_by_status",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_get_documents_by_status",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_documents_by_language",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_get_documents_by_language",
+          "state": "passed"
+        },
+        {
+          "name": "test_find_duplicate_by_hash",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_find_duplicate_by_hash",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_documents_fts",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerDocuments::test_search_documents_fts",
+          "state": "passed"
+        },
+        {
+          "name": "test_insert_topic",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerTopics::test_insert_topic",
+          "state": "passed"
+        },
+        {
+          "name": "test_update_topic",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerTopics::test_update_topic",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_topics_by_status",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerTopics::test_get_topics_by_status",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_topics_by_priority",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerTopics::test_get_topics_by_priority",
+          "state": "passed"
+        },
+        {
+          "name": "test_context_manager_commits_on_success",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerTransactions::test_context_manager_commits_on_success",
+          "state": "passed"
+        },
+        {
+          "name": "test_context_manager_rolls_back_on_error",
+          "fullName": "tests/unit/database/test_sqlite_manager.py::TestSQLiteManagerTransactions::test_context_manager_rolls_back_on_error",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/processors/test_deduplicator.py",
+      "tests": [
+        {
+          "name": "test_init_default_threshold",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDeduplicatorInit::test_init_default_threshold",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_custom_threshold",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDeduplicatorInit::test_init_custom_threshold",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_creates_lsh_index",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDeduplicatorInit::test_init_creates_lsh_index",
+          "state": "passed"
+        },
+        {
+          "name": "test_first_document_not_duplicate",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDuplicateDetection::test_first_document_not_duplicate",
+          "state": "passed"
+        },
+        {
+          "name": "test_exact_duplicate_detected",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDuplicateDetection::test_exact_duplicate_detected",
+          "state": "passed"
+        },
+        {
+          "name": "test_near_duplicate_detected",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDuplicateDetection::test_near_duplicate_detected",
+          "state": "passed"
+        },
+        {
+          "name": "test_different_content_not_duplicate",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDuplicateDetection::test_different_content_not_duplicate",
+          "state": "passed"
+        },
+        {
+          "name": "test_add_document",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDuplicateDetection::test_add_document",
+          "state": "passed"
+        },
+        {
+          "name": "test_multiple_documents",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestDuplicateDetection::test_multiple_documents",
+          "state": "passed"
+        },
+        {
+          "name": "test_normalize_url_removes_www",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestCanonicalURLNormalization::test_normalize_url_removes_www",
+          "state": "passed"
+        },
+        {
+          "name": "test_normalize_url_lowercase",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestCanonicalURLNormalization::test_normalize_url_lowercase",
+          "state": "passed"
+        },
+        {
+          "name": "test_normalize_url_removes_tracking_params",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestCanonicalURLNormalization::test_normalize_url_removes_tracking_params",
+          "state": "passed"
+        },
+        {
+          "name": "test_normalize_url_keeps_important_params",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestCanonicalURLNormalization::test_normalize_url_keeps_important_params",
+          "state": "passed"
+        },
+        {
+          "name": "test_normalize_url_removes_trailing_slash",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestCanonicalURLNormalization::test_normalize_url_removes_trailing_slash",
+          "state": "passed"
+        },
+        {
+          "name": "test_normalize_url_removes_fragment",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestCanonicalURLNormalization::test_normalize_url_removes_fragment",
+          "state": "passed"
+        },
+        {
+          "name": "test_canonical_url_duplicate_detection",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestCanonicalURLNormalization::test_canonical_url_duplicate_detection",
+          "state": "passed"
+        },
+        {
+          "name": "test_compute_minhash_returns_hash",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestContentHashing::test_compute_minhash_returns_hash",
+          "state": "passed"
+        },
+        {
+          "name": "test_same_content_same_hash",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestContentHashing::test_same_content_same_hash",
+          "state": "passed"
+        },
+        {
+          "name": "test_similar_content_similar_hash",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestContentHashing::test_similar_content_similar_hash",
+          "state": "passed"
+        },
+        {
+          "name": "test_different_content_different_hash",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestContentHashing::test_different_content_different_hash",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_stats_initial",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestStatistics::test_get_stats_initial",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_stats_after_additions",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestStatistics::test_get_stats_after_additions",
+          "state": "passed"
+        },
+        {
+          "name": "test_reset_stats",
+          "fullName": "tests/unit/processors/test_deduplicator.py::TestStatistics::test_reset_stats",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/processors/test_llm_processor.py",
+      "tests": [
+        {
+          "name": "test_init_with_api_key",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestLLMProcessorInit::test_init_with_api_key",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_without_api_key_raises_error",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestLLMProcessorInit::test_init_without_api_key_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_init_with_custom_model",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestLLMProcessorInit::test_init_with_custom_model",
+          "state": "passed"
+        },
+        {
+          "name": "test_detect_language_returns_pydantic_model",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestLanguageDetection::test_detect_language_returns_pydantic_model",
+          "state": "passed"
+        },
+        {
+          "name": "test_detect_language_german",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestLanguageDetection::test_detect_language_german",
+          "state": "passed"
+        },
+        {
+          "name": "test_detect_language_truncates_long_text",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestLanguageDetection::test_detect_language_truncates_long_text",
+          "state": "passed"
+        },
+        {
+          "name": "test_detect_language_uses_temperature_zero",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestLanguageDetection::test_detect_language_uses_temperature_zero",
+          "state": "passed"
+        },
+        {
+          "name": "test_detect_language_caches_result",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestLanguageDetection::test_detect_language_caches_result",
+          "state": "passed"
+        },
+        {
+          "name": "test_cluster_topics_returns_pydantic_model",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestTopicClustering::test_cluster_topics_returns_pydantic_model",
+          "state": "passed"
+        },
+        {
+          "name": "test_cluster_topics_truncates_to_50",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestTopicClustering::test_cluster_topics_truncates_to_50",
+          "state": "passed"
+        },
+        {
+          "name": "test_cluster_topics_uses_temperature_03",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestTopicClustering::test_cluster_topics_uses_temperature_03",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_entities_keywords_returns_pydantic_model",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestEntityExtraction::test_extract_entities_keywords_returns_pydantic_model",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_entities_keywords_truncates_content",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestEntityExtraction::test_extract_entities_keywords_truncates_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_entities_keywords_includes_language",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestEntityExtraction::test_extract_entities_keywords_includes_language",
+          "state": "passed"
+        },
+        {
+          "name": "test_retry_on_api_error",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestErrorHandling::test_retry_on_api_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_max_retries_raises_error",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestErrorHandling::test_max_retries_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_invalid_json_response_raises_error",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestErrorHandling::test_invalid_json_response_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_cache_key_includes_text_and_operation",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestCaching::test_cache_key_includes_text_and_operation",
+          "state": "passed"
+        },
+        {
+          "name": "test_cache_ttl_30_days",
+          "fullName": "tests/unit/processors/test_llm_processor.py::TestCaching::test_cache_ttl_30_days",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/tasks/test_huey_tasks.py",
+      "tests": [
+        {
+          "name": "test_huey_instance_exists",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestHueyInitialization::test_huey_instance_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_huey_uses_sqlite_backend",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestHueyInitialization::test_huey_uses_sqlite_backend",
+          "state": "passed"
+        },
+        {
+          "name": "test_huey_creates_database_file",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestHueyInitialization::test_huey_creates_database_file",
+          "state": "passed"
+        },
+        {
+          "name": "test_huey_is_singleton",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestHueyInitialization::test_huey_is_singleton",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_all_sources_task_registered",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestTaskRegistration::test_collect_all_sources_task_registered",
+          "state": "passed"
+        },
+        {
+          "name": "test_daily_collection_task_registered",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestTaskRegistration::test_daily_collection_task_registered",
+          "state": "passed"
+        },
+        {
+          "name": "test_weekly_notion_sync_task_registered",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestTaskRegistration::test_weekly_notion_sync_task_registered",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_execution_returns_result",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestTaskRegistration::test_task_execution_returns_result",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_accepts_arguments",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestTaskRegistration::test_task_accepts_arguments",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_retries_on_failure",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestRetryLogic::test_task_retries_on_failure",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_respects_max_retries",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestRetryLogic::test_task_respects_max_retries",
+          "state": "passed"
+        },
+        {
+          "name": "test_exponential_backoff_increases_delay",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestRetryLogic::test_exponential_backoff_increases_delay",
+          "state": "passed"
+        },
+        {
+          "name": "test_failed_task_logged_to_dlq",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestDeadLetterQueue::test_failed_task_logged_to_dlq",
+          "state": "passed"
+        },
+        {
+          "name": "test_dlq_stores_error_details",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestDeadLetterQueue::test_dlq_stores_error_details",
+          "state": "passed"
+        },
+        {
+          "name": "test_dlq_entries_retrievable",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestDeadLetterQueue::test_dlq_entries_retrievable",
+          "state": "passed"
+        },
+        {
+          "name": "test_daily_collection_schedule",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestPeriodicTasks::test_daily_collection_schedule",
+          "state": "passed"
+        },
+        {
+          "name": "test_weekly_notion_sync_schedule",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestPeriodicTasks::test_weekly_notion_sync_schedule",
+          "state": "passed"
+        },
+        {
+          "name": "test_periodic_task_execution",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestPeriodicTasks::test_periodic_task_execution",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_failure_logged",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestErrorHandling::test_task_failure_logged",
+          "state": "passed"
+        },
+        {
+          "name": "test_invalid_config_handled",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestErrorHandling::test_invalid_config_handled",
+          "state": "passed"
+        },
+        {
+          "name": "test_database_lock_handled",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestErrorHandling::test_database_lock_handled",
+          "state": "passed"
+        },
+        {
+          "name": "test_huey_config_path_configurable",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestTaskConfiguration::test_huey_config_path_configurable",
+          "state": "passed"
+        },
+        {
+          "name": "test_default_config_location",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestTaskConfiguration::test_default_config_location",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_priority_supported",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestTaskConfiguration::test_task_priority_supported",
+          "state": "passed"
+        },
+        {
+          "name": "test_multiple_tasks_execute_sequentially",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestIntegrationScenarios::test_multiple_tasks_execute_sequentially",
+          "state": "passed"
+        },
+        {
+          "name": "test_task_logging_integration",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestIntegrationScenarios::test_task_logging_integration",
+          "state": "passed"
+        },
+        {
+          "name": "test_graceful_shutdown",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestIntegrationScenarios::test_graceful_shutdown",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_all_sources_success",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestActualTaskImplementations::test_collect_all_sources_success",
+          "state": "passed"
+        },
+        {
+          "name": "test_collect_all_sources_with_error",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestActualTaskImplementations::test_collect_all_sources_with_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_daily_collection_execution",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestActualTaskImplementations::test_daily_collection_execution",
+          "state": "passed"
+        },
+        {
+          "name": "test_weekly_notion_sync_execution",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestActualTaskImplementations::test_weekly_notion_sync_execution",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_task_stats",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestUtilityFunctions::test_get_task_stats",
+          "state": "passed"
+        },
+        {
+          "name": "test_clear_dlq",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestUtilityFunctions::test_clear_dlq",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_dlq_entries_with_limit",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestUtilityFunctions::test_get_dlq_entries_with_limit",
+          "state": "passed"
+        },
+        {
+          "name": "test_dlq_entry_structure",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestDLQIntegration::test_dlq_entry_structure",
+          "state": "passed"
+        },
+        {
+          "name": "test_multiple_dlq_entries",
+          "fullName": "tests/unit/tasks/test_huey_tasks.py::TestDLQIntegration::test_multiple_dlq_entries",
           "state": "passed"
         }
       ]
