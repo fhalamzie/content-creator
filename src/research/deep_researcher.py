@@ -25,6 +25,7 @@ from typing import Dict, List, Optional
 from datetime import datetime
 import subprocess
 import json
+import os
 
 from src.utils.logger import get_logger
 
@@ -54,8 +55,8 @@ class DeepResearcher:
 
     def __init__(
         self,
-        llm_provider: str = "google_genai",
-        llm_model: str = "gemini-2.0-flash-exp",
+        llm_provider: str = "openai",
+        llm_model: str = "qwen/qwen-2.5-32b-instruct",
         search_engine: str = "duckduckgo",
         max_sources: int = 8,
         report_format: str = "markdown"
@@ -64,17 +65,25 @@ class DeepResearcher:
         Initialize deep researcher
 
         Args:
-            llm_provider: LLM provider (google_genai for Gemini)
-            llm_model: Model to use (gemini-2.0-flash-exp)
+            llm_provider: LLM provider (openai for OpenAI-compatible APIs)
+            llm_model: Model to use (qwen/qwen-2.5-32b-instruct via OpenRouter)
             search_engine: Search backend (duckduckgo)
             max_sources: Maximum sources per research (default 8)
             report_format: Output format (markdown)
+
+        Note:
+            Uses OpenAI-compatible API format to avoid gpt-researcher bugs.
+            For qwen via OpenRouter: set OPENAI_API_BASE=https://openrouter.ai/api/v1
+            OPENAI_API_KEY, TAVILY_API_KEY loaded automatically from /home/envs/.
         """
         self.llm_provider = llm_provider
         self.llm_model = llm_model
         self.search_engine = search_engine
         self.max_sources = max_sources
         self.report_format = report_format
+
+        # Load API keys from environment
+        self._load_api_keys()
 
         # Statistics
         self.total_research = 0
@@ -88,6 +97,72 @@ class DeepResearcher:
             search_engine=search_engine,
             max_sources=max_sources
         )
+
+    def _load_api_keys(self):
+        """Load API keys from environment files and configure OpenRouter for qwen"""
+        # Load OPENROUTER_API_KEY (for qwen models)
+        if not os.getenv("OPENROUTER_API_KEY"):
+            env_file = "/home/envs/openrouter.env"
+            if os.path.exists(env_file):
+                try:
+                    with open(env_file, 'r') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith('#') and '=' in line:
+                                key, value = line.split('=', 1)
+                                if key.strip() == 'OPENROUTER_API_KEY':
+                                    os.environ['OPENROUTER_API_KEY'] = value.strip()
+                                    logger.info("openrouter_key_loaded_from_file", file=env_file)
+                                    break
+                except Exception as e:
+                    logger.warning("failed_to_load_openrouter_key", error=str(e))
+
+        # Configure OpenAI-compatible API for OpenRouter (use OpenRouter key as OPENAI_API_KEY)
+        if self.llm_model.startswith("qwen/") and os.getenv("OPENROUTER_API_KEY"):
+            os.environ['OPENAI_API_KEY'] = os.environ['OPENROUTER_API_KEY']
+            os.environ['OPENAI_API_BASE'] = 'https://openrouter.ai/api/v1'
+            logger.info("configured_openrouter_for_qwen", model=self.llm_model)
+        # Fall back to regular OpenAI if not using qwen
+        elif not os.getenv("OPENAI_API_KEY"):
+            env_file = "/home/envs/openai.env"
+            if os.path.exists(env_file):
+                try:
+                    with open(env_file, 'r') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith('#') and '=' in line:
+                                key, value = line.split('=', 1)
+                                if key.strip() == 'OPENAI_API_KEY':
+                                    os.environ['OPENAI_API_KEY'] = value.strip()
+                                    logger.info("openai_key_loaded_from_file", file=env_file)
+                                    break
+                except Exception as e:
+                    logger.warning("failed_to_load_openai_key", error=str(e))
+            else:
+                logger.warning("openai_key_not_found", note="Set OPENAI_API_KEY or OPENROUTER_API_KEY")
+        else:
+            logger.debug("openai_key_already_set")
+
+        # Load TAVILY_API_KEY
+        if not os.getenv("TAVILY_API_KEY"):
+            env_file = "/home/envs/tavily.env"
+            if os.path.exists(env_file):
+                try:
+                    with open(env_file, 'r') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith('#') and '=' in line:
+                                key, value = line.split('=', 1)
+                                if key.strip() == 'TAVILY_API_KEY':
+                                    os.environ['TAVILY_API_KEY'] = value.strip()
+                                    logger.info("tavily_key_loaded_from_file", file=env_file)
+                                    break
+                except Exception as e:
+                    logger.warning("failed_to_load_tavily_key", error=str(e))
+            else:
+                logger.debug("tavily_key_not_found", note="Optional - enables web search with citations")
+        else:
+            logger.debug("tavily_key_already_set")
 
     async def research_topic(
         self,
@@ -149,17 +224,15 @@ class DeepResearcher:
                         f"gpt-researcher not installed. Install with: pip install gpt-researcher==0.14.4. Error: {e}"
                     )
 
-            # Initialize gpt-researcher
+            # Initialize gpt-researcher with minimal config to avoid bugs
+            # Only pass query and report_type - let it use env vars/defaults for everything else
+            # This avoids:
+            # - Bug 1: Passing invalid kwargs like search_engine
+            # - Bug 2: OPENAI_API_KEY loaded from environment in __init__
+            # - Bug 3: Using openai provider (no langchain-google-genai conflict)
             researcher = GPTResearcher(
                 query=contextualized_query,
-                report_type="research_report",
-                config_path=None,  # Use default config
-                llm_provider=self.llm_provider,
-                smart_llm_model=self.llm_model,
-                fast_llm_model=self.llm_model,
-                search_engine=self.search_engine,
-                max_search_results=self.max_sources,
-                report_format=self.report_format
+                report_type="research_report"
             )
 
             # Conduct research

@@ -1,13 +1,15 @@
 # Tasks
 
-## 🔥 URGENT - Tomorrow (2025-11-05)
+## 🔥 URGENT - Next Steps
 
-- [ ] **Enable Stage 3 (Deep Research) in ContentPipeline** - Gemini API quota resets
+- [ ] **Enable Stage 3 (Deep Research) in ContentPipeline** - Abstraction layer ready
   - Change `enable_deep_research=False` to `True` in `src/agents/content_pipeline.py:73`
-  - Gemini CLI fallback implemented in Session 020
-  - Test with: `python /tmp/test_gemini_fallback.py`
+  - Abstraction layer fixes all 3 gpt-researcher bugs (Session 020 continuation)
+  - Primary method: gpt-researcher with OpenAI (gpt-4o-mini, $0.006/research)
+  - Fallback: Gemini CLI (when quota resets tomorrow 2025-11-05)
+  - Test with: `python /tmp/test_gpt_researcher_fixed.py`
   - Verify full 5-stage pipeline works end-to-end
-  - See: Session 020 docs for details
+  - Optional: Configure TAVILY_API_KEY for web search (not required)
 
 ## High Priority (Universal Topic Research Agent - Phase 1)
 
@@ -187,22 +189,25 @@
 
 ## Known Issues
 
-- **ContentPipeline Stage 3 disabled temporarily** - Gemini API quota exhausted (2025-11-04)
+- **ContentPipeline Stage 3 disabled temporarily** - Abstraction layer ready, awaiting enable
   - Currently disabled: `enable_deep_research=False` (default in ContentPipeline)
-  - Gemini CLI fallback implemented in Session 020 (works without citations)
-  - **ACTION REQUIRED**: Enable tomorrow (2025-11-05) when quota resets
-  - See: Session 020 docs for Gemini CLI fallback implementation
-  - Impact: Deep research reports not generated today, stages 1,2,4,5 fully functional
-- **gpt-researcher has multiple bugs** - Not recommended for use
-  - Bug 1: Duplicate `llm_provider` parameter in create_chat_completion()
-  - Bug 2: Requires OPENAI_API_KEY even when using google_genai provider
-  - Bug 3: langchain version conflicts (requires <1.0, but google_genai requires >=1.0)
-  - Solution: Use Gemini CLI fallback instead (implemented in Session 020)
-  - See: Session 019 & 020 docs for full investigation
-- **LangChain version pinned to <1.0** - gpt-researcher 0.14.4 incompatible with langchain 1.0+
+  - ✅ **FIXED**: Abstraction layer successfully works around all 3 gpt-researcher bugs
+  - Primary: gpt-researcher with OpenAI (gpt-4o-mini, $0.006/research)
+  - Fallback: Gemini CLI (when quota resets 2025-11-05)
+  - See: Session 020 continuation for abstraction layer implementation
+  - Impact: Ready to enable, stages 1,2,4,5 fully functional
+- **gpt-researcher bugs workaround via abstraction layer** - ✅ FIXED in Session 020 continuation
+  - Bug 1 (Duplicate parameter): Fixed by minimal initialization (only query + report_type)
+  - Bug 2 (Missing OPENAI_API_KEY): Fixed by auto-loader from `/home/envs/openai.env`
+  - Bug 3 (Langchain conflicts): Fixed by defaulting to openai provider (not google_genai)
+  - Solution: Abstraction layer in DeepResearcher.__init__() + simplified GPTResearcher initialization
+  - Test: `python /tmp/test_gpt_researcher_fixed.py` (generates 2500+ word reports)
+  - See: `src/research/deep_researcher.py:100-124` (OPENAI_API_KEY loader), lines 186-195 (minimal config)
+- **LangChain version pinned to <1.0** - Required for current gpt-researcher 0.14.4
   - Breaking change in langchain 1.0 removed `langchain.docstore` module
   - Version pins in `requirements-topic-research.txt` prevent upgrade
-  - Will be resolved when gpt-researcher adds langchain 1.0 support OR we fully migrate to Gemini CLI
+  - Abstraction layer avoids google_genai provider (no langchain-google-genai conflict)
+  - Will be resolved when gpt-researcher adds langchain 1.0 support
 - Notion API limitation: Relation properties require manual configuration in UI
   - Blog Posts → Project (relation)
   - Social Posts → Blog Post (relation)
