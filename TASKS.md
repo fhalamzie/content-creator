@@ -2,14 +2,10 @@
 
 ## 🔥 URGENT - Next Steps
 
-- [ ] **Enable Stage 3 (Deep Research) in ContentPipeline** - Abstraction layer ready
-  - Change `enable_deep_research=False` to `True` in `src/agents/content_pipeline.py:73`
-  - Abstraction layer fixes all 3 gpt-researcher bugs (Session 020 continuation)
-  - Primary method: gpt-researcher with OpenAI (gpt-4o-mini, $0.006/research)
-  - Fallback: Gemini CLI (when quota resets tomorrow 2025-11-05)
-  - Test with: `python /tmp/test_gpt_researcher_fixed.py`
-  - Verify full 5-stage pipeline works end-to-end
-  - Optional: Configure TAVILY_API_KEY for web search (not required)
+- [ ] **Test full 5-stage ContentPipeline end-to-end** - Stage 3 now enabled
+  - Verify: Feed Discovery → RSS → Dedup → Clustering → Deep Research → Notion Sync
+  - Test with real PropTech/SaaS topics
+  - Validate all acceptance criteria (50+ topics/week, <5% dedup, etc.)
 
 ## High Priority (Universal Topic Research Agent - Phase 1)
 
@@ -189,13 +185,12 @@
 
 ## Known Issues
 
-- **ContentPipeline Stage 3 disabled temporarily** - Abstraction layer ready, awaiting enable
-  - Currently disabled: `enable_deep_research=False` (default in ContentPipeline)
-  - ✅ **FIXED**: Abstraction layer successfully works around all 3 gpt-researcher bugs
-  - Primary: gpt-researcher with OpenAI (gpt-4o-mini, $0.006/research)
-  - Fallback: Gemini CLI (when quota resets 2025-11-05)
+- ~~**ContentPipeline Stage 3 disabled temporarily**~~ ✅ **ENABLED** (Session 020 continuation)
+  - Now enabled: `enable_deep_research=True` (default in ContentPipeline:73)
+  - Primary: gpt-researcher with qwen/qwen-2.5-32b-instruct via OpenRouter ($0.019/research)
+  - Fallback: Gemini CLI (if gpt-researcher fails)
+  - All 5 stages now functional end-to-end
   - See: Session 020 continuation for abstraction layer implementation
-  - Impact: Ready to enable, stages 1,2,4,5 fully functional
 - **gpt-researcher bugs workaround via abstraction layer** - ✅ FIXED in Session 020 continuation
   - Bug 1 (Duplicate parameter): Fixed by minimal initialization (only query + report_type)
   - Bug 2 (Missing OPENAI_API_KEY): Fixed by auto-loader from `/home/envs/openai.env`
