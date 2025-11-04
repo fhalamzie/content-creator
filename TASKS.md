@@ -178,6 +178,15 @@
 
 ## Known Issues
 
+- **ContentPipeline Stage 3 disabled** - gpt-researcher 0.14.4 has bug (duplicate `llm_provider` parameter)
+  - Workaround: Set `enable_deep_research=False` when initializing ContentPipeline
+  - Fix: Upgrade to gpt-researcher 0.15+ or patch locally
+  - Impact: Deep research reports not generated, stages 1,2,4,5 fully functional
+  - See: Session 019 docs for details
+- **LangChain version pinned to <1.0** - gpt-researcher 0.14.4 incompatible with langchain 1.0+
+  - Breaking change in langchain 1.0 removed `langchain.docstore` module
+  - Version pins in `requirements-topic-research.txt` prevent upgrade
+  - Will be resolved when gpt-researcher adds langchain 1.0 support
 - Notion API limitation: Relation properties require manual configuration in UI
   - Blog Posts → Project (relation)
   - Social Posts → Blog Post (relation)
@@ -185,9 +194,12 @@
 - WritingAgent wraps content in ` ```markdown...``` ` fence (workaround: strip before parsing)
 - ~~f-string syntax error in settings.py:282~~ ✅ Fixed (Session 007)
 - ~~pytrends Google 404/429 errors~~ ✅ Fixed (Session 015 - migrated to Gemini CLI)
+- ~~Gemini CLI hanging issue~~ ✅ Fixed (Session 018 - use stdin input method)
 
 ## Technical Debt
 
+- [ ] Fix or upgrade gpt-researcher for Stage 3 (Deep Research) functionality
+- [ ] Upgrade langchain to 1.0+ when gpt-researcher supports it
 - [ ] Add disk space monitoring for cache directory
 - [ ] Test Notion client with pagination (large result sets, >100 pages)
 - [x] ~~Remove pytrends dependency~~ ✅ Done (Session 015 - migrated to Gemini CLI)
@@ -196,6 +208,7 @@
 - [ ] Consider cache cleanup strategy (auto-delete old posts)
 - [ ] Add retry logic to cache operations (handle disk full errors)
 - [x] ~~Gemini CLI hanging issue~~ ✅ Fixed (Session 018 - use stdin input method)
+- [x] ~~langchain.docstore import error~~ ✅ Fixed (Session 019 - downgraded to langchain<1.0)
 
 ## Success Criteria
 

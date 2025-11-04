@@ -2,6 +2,24 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 019: LangChain Dependency Fix & Pipeline Testing (2025-11-04)
+
+**Fixed Critical Dependency Issue**: Resolved `No module named 'langchain.docstore'` error blocking entire ContentPipeline. Root cause: gpt-researcher 0.14.4 requires langchain<1.0, but langchain 1.0.3 was installed (breaking change in 1.0 removed `langchain.docstore` module).
+
+**Solution**: Downgraded langchain ecosystem to 0.3.x versions (`pip install 'langchain<1.0' 'langchain-core<1.0' ...`). Updated `requirements-topic-research.txt` with version constraints and documentation explaining why pins are needed.
+
+**Testing**: Verified Stages 1,2,4,5 working (12s total execution). Stage 3 (Deep Research) temporarily disabled due to separate gpt-researcher 0.14.4 bug (duplicate `llm_provider` parameter). Tested with proper Topic/MarketConfig object initialization matching UI implementation.
+
+**Files Modified**:
+- `requirements-topic-research.txt:86-94` - Added langchain version constraints with detailed comments
+- `docs/sessions/019-langchain-dependency-fix.md` - Complete session narrative with testing evidence
+
+**Known Issue**: Stage 3 disabled via `enable_deep_research=False` workaround until gpt-researcher adds langchain 1.0 support or bug is fixed.
+
+**See**: [Full details](docs/sessions/019-langchain-dependency-fix.md)
+
+---
+
 ## Session 018: ContentPipeline UI Integration & Gemini CLI Fix (2025-11-04)
 
 **Completed Week 2 Phase 4**: Integrated 5-stage ContentPipeline into Streamlit UI with full topic research workflow. Fixed critical Gemini CLI hanging issue discovered during integration testing. Used parallel subagents to comprehensively test all components and identify root causes. All systems now working end-to-end.
