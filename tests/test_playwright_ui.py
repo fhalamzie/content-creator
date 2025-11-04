@@ -62,9 +62,9 @@ def test_sidebar_navigation_exists(streamlit_page: Page):
     sidebar = streamlit_page.locator("[data-testid='stSidebar']")
     expect(sidebar).to_be_visible(timeout=5000)
 
-    # Check for navigation items (radio buttons or links)
-    # Streamlit uses radio buttons for navigation
-    navigation = streamlit_page.locator("label").filter(has_text="Dashboard")
+    # Check for navigation items (buttons with emoji prefixes)
+    # Navigation uses buttons like "📊 Dashboard", "✨ Generate", etc.
+    navigation = streamlit_page.get_by_role("button").filter(has_text="Dashboard")
     expect(navigation.first).to_be_visible()
 
     print("✅ Sidebar navigation exists")
@@ -73,12 +73,12 @@ def test_sidebar_navigation_exists(streamlit_page: Page):
 def test_dashboard_page_displays(streamlit_page: Page):
     """Test: Dashboard page displays with stats"""
 
-    # Click Dashboard in sidebar
-    streamlit_page.get_by_text("Dashboard", exact=False).first.click()
+    # Click Dashboard in sidebar (button with emoji)
+    streamlit_page.get_by_role("button").filter(has_text="Dashboard").first.click()
     time.sleep(1)
 
-    # Check for dashboard heading
-    heading = streamlit_page.get_by_text("Content Creator Dashboard", exact=False)
+    # Check for dashboard heading (actual heading is "📊 Dashboard")
+    heading = streamlit_page.get_by_text("Dashboard", exact=False)
     expect(heading.first).to_be_visible()
 
     # Check for metrics (Streamlit uses data-testid='stMetric')
