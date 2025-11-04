@@ -14,8 +14,7 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import Mock, patch
 
 from src.agents.writing_agent import WritingAgent, WritingError
 
@@ -114,7 +113,7 @@ def test_writing_agent_init_custom_language(mock_base_agent_generate, mock_cache
     """Test WritingAgent initialization with custom language raises error if template missing"""
     # Only blog_de.md exists, so 'en' should fail
     with pytest.raises(WritingError, match="Prompt template not found"):
-        agent = WritingAgent(api_key="test-key", language="en")
+        WritingAgent(api_key="test-key", language="en")
 
 
 def test_writing_agent_loads_prompt_template(mock_base_agent_generate, mock_cache_manager):

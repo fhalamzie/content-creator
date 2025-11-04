@@ -14,7 +14,7 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from pathlib import Path
 import yaml
 
@@ -151,7 +151,7 @@ def test_generate_without_system_prompt(mock_openai_client):
     """Test generation without system prompt"""
     agent = BaseAgent(agent_type="writing", api_key="test-key")
 
-    result = agent.generate(prompt="Write a blog post")
+    agent.generate(prompt="Write a blog post")
 
     client_instance = mock_openai_client.return_value
     call_kwargs = client_instance.chat.completions.create.call_args.kwargs

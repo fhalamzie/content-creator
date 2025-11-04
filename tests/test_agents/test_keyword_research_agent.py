@@ -217,7 +217,7 @@ def test_research_keywords_german_language(mock_subprocess_keywords):
     """Test keyword research with German language"""
     agent = KeywordResearchAgent(api_key="test-key")
 
-    result = agent.research_keywords(
+    agent.research_keywords(
         topic="KI Marketing",
         language="de",
         target_audience="German small businesses"
@@ -292,7 +292,7 @@ def test_research_keywords_api_fallback_on_timeout(
 
     agent = KeywordResearchAgent(api_key="test-key")
 
-    result = agent.research_keywords(topic="marketing")
+    agent.research_keywords(topic="marketing")
 
     # Verify API was called
     mock_base_agent_generate_keywords.assert_called_once()
@@ -302,7 +302,7 @@ def test_research_keywords_force_api_usage(mock_base_agent_generate_keywords):
     """Test forcing API usage instead of CLI"""
     agent = KeywordResearchAgent(api_key="test-key", use_cli=False)
 
-    result = agent.research_keywords(topic="marketing")
+    agent.research_keywords(topic="marketing")
 
     # Verify API was called directly
     mock_base_agent_generate_keywords.assert_called_once()

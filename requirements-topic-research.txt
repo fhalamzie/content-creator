@@ -23,8 +23,16 @@ praw==7.7.1                       # Official Reddit API wrapper
 #
 # Note: RSS feeds from awesome-rss-feeds provide 500+ unlimited feeds (PRIMARY)
 
-# Google Trends (CAUTION: Unofficial, monitor for breakage)
-pytrends==4.9.2                   # Google Trends unofficial API
+# Google Trends (✅ MIGRATED to Gemini CLI - Nov 2025)
+# pytrends==4.9.2                 # REMOVED: Archived April 2025, no longer maintained
+# trendspy==0.1.6                 # SKIPPED: Still rate limited by Google
+#
+# ✅ NOW USING: Gemini CLI (FREE, UNLIMITED, RELIABLE)
+# - Install: npm install -g @google/generative-ai-cli
+# - Requires: GEMINI_API_KEY environment variable
+# - Benefits: No rate limits, real-time data, official Google API
+# - Implementation: TrendsCollector uses subprocess to call gemini CLI
+# - See: src/collectors/trends_collector.py (Gemini CLI backend)
 
 # SEO & Keywords
 advertools==0.14.2                # Sitemap crawling, SERP analysis, no API key
@@ -56,6 +64,10 @@ openai==1.54.0                    # OpenRouter client for qwen-turbo
 
 # Deduplication
 datasketch==1.6.4                 # MinHash/LSH for near-duplicate detection
+
+# Topic Clustering (TF-IDF + HDBSCAN)
+scikit-learn==1.6.1               # TF-IDF vectorization for text features
+hdbscan==0.8.40                   # Density-based clustering (auto-determines K)
 
 # Rate Limiting & Retries
 tenacity==8.5.0                   # Retry with exponential backoff
@@ -97,6 +109,8 @@ plotly==5.24.1                    # Interactive charts for analytics
 pytest==8.3.3
 pytest-asyncio==0.24.0
 pytest-cov==6.0.0
+pytest-rerunfailures==15.0        # Retry flaky tests (external APIs)
+# Usage: pytest -m "external_api" --reruns 2 --reruns-delay 60
 
 # Code Quality
 ruff==0.7.2                       # Fast Python linter

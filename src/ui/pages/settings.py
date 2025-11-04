@@ -124,7 +124,7 @@ def render_api_keys():
         if st.button("🧪 Test Notion Connection", use_container_width=True):
             try:
                 from notion_integration.notion_client import NotionClient
-                client = NotionClient(os.getenv("NOTION_TOKEN", ""))
+                NotionClient(os.getenv("NOTION_TOKEN", ""))
                 st.success("✅ Notion connection successful!")
             except Exception as e:
                 st.error(f"❌ Notion connection failed: {str(e)}")
@@ -133,7 +133,7 @@ def render_api_keys():
         if st.button("🧪 Test OpenRouter Connection", use_container_width=True):
             try:
                 from openai import OpenAI
-                client = OpenAI(
+                OpenAI(
                     base_url="https://openrouter.ai/api/v1",
                     api_key=os.getenv("OPENROUTER_API_KEY", "")
                 )

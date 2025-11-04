@@ -203,17 +203,17 @@ class KeywordResearchAgent(BaseAgent):
 
         command = [
             "gemini",
-            "search",
-            search_query,
-            "--format", "json"
+            "--output-format", "json"
         ]
 
-        logger.info(f"Running Gemini CLI for keyword research")
+        logger.info("Running Gemini CLI for keyword research")
 
         # Run subprocess with timeout
+        # IMPORTANT: Pass prompt via stdin, not as positional arg (prevents hanging)
         try:
             result = subprocess.run(
                 command,
+                input=search_query,  # Pass query via stdin instead of positional arg
                 capture_output=True,
                 text=True,
                 timeout=self.cli_timeout

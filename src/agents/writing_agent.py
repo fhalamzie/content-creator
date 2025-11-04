@@ -270,7 +270,6 @@ class WritingAgent(BaseAgent):
         seo_data['alt_texts'] = [alt.strip() for alt in alt_texts]
 
         # Extract internal links
-        link_pattern = r'-\s*\[([^\]]+)\]|^-\s*([^\n]+?)(?:\n|$)'
         # Look in "Interne Verlinkung" section
         internal_section_match = re.search(
             r'\*\*Interne Verlinkung\*\*:(.+?)(?=\n##|\n\*\*|$)',

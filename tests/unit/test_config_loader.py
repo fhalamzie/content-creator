@@ -6,7 +6,6 @@ and validates them using Pydantic. Supports YAML files with OPML seed lists.
 """
 
 import pytest
-from pathlib import Path
 from pydantic import ValidationError
 
 from src.utils.config_loader import (

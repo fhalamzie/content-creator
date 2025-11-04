@@ -16,7 +16,7 @@ import logging
 import subprocess
 import json
 import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from pathlib import Path
 
 from src.agents.base_agent import BaseAgent, AgentError
@@ -197,17 +197,17 @@ class CompetitorResearchAgent(BaseAgent):
 
         command = [
             "gemini",
-            "search",
-            search_query,
-            "--format", "json"
+            "--output-format", "json"
         ]
 
-        logger.info(f"Running Gemini CLI for competitor research")
+        logger.info("Running Gemini CLI for competitor research")
 
         # Run subprocess with timeout
+        # IMPORTANT: Pass prompt via stdin, not as positional arg (prevents hanging)
         try:
             result = subprocess.run(
                 command,
+                input=search_query,  # Pass query via stdin instead of positional arg
                 capture_output=True,
                 text=True,
                 timeout=self.cli_timeout

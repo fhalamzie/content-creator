@@ -4,7 +4,7 @@ Configuration Models
 Universal configuration system for ANY domain/market/language.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from pydantic import BaseModel, Field, HttpUrl
 
 
@@ -18,6 +18,8 @@ class MarketConfig(BaseModel):
     domain: str = Field(..., description="Domain (e.g., 'proptech', 'fashion')")
     market: str = Field(..., description="Market code (e.g., 'de', 'fr', 'us')")
     language: str = Field(..., description="Language code (e.g., 'de', 'en', 'fr')")
+    vertical: Optional[str] = Field(None, description="Optional vertical/niche (e.g., 'Proptech', 'Fashion')")
+    target_audience: Optional[str] = Field(None, description="Optional target audience description")
 
     # Discovery sources
     seed_keywords: List[str] = Field(

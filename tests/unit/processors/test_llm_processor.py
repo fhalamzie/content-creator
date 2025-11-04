@@ -5,7 +5,7 @@ Tests LLM-based NLP operations: language detection, clustering, entity extractio
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from src.processors.llm_processor import LLMProcessor, LanguageDetection, ClusterResult, EntityExtraction
 
 

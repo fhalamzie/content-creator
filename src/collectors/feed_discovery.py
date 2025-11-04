@@ -29,7 +29,6 @@ from enum import Enum
 import xml.etree.ElementTree as ET
 
 import requests
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 from src.utils.logger import get_logger
 

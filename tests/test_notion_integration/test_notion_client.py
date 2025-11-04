@@ -38,7 +38,7 @@ class TestNotionClientInitialization:
 
     def test_creates_with_token(self):
         with patch('src.notion_integration.notion_client.Client') as mock_client_class:
-            client = NotionClient(token="secret_token")
+            NotionClient(token="secret_token")
             mock_client_class.assert_called_once_with(auth="secret_token")
 
     def test_creates_with_custom_rate_limit(self):

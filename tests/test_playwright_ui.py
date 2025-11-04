@@ -14,7 +14,6 @@ Run:
 import pytest
 import time
 from playwright.sync_api import Page, expect
-from pathlib import Path
 
 
 # Streamlit app URL

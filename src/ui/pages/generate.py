@@ -5,7 +5,6 @@ from pathlib import Path
 import json
 import time
 import os
-from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -308,7 +307,7 @@ def render():
     with st.expander("🎛️ Advanced Options", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
-            word_count_target = st.slider(
+            st.slider(
                 "Target Word Count",
                 min_value=1000,
                 max_value=3000,
@@ -317,7 +316,7 @@ def render():
                 help="Target word count for the blog post"
             )
         with col2:
-            include_social = st.checkbox(
+            st.checkbox(
                 "Generate Social Posts",
                 value=True,
                 help="Generate social media variants (LinkedIn, Facebook, etc.)"
@@ -422,7 +421,7 @@ def render():
                 with col3:
                     st.caption(f"**Created:** {metadata.get('created_at', 'N/A')}")
 
-                if st.button(f"View in Browser", key=f"view_{slug}"):
+                if st.button("View in Browser", key=f"view_{slug}"):
                     st.session_state.current_page = "Content Browser"
                     st.session_state.selected_post = slug
                     st.rerun()

@@ -9,7 +9,6 @@ Following TDD approach:
 
 import pytest
 import sqlite3
-from pathlib import Path
 from datetime import datetime
 from src.database.sqlite_manager import SQLiteManager
 from src.models.document import Document
@@ -22,7 +21,7 @@ class TestSQLiteManagerInit:
     def test_init_creates_database_file(self, tmp_path):
         """Should create database file on initialization"""
         db_path = tmp_path / "test.db"
-        manager = SQLiteManager(db_path=str(db_path))
+        SQLiteManager(db_path=str(db_path))
 
         assert db_path.exists()
         assert db_path.is_file()
@@ -30,7 +29,7 @@ class TestSQLiteManagerInit:
     def test_init_creates_documents_table(self, tmp_path):
         """Should create documents table with correct schema"""
         db_path = tmp_path / "test.db"
-        manager = SQLiteManager(db_path=str(db_path))
+        SQLiteManager(db_path=str(db_path))
 
         # Check table exists
         with sqlite3.connect(db_path) as conn:
@@ -42,7 +41,7 @@ class TestSQLiteManagerInit:
     def test_init_creates_topics_table(self, tmp_path):
         """Should create topics table with correct schema"""
         db_path = tmp_path / "test.db"
-        manager = SQLiteManager(db_path=str(db_path))
+        SQLiteManager(db_path=str(db_path))
 
         # Check table exists
         with sqlite3.connect(db_path) as conn:
@@ -54,7 +53,7 @@ class TestSQLiteManagerInit:
     def test_init_creates_research_reports_table(self, tmp_path):
         """Should create research_reports table with correct schema"""
         db_path = tmp_path / "test.db"
-        manager = SQLiteManager(db_path=str(db_path))
+        SQLiteManager(db_path=str(db_path))
 
         # Check table exists
         with sqlite3.connect(db_path) as conn:
@@ -66,7 +65,7 @@ class TestSQLiteManagerInit:
     def test_init_creates_indexes(self, tmp_path):
         """Should create required indexes for performance"""
         db_path = tmp_path / "test.db"
-        manager = SQLiteManager(db_path=str(db_path))
+        SQLiteManager(db_path=str(db_path))
 
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute(
@@ -84,7 +83,7 @@ class TestSQLiteManagerInit:
     def test_init_creates_fts_table(self, tmp_path):
         """Should create FTS5 virtual table for full-text search"""
         db_path = tmp_path / "test.db"
-        manager = SQLiteManager(db_path=str(db_path))
+        SQLiteManager(db_path=str(db_path))
 
         with sqlite3.connect(db_path) as conn:
             cursor = conn.execute(
@@ -95,8 +94,8 @@ class TestSQLiteManagerInit:
     def test_init_idempotent(self, tmp_path):
         """Should be safe to initialize multiple times"""
         db_path = tmp_path / "test.db"
-        manager1 = SQLiteManager(db_path=str(db_path))
-        manager2 = SQLiteManager(db_path=str(db_path))
+        SQLiteManager(db_path=str(db_path))
+        SQLiteManager(db_path=str(db_path))
 
         # Should not raise error
         assert db_path.exists()

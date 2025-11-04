@@ -13,7 +13,7 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import subprocess
 import json
 
@@ -150,7 +150,7 @@ def test_research_gemini_cli_timeout(mock_subprocess, mock_base_agent_generate):
     )
 
     agent = ResearchAgent(api_key="test-key")
-    result = agent.research(topic="Test topic")
+    agent.research(topic="Test topic")
 
     # Should fallback to API
     mock_base_agent_generate.assert_called_once()
@@ -164,7 +164,7 @@ def test_research_gemini_cli_non_zero_exit(mock_subprocess, mock_base_agent_gene
     mock_subprocess.return_value = mock_result
 
     agent = ResearchAgent(api_key="test-key")
-    result = agent.research(topic="Test topic")
+    agent.research(topic="Test topic")
 
     # Should fallback to API
     mock_base_agent_generate.assert_called_once()
@@ -179,7 +179,7 @@ def test_research_gemini_cli_invalid_json(mock_subprocess, mock_base_agent_gener
     mock_subprocess.return_value = mock_result
 
     agent = ResearchAgent(api_key="test-key")
-    result = agent.research(topic="Test topic")
+    agent.research(topic="Test topic")
 
     # Should fallback to API
     mock_base_agent_generate.assert_called_once()
@@ -194,7 +194,7 @@ def test_research_gemini_cli_empty_response(mock_subprocess, mock_base_agent_gen
     mock_subprocess.return_value = mock_result
 
     agent = ResearchAgent(api_key="test-key")
-    result = agent.research(topic="Test topic")
+    agent.research(topic="Test topic")
 
     # Should fallback to API
     mock_base_agent_generate.assert_called_once()
@@ -221,7 +221,7 @@ def test_research_api_fallback_with_language(mock_subprocess, mock_base_agent_ge
     """Test API fallback includes language in prompt"""
     agent = ResearchAgent(api_key="test-key", use_cli=False)
 
-    result = agent.research(topic="AI marketing", language="de")
+    agent.research(topic="AI marketing", language="de")
 
     # Check that language is in the system_prompt
     call_args = mock_base_agent_generate.call_args
@@ -348,7 +348,7 @@ def test_research_logs_success(mock_subprocess, caplog):
     caplog.set_level(logging.INFO)
 
     agent = ResearchAgent(api_key="test-key")
-    result = agent.research(topic="Test topic")
+    agent.research(topic="Test topic")
 
     # Check for success log
     assert any("Research complete" in record.message or "success" in record.message.lower() for record in caplog.records)

@@ -14,7 +14,7 @@ Design Principles:
 import logging
 import subprocess
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
 from src.agents.base_agent import BaseAgent, AgentError
 
@@ -143,21 +143,23 @@ class ResearchAgent(BaseAgent):
         Raises:
             Exception: If CLI fails or returns invalid data
         """
-        # Build Gemini CLI command
+        # Build Gemini CLI command and query
         language_hint = f" in {language}" if language != "en" else ""
+        query = f"{topic}{language_hint}"
+
         command = [
             "gemini",
-            "search",
-            f"{topic}{language_hint}",
-            "--format", "json"
+            "--output-format", "json"
         ]
 
-        logger.info(f"Running Gemini CLI: {' '.join(command)}")
+        logger.info(f"Running Gemini CLI for: {query}")
 
         # Run subprocess with timeout
+        # IMPORTANT: Pass prompt via stdin, not as positional arg (prevents hanging)
         try:
             result = subprocess.run(
                 command,
+                input=query,  # Pass query via stdin instead of positional arg
                 capture_output=True,
                 text=True,
                 timeout=self.cli_timeout

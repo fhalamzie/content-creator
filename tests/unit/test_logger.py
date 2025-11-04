@@ -9,9 +9,7 @@ Central logging uses structlog for structured output with:
 - Metrics hooks
 """
 
-import logging
 import pytest
-import structlog
 
 from src.utils.logger import setup_logging, get_logger
 

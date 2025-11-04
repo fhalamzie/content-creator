@@ -7,7 +7,6 @@ Coverage target: 100% (critical path component)
 
 import json
 import pytest
-from pathlib import Path
 from datetime import datetime
 from src.cache_manager import CacheManager
 
@@ -31,7 +30,7 @@ class TestCacheManagerInitialization:
 
     def test_creates_cache_directory_if_not_exists(self, tmp_path):
         cache_dir = tmp_path / "new_cache"
-        manager = CacheManager(cache_dir=str(cache_dir))
+        CacheManager(cache_dir=str(cache_dir))
         assert cache_dir.exists()
 
     def test_creates_subdirectories_on_init(self, cache_manager, temp_cache_dir):

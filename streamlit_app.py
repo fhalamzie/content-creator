@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import pages
-from ui.pages import dashboard, setup, generate, content_browser, settings
+from ui.pages import dashboard, setup, generate, content_browser, settings, topic_research
 
 
 def init_session_state():
@@ -40,6 +40,7 @@ def render_sidebar():
             "📊 Dashboard": "Dashboard",
             "⚙️ Setup": "Setup",
             "✨ Generate": "Generate",
+            "🔬 Topic Research": "Topic Research",
             "📚 Content Browser": "Content Browser",
             "🔧 Settings": "Settings"
         }
@@ -87,6 +88,8 @@ def main():
         setup.render()
     elif page == "Generate":
         generate.render()
+    elif page == "Topic Research":
+        topic_research.render()
     elif page == "Content Browser":
         content_browser.render()
     elif page == "Settings":

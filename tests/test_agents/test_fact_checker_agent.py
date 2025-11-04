@@ -14,7 +14,7 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import json
 import subprocess
 
@@ -81,7 +81,7 @@ def test_fact_checker_init_success():
 def test_fact_checker_init_with_invalid_api_key():
     """Test initialization fails with invalid API key"""
     with pytest.raises(Exception):
-        agent = FactCheckerAgent(api_key="")
+        FactCheckerAgent(api_key="")
 
 
 # ==================== Claim Extraction Tests (LLM-Powered) ====================
@@ -553,7 +553,7 @@ def test_thoroughness_medium(mock_verify_claim, mock_verify_urls, mock_extract_c
         'sources': []
     }
 
-    result = agent.verify_content(
+    agent.verify_content(
         content=sample_blog_post_with_hallucinations,
         thoroughness="medium"
     )
@@ -584,7 +584,7 @@ def test_thoroughness_thorough(mock_verify_claim, mock_verify_urls, mock_extract
         'sources': []
     }
 
-    result = agent.verify_content(
+    agent.verify_content(
         content=sample_blog_post_with_hallucinations,
         thoroughness="thorough"
     )

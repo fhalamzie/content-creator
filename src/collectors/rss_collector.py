@@ -31,7 +31,7 @@ import time
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass
 from urllib.parse import urlparse
 import re
 

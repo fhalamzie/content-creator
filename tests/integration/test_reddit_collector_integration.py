@@ -199,7 +199,7 @@ def test_comment_extraction(reddit_collector):
     assert len(documents) > 0
 
     # Check if any documents have comments
-    has_comments = any("Comments" in doc.content for doc in documents)
+    any("Comments" in doc.content for doc in documents)
 
     # Not all posts have comments, so just check it doesn't error
     print(f"✓ Collected {len(documents)} posts, {sum(1 for d in documents if 'Comments' in d.content)} with comments")
@@ -310,7 +310,7 @@ def test_error_handling_with_invalid_subreddit(reddit_collector):
     assert len(invalid_health) == 1
     assert invalid_health[0]['failure_count'] == 1
 
-    print(f"✓ Error handling: failure recorded for invalid subreddit")
+    print("✓ Error handling: failure recorded for invalid subreddit")
 
 
 def test_deduplication_across_collections(reddit_collector):
@@ -323,9 +323,9 @@ def test_deduplication_across_collections(reddit_collector):
     """
     try:
         # Collect from same subreddit twice
-        docs1 = reddit_collector.collect_from_subreddit('de', sort='hot', limit=5)
+        reddit_collector.collect_from_subreddit('de', sort='hot', limit=5)
         time.sleep(2)
-        docs2 = reddit_collector.collect_from_subreddit('de', sort='hot', limit=5)
+        reddit_collector.collect_from_subreddit('de', sort='hot', limit=5)
     except Exception as e:
         pytest.skip(f"Reddit API error: {e}")
 

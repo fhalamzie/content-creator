@@ -16,9 +16,7 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock, call
-from pathlib import Path
-import time
+from unittest.mock import Mock, patch
 
 from src.notion_integration.sync_manager import SyncManager, SyncError
 
@@ -149,7 +147,7 @@ def test_sync_manager_init_creates_components_if_not_provided():
          patch('src.notion_integration.sync_manager.NotionClient') as mock_nc, \
          patch('src.notion_integration.sync_manager.RateLimiter') as mock_rl:
 
-        sync_manager = SyncManager()
+        SyncManager()
 
         # Should create default components
         mock_cm.assert_called_once()

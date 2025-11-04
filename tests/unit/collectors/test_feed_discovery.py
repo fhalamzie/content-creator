@@ -11,10 +11,9 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from datetime import datetime, timedelta
 import json
-import subprocess
 from pathlib import Path
 
 from src.collectors.feed_discovery import (
@@ -389,15 +388,31 @@ def test_discover_feeds_deduplicates_urls(feed_discovery, tmp_path):
 
 def test_discover_feeds_returns_metadata(feed_discovery, tmp_path):
     """Test discovered feeds include proper metadata"""
-    with patch.object(feed_discovery, '_load_opml_seeds', return_value=["https://example.com/feed"]):
-        feeds = feed_discovery.discover_feeds()
+    # Mock Stage 1 to return feeds with metadata
+    stage1_feed = DiscoveredFeed(
+        url="https://example.com/feed",
+        source="opml",
+        stage=DiscoveryStage.OPML
+    )
 
-        # Verify metadata
-        assert all(isinstance(f, DiscoveredFeed) for f in feeds)
-        assert all(f.url for f in feeds)
-        assert all(f.source for f in feeds)
-        assert all(f.stage for f in feeds)
-        assert all(f.discovered_at for f in feeds)
+    # Mock Stage 2 to return feeds with metadata
+    stage2_feed = DiscoveredFeed(
+        url="https://another.com/rss",
+        source="serpapi",
+        stage=DiscoveryStage.SERPAPI
+    )
+
+    with patch.object(feed_discovery, 'run_stage1', return_value=[stage1_feed]):
+        with patch.object(feed_discovery, '_expand_keywords_with_gemini', return_value=["keyword"]):
+            with patch.object(feed_discovery, 'run_stage2', return_value=[stage2_feed]):
+                feeds = feed_discovery.discover_feeds()
+
+                # Verify metadata
+                assert all(isinstance(f, DiscoveredFeed) for f in feeds)
+                assert all(f.url for f in feeds)
+                assert all(f.source for f in feeds)
+                assert all(f.stage for f in feeds)
+                assert all(f.discovered_at for f in feeds)
 
 
 # ==================== Error Handling Tests ====================
@@ -450,7 +465,7 @@ def test_get_discovery_stats_returns_counts(feed_discovery):
             DiscoveredFeed(url="https://example3.com/feed", source="serpapi", stage=DiscoveryStage.SERPAPI),
         ]):
             with patch.object(feed_discovery, '_expand_keywords_with_gemini', return_value=["keyword1"]):
-                feeds = feed_discovery.discover_feeds()
+                feed_discovery.discover_feeds()
                 stats = feed_discovery.get_stats()
 
                 # Verify stats

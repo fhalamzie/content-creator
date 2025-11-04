@@ -1,0 +1,596 @@
+"""
+Tests for Trends Collector (Google Trends)
+
+Test Coverage:
+- Trending searches collection (daily, realtime)
+- Related queries collection (top, rising)
+- Interest over time collection
+- Regional targeting (DE, US, etc.)
+- Caching (1 hour for trending, 24 hours for interest)
+- Rate limiting (1 req/2sec - Google Trends is strict)
+- Query health tracking (failures, rate limits)
+- Error handling (rate limits, network errors, invalid queries)
+- Document model creation with all required fields
+- Deduplication integration
+"""
+
+import pytest
+from unittest.mock import Mock, patch, MagicMock, call
+from datetime import datetime, timedelta
+from pathlib import Path
+import hashlib
+import pandas as pd
+
+from src.collectors.trends_collector import (
+    TrendsCollector,
+    TrendsCollectorError,
+    QueryHealth,
+    TrendType,
+)
+from src.models.document import Document
+
+
+# ==================== Fixtures ====================
+
+@pytest.fixture
+def temp_cache_dir(tmp_path):
+    """Create temporary cache directory for trends collector"""
+    cache_dir = tmp_path / "trends_cache"
+    cache_dir.mkdir()
+    return str(cache_dir)
+
+
+@pytest.fixture
+def mock_config():
+    """Mock market configuration"""
+    config = Mock()
+    config.market.domain = "SaaS"
+    config.market.market = "Germany"
+    config.market.language = "de"
+    config.market.vertical = "Proptech"
+    return config
+
+
+@pytest.fixture
+def mock_db_manager():
+    """Mock DatabaseManager"""
+    db = Mock()
+    db.insert_document = Mock(return_value=True)
+    db.get_document_by_url = Mock(return_value=None)
+    return db
+
+
+@pytest.fixture
+def mock_deduplicator():
+    """Mock Deduplicator"""
+    dedup = Mock()
+    dedup.is_duplicate = Mock(return_value=False)
+    dedup.get_canonical_url = Mock(side_effect=lambda url: url.lower().rstrip('/'))
+    dedup.compute_content_hash = Mock(side_effect=lambda content: hashlib.md5(content.encode()).hexdigest())
+    return dedup
+
+
+@pytest.fixture
+def trends_collector(mock_config, mock_db_manager, mock_deduplicator, temp_cache_dir):
+    """Create TrendsCollector instance for tests"""
+    return TrendsCollector(
+        config=mock_config,
+        db_manager=mock_db_manager,
+        deduplicator=mock_deduplicator,
+        cache_dir=temp_cache_dir,
+        region="DE",  # Germany
+        rate_limit=0.5,  # 1 req per 2 seconds
+        request_timeout=10
+    )
+
+
+@pytest.fixture
+def mock_trending_searches_df():
+    """Mock trending searches DataFrame"""
+    return pd.DataFrame({
+        'title': ['PropTech Deutschland', 'Smart Building IoT', 'DSGVO Immobilien'],
+        'traffic': ['100K+', '50K+', '20K+']
+    })
+
+
+@pytest.fixture
+def mock_related_queries_df():
+    """Mock related queries DataFrame"""
+    return pd.DataFrame({
+        'query': ['proptech startup', 'proptech immobilien', 'proptech software'],
+        'value': [100, 75, 50]
+    })
+
+
+@pytest.fixture
+def mock_interest_over_time_df():
+    """Mock interest over time DataFrame"""
+    # Generate 31 dates (inclusive range)
+    dates = pd.date_range(start='2025-10-01', end='2025-10-31', freq='D')
+    return pd.DataFrame({
+        'PropTech': [50, 60, 70, 55, 65, 75, 80, 60, 70, 75, 80, 85, 90, 75, 80,
+                     85, 90, 95, 100, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35],
+        'isPartial': [False] * 31
+    }, index=dates)
+
+
+# ==================== Constructor Tests ====================
+
+def test_trends_collector_initialization(trends_collector, temp_cache_dir):
+    """Test TrendsCollector initializes with correct parameters"""
+    assert trends_collector.config is not None
+    assert trends_collector.db_manager is not None
+    assert trends_collector.deduplicator is not None
+    assert trends_collector.cache_dir == Path(temp_cache_dir)
+    assert trends_collector.region == "DE"
+    assert trends_collector.rate_limit == 0.5
+    assert trends_collector.query_health == {}
+    assert trends_collector.last_request_time is None
+
+
+def test_trends_collector_creates_cache_dir(mock_config, mock_db_manager, mock_deduplicator, tmp_path):
+    """Test TrendsCollector creates cache directory if missing"""
+    cache_dir = tmp_path / "new_trends_cache"
+    assert not cache_dir.exists()
+
+    collector = TrendsCollector(
+        config=mock_config,
+        db_manager=mock_db_manager,
+        deduplicator=mock_deduplicator,
+        cache_dir=str(cache_dir)
+    )
+
+    assert cache_dir.exists()
+
+
+# ==================== Trending Searches Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collect_trending_searches_success(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test collecting trending searches successfully"""
+    # Mock pytrends
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_trending_searches(pn='germany')
+
+    assert len(documents) == 3
+    assert all(isinstance(doc, Document) for doc in documents)
+    assert documents[0].title == "PropTech Deutschland"
+    assert documents[0].source == "trends_trending_searches_germany"
+    assert documents[0].language == "de"
+    assert documents[0].domain == "SaaS"
+    assert documents[0].market == "Germany"
+    assert "traffic:" in documents[0].content.lower()
+    assert "100k+" in documents[0].content.lower()
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collect_trending_searches_empty(mock_trend_req, trends_collector):
+    """Test collecting trending searches with no results"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = pd.DataFrame()
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_trending_searches()
+
+    assert documents == []
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collect_trending_searches_error(mock_trend_req, trends_collector):
+    """Test trending searches error handling"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.side_effect = Exception("Rate limit exceeded")
+    mock_trend_req.return_value = mock_pytrends
+
+    with pytest.raises(TrendsCollectorError, match="Failed to collect trending searches"):
+        trends_collector.collect_trending_searches()
+
+
+# ==================== Related Queries Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collect_related_queries_top(mock_trend_req, trends_collector, mock_related_queries_df):
+    """Test collecting top related queries"""
+    mock_pytrends = Mock()
+    mock_pytrends.related_queries.return_value = {
+        'PropTech': {
+            'top': mock_related_queries_df,
+            'rising': pd.DataFrame()
+        }
+    }
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_related_queries(
+        keywords=['PropTech'],
+        query_type='top'
+    )
+
+    assert len(documents) == 3
+    assert documents[0].title.startswith("Related query: proptech startup")
+    assert documents[0].source == "trends_related_queries"
+    assert "value: 100" in documents[0].content.lower()
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collect_related_queries_rising(mock_trend_req, trends_collector, mock_related_queries_df):
+    """Test collecting rising related queries"""
+    mock_pytrends = Mock()
+    mock_pytrends.related_queries.return_value = {
+        'PropTech': {
+            'top': pd.DataFrame(),
+            'rising': mock_related_queries_df
+        }
+    }
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_related_queries(
+        keywords=['PropTech'],
+        query_type='rising'
+    )
+
+    assert len(documents) == 3
+    assert "rising query" in documents[0].title.lower()
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collect_related_queries_multiple_keywords(mock_trend_req, trends_collector, mock_related_queries_df):
+    """Test collecting related queries for multiple keywords"""
+    mock_pytrends = Mock()
+    mock_pytrends.related_queries.return_value = {
+        'PropTech': {
+            'top': mock_related_queries_df,
+            'rising': pd.DataFrame()
+        },
+        'Smart Building': {
+            'top': mock_related_queries_df,
+            'rising': pd.DataFrame()
+        }
+    }
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_related_queries(
+        keywords=['PropTech', 'Smart Building'],
+        query_type='top'
+    )
+
+    # 3 queries per keyword = 6 total
+    assert len(documents) == 6
+
+
+# ==================== Interest Over Time Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collect_interest_over_time_success(mock_trend_req, trends_collector, mock_interest_over_time_df):
+    """Test collecting interest over time data"""
+    mock_pytrends = Mock()
+    mock_pytrends.interest_over_time.return_value = mock_interest_over_time_df
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_interest_over_time(
+        keywords=['PropTech'],
+        timeframe='today 3-m'
+    )
+
+    assert len(documents) == 1
+    assert documents[0].title == "Interest over time: PropTech"
+    assert documents[0].source == "trends_interest_over_time"
+    assert "average interest: 70" in documents[0].content.lower() or "average" in documents[0].content.lower()
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collect_interest_over_time_custom_timeframe(mock_trend_req, trends_collector, mock_interest_over_time_df):
+    """Test collecting interest with custom timeframe"""
+    mock_pytrends = Mock()
+    mock_pytrends.interest_over_time.return_value = mock_interest_over_time_df
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_interest_over_time(
+        keywords=['PropTech'],
+        timeframe='2025-01-01 2025-11-04'
+    )
+
+    assert len(documents) == 1
+    mock_pytrends.build_payload.assert_called_once()
+    call_args = mock_pytrends.build_payload.call_args
+    assert call_args[1]['timeframe'] == '2025-01-01 2025-11-04'
+
+
+# ==================== Caching Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_trending_searches_caching(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test trending searches are cached (1 hour TTL)"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    # First call - should fetch from API
+    docs1 = trends_collector.collect_trending_searches(pn='germany')
+    assert len(docs1) == 3
+    assert mock_pytrends.trending_searches.call_count == 1
+
+    # Second call - should use cache
+    docs2 = trends_collector.collect_trending_searches(pn='germany')
+    assert len(docs2) == 3
+    assert mock_pytrends.trending_searches.call_count == 1  # No additional API call
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_trending_searches_cache_expiry(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test trending searches cache expires after 1 hour"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    # First call
+    trends_collector.collect_trending_searches(pn='germany')
+
+    # Manually expire cache
+    cache_key = "trending_searches_germany"
+    if cache_key in trends_collector._cache:
+        trends_collector._cache[cache_key]['timestamp'] = datetime.now() - timedelta(hours=2)
+
+    # Second call - should fetch from API again
+    trends_collector.collect_trending_searches(pn='germany')
+    assert mock_pytrends.trending_searches.call_count == 2
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_interest_over_time_caching(mock_trend_req, trends_collector, mock_interest_over_time_df):
+    """Test interest over time is cached (24 hour TTL)"""
+    mock_pytrends = Mock()
+    mock_pytrends.interest_over_time.return_value = mock_interest_over_time_df
+    mock_trend_req.return_value = mock_pytrends
+
+    # First call
+    docs1 = trends_collector.collect_interest_over_time(keywords=['PropTech'])
+    assert len(docs1) == 1
+
+    # Second call - should use cache
+    docs2 = trends_collector.collect_interest_over_time(keywords=['PropTech'])
+    assert len(docs2) == 1
+    assert mock_pytrends.build_payload.call_count == 1
+
+
+# ==================== Rate Limiting Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+@patch('src.collectors.trends_collector.time.sleep')
+def test_rate_limiting_enforcement(mock_sleep, mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test rate limiting enforces delay between requests"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    # First request
+    trends_collector.collect_trending_searches(pn='germany')
+    assert mock_sleep.call_count == 0  # No sleep on first request
+
+    # Clear cache to force new request
+    trends_collector._cache = {}
+
+    # Second request (should trigger rate limiting)
+    trends_collector.collect_trending_searches(pn='united_states')
+    assert mock_sleep.call_count == 1
+    # Should sleep for at least rate_limit seconds (0.5 = 1/2 sec)
+    assert mock_sleep.call_args[0][0] >= 0
+
+
+# ==================== Query Health Tracking Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_query_health_initialization(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test query health tracking is initialized"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    trends_collector.collect_trending_searches(pn='germany')
+
+    assert 'trending_searches_germany' in trends_collector.query_health
+    health = trends_collector.query_health['trending_searches_germany']
+    assert health.success_count == 1
+    assert health.failure_count == 0
+    assert health.consecutive_failures == 0
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_query_health_success_tracking(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test query health tracks successful requests"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    # Clear cache for each request
+    trends_collector._cache = {}
+    trends_collector.collect_trending_searches(pn='germany')
+
+    trends_collector._cache = {}
+    trends_collector.collect_trending_searches(pn='germany')
+
+    health = trends_collector.query_health['trending_searches_germany']
+    assert health.success_count == 2
+    assert health.consecutive_failures == 0
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_query_health_failure_tracking(mock_trend_req, trends_collector):
+    """Test query health tracks failures"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.side_effect = Exception("Rate limit")
+    mock_trend_req.return_value = mock_pytrends
+
+    with pytest.raises(TrendsCollectorError):
+        trends_collector.collect_trending_searches(pn='germany')
+
+    health = trends_collector.query_health.get('trending_searches_germany')
+    if health:  # Only check if health tracking was initialized
+        assert health.failure_count >= 1
+        assert health.consecutive_failures >= 1
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_should_skip_unhealthy_query(mock_trend_req, trends_collector):
+    """Test queries are skipped after too many failures"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.side_effect = Exception("Rate limit")
+    mock_trend_req.return_value = mock_pytrends
+
+    # Create unhealthy query
+    query_id = 'trending_searches_germany'
+    trends_collector.query_health[query_id] = QueryHealth(query_id=query_id)
+    trends_collector.query_health[query_id].consecutive_failures = 5
+
+    # Should skip unhealthy query
+    result = trends_collector._should_skip_query(query_id)
+    assert result is True
+
+
+# ==================== Document Creation Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_document_creation_with_all_fields(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test Document is created with all required fields"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_trending_searches(pn='germany')
+    doc = documents[0]
+
+    # Required fields
+    assert doc.id is not None
+    assert doc.source == "trends_trending_searches_germany"
+    assert doc.title == "PropTech Deutschland"
+    assert doc.content is not None
+    assert doc.language == "de"
+    assert doc.domain == "SaaS"
+    assert doc.market == "Germany"
+    assert doc.vertical == "Proptech"
+
+    # Timestamps
+    assert doc.fetched_at is not None
+    assert isinstance(doc.fetched_at, datetime)
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_document_id_generation(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test Document IDs are unique and deterministic"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_trending_searches(pn='germany')
+
+    # All IDs should be unique
+    ids = [doc.id for doc in documents]
+    assert len(ids) == len(set(ids))
+
+    # IDs should be deterministic (based on source + title)
+    assert documents[0].id == trends_collector._generate_document_id(
+        "trends_trending_searches_germany",
+        "PropTech Deutschland"
+    )
+
+
+# ==================== Deduplication Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_skip_duplicate_documents(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test duplicate documents are skipped"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    # Mark first trend as duplicate
+    trends_collector.deduplicator.is_duplicate.side_effect = [True, False, False]
+
+    documents = trends_collector.collect_trending_searches(pn='germany')
+
+    # Should skip first document
+    assert len(documents) == 2
+    assert documents[0].title == "Smart Building IoT"
+
+
+# ==================== Statistics Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_collection_statistics(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test collection statistics are tracked"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    documents = trends_collector.collect_trending_searches(pn='germany')
+
+    stats = trends_collector.get_statistics()
+    assert stats['total_queries'] >= 1
+    assert stats['total_documents'] == 3
+    assert stats['cache_hits'] == 0
+    assert stats['cache_misses'] >= 1
+
+
+# ==================== Error Handling Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_network_error_handling(mock_trend_req, trends_collector):
+    """Test network error handling"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.side_effect = ConnectionError("Network error")
+    mock_trend_req.return_value = mock_pytrends
+
+    with pytest.raises(TrendsCollectorError, match="Failed to collect trending searches"):
+        trends_collector.collect_trending_searches()
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_invalid_region_handling(mock_trend_req, trends_collector):
+    """Test invalid region handling"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.side_effect = ValueError("Invalid region")
+    mock_trend_req.return_value = mock_pytrends
+
+    with pytest.raises(TrendsCollectorError):
+        trends_collector.collect_trending_searches(pn='INVALID')
+
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_rate_limit_error_handling(mock_trend_req, trends_collector):
+    """Test Google Trends rate limit error handling"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.side_effect = Exception("429 Too Many Requests")
+    mock_trend_req.return_value = mock_pytrends
+
+    with pytest.raises(TrendsCollectorError, match="Failed to collect trending searches"):
+        trends_collector.collect_trending_searches()
+
+
+# ==================== Save/Load Cache Tests ====================
+
+@patch('src.collectors.trends_collector.TrendReq')
+def test_save_and_load_query_cache(mock_trend_req, trends_collector, mock_trending_searches_df):
+    """Test query cache persistence"""
+    mock_pytrends = Mock()
+    mock_pytrends.trending_searches.return_value = mock_trending_searches_df
+    mock_trend_req.return_value = mock_pytrends
+
+    # Collect and cache
+    trends_collector.collect_trending_searches(pn='germany')
+
+    # Save cache
+    trends_collector.save_cache()
+
+    # Create new collector and load cache
+    new_collector = TrendsCollector(
+        config=trends_collector.config,
+        db_manager=trends_collector.db_manager,
+        deduplicator=trends_collector.deduplicator,
+        cache_dir=str(trends_collector.cache_dir)
+    )
+    new_collector.load_cache()
+
+    # Should find cached data
+    assert 'trending_searches_germany' in new_collector._cache

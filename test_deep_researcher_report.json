@@ -1,0 +1,226 @@
+{
+  "summary": {
+    "total_tests": 16,
+    "passed": 13,
+    "failed": 3,
+    "success_rate": 81.25
+  },
+  "test_groups": [
+    {
+      "group": "Test 1: String Gaps",
+      "results": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "results": [
+          {
+            "test": "String gaps included in query",
+            "status": "PASS",
+            "message": "Query: Property Management Trends in SaaS industry for Germany market in de language focusing on Proptech w...",
+            "details": {
+              "full_query": "Property Management Trends in SaaS industry for Germany market in de language focusing on Proptech with emphasis on: GDPR compliance, SMB-focused pricing, API documentation"
+            }
+          },
+          {
+            "test": "String gaps produce valid query format",
+            "status": "PASS",
+            "message": "Type: str, Length: 172",
+            "details": {
+              "query_length": 172
+            }
+          }
+        ]
+      }
+    },
+    {
+      "group": "Test 2: Dict Keywords",
+      "results": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "results": [
+          {
+            "test": "Dict keywords extracted correctly",
+            "status": "PASS",
+            "message": "Query: Property Management Trends in SaaS industry for Germany market in de language focusing on Proptech t...",
+            "details": {
+              "full_query": "Property Management Trends in SaaS industry for Germany market in de language focusing on Proptech targeting keywords: ai-powered-management, blockchain-property, smart-home-integration"
+            }
+          },
+          {
+            "test": "Dict keywords produce valid query format",
+            "status": "PASS",
+            "message": "Type: str",
+            "details": {
+              "query_type": "str"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "group": "Test 3: Mixed Formats",
+      "results": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "results": [
+          {
+            "test": "Mixed formats handled correctly",
+            "status": "PASS",
+            "message": "Query: Legal Tech Compliance in Enterprise industry for Europe market in en language focusing on Legal Tech...",
+            "details": {
+              "full_query": "Legal Tech Compliance in Enterprise industry for Europe market in en language focusing on Legal Tech with emphasis on: GDPR compliance, SMB pricing targeting keywords: automation, compliance",
+              "total_length": 190
+            }
+          }
+        ]
+      }
+    },
+    {
+      "group": "Test 4: Empty Values",
+      "results": {
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "results": [
+          {
+            "test": "Handles None gaps and keywords",
+            "status": "PASS",
+            "message": "Query: Test Topic in SaaS industry",
+            "details": {}
+          },
+          {
+            "test": "Handles empty lists",
+            "status": "PASS",
+            "message": "Query: Test Topic in SaaS industry",
+            "details": {}
+          },
+          {
+            "test": "Handles empty config",
+            "status": "PASS",
+            "message": "Query: Test Topic",
+            "details": {}
+          }
+        ]
+      }
+    },
+    {
+      "group": "Test 5: Item Limits",
+      "results": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "results": [
+          {
+            "test": "Limits to first 3 items",
+            "status": "PASS",
+            "message": "Query: Test with emphasis on: Gap 1, Gap 2, Gap 3 targeting keywords: kw1, kw2, kw3",
+            "details": {
+              "full_query": "Test with emphasis on: Gap 1, Gap 2, Gap 3 targeting keywords: kw1, kw2, kw3"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "group": "Test 6: Validation",
+      "results": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "results": [
+          {
+            "test": "Rejects empty topic",
+            "status": "PASS",
+            "message": "Correctly raised DeepResearchError",
+            "details": {
+              "error": "Topic cannot be empty"
+            }
+          },
+          {
+            "test": "Rejects whitespace-only topic",
+            "status": "PASS",
+            "message": "Correctly raised DeepResearchError",
+            "details": {
+              "error": "Topic cannot be empty"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "group": "Test 7: Mock research_topic",
+      "results": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "results": [
+          {
+            "test": "research_topic returns correct structure",
+            "status": "PASS",
+            "message": "Result keys: ['topic', 'report', 'sources', 'word_count', 'researched_at']",
+            "details": {
+              "topic": "Test Topic",
+              "word_count": 8,
+              "num_sources": 2
+            }
+          },
+          {
+            "test": "Statistics tracked correctly",
+            "status": "PASS",
+            "message": "Total: 1, Failed: 0",
+            "details": {
+              "total_research": 1,
+              "failed_research": 0,
+              "total_sources_found": 2,
+              "success_rate": 1.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "group": "Test 8: Installation",
+      "results": {
+        "total": 2,
+        "passed": 0,
+        "failed": 2,
+        "results": [
+          {
+            "test": "gpt-researcher installed",
+            "status": "FAIL",
+            "message": "Not installed: No module named 'langchain.docstore'",
+            "details": {
+              "error": "No module named 'langchain.docstore'"
+            }
+          },
+          {
+            "test": "Gemini 2.0 Flash provider available",
+            "status": "FAIL",
+            "message": "GoogleGenAILLM not found",
+            "details": {}
+          }
+        ]
+      }
+    },
+    {
+      "group": "Test 9: Real Call",
+      "results": {
+        "total": 1,
+        "passed": 0,
+        "failed": 1,
+        "results": [
+          {
+            "test": "API key available",
+            "status": "FAIL",
+            "message": "GOOGLE_API_KEY not set. Skipping real API test.",
+            "details": {
+              "note": "Set GOOGLE_API_KEY to test real gpt-researcher"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

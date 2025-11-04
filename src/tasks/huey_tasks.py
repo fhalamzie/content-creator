@@ -22,7 +22,7 @@ from huey import SqliteHuey, crontab
 from pathlib import Path
 from datetime import datetime
 import sqlite3
-from typing import List, Dict, Optional
+from typing import List, Dict
 from src.utils.logger import get_logger
 
 # Initialize logger

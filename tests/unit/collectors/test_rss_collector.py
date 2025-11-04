@@ -13,16 +13,14 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 from datetime import datetime, timedelta
-from pathlib import Path
 import hashlib
 
 from src.collectors.rss_collector import (
     RSSCollector,
     RSSCollectorError,
     FeedHealth,
-    FeedEntry,
 )
 from src.models.document import Document
 
@@ -147,7 +145,7 @@ def test_rss_collector_creates_cache_dir():
         config = Mock()
         config.market.domain = "SaaS"
 
-        collector = RSSCollector(
+        RSSCollector(
             config=config,
             db_manager=Mock(),
             deduplicator=Mock(),

@@ -14,15 +14,14 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
+from datetime import datetime
 import hashlib
 
 from src.collectors.reddit_collector import (
     RedditCollector,
     RedditCollectorError,
     SubredditHealth,
-    RedditPost,
 )
 from src.models.document import Document
 
@@ -132,7 +131,7 @@ def test_reddit_collector_creates_cache_dir():
         config.market.domain = "SaaS"
         config.collectors.reddit_subreddits = ["de"]
 
-        collector = RedditCollector(
+        RedditCollector(
             config=config,
             db_manager=Mock(),
             deduplicator=Mock(),
@@ -151,7 +150,7 @@ def test_reddit_authentication(mock_reddit_class, mock_config, mock_db_manager, 
     mock_reddit = Mock()
     mock_reddit_class.return_value = mock_reddit
 
-    collector = RedditCollector(
+    RedditCollector(
         config=mock_config,
         db_manager=mock_db_manager,
         deduplicator=mock_deduplicator,

@@ -9,9 +9,8 @@ between our components (agents, cache, sync manager).
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import json
-from pathlib import Path
 
 from src.agents.research_agent import ResearchAgent
 from src.agents.writing_agent import WritingAgent
@@ -197,7 +196,7 @@ def test_complete_pipeline_research_to_notion(
         cache_dir=temp_cache_dir
     )
 
-    writing_result = writing_agent.write_blog(
+    writing_agent.write_blog(
         topic="KI Marketing Automatisierung",
         research_data=research_data,
         save_to_cache=True

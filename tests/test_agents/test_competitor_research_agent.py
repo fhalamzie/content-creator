@@ -16,7 +16,7 @@ Test Coverage:
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import subprocess
 import json
 from pathlib import Path
@@ -205,7 +205,7 @@ def test_research_competitors_german_language(mock_subprocess_competitors):
     """Test competitor research with German language"""
     agent = CompetitorResearchAgent(api_key="test-key")
 
-    result = agent.research_competitors(
+    agent.research_competitors(
         topic="KI Content Marketing",
         language="de"
     )
@@ -278,7 +278,7 @@ def test_research_competitors_api_fallback_on_timeout(
 
     agent = CompetitorResearchAgent(api_key="test-key")
 
-    result = agent.research_competitors(topic="marketing")
+    agent.research_competitors(topic="marketing")
 
     # Verify API was called
     mock_base_agent_generate_competitors.assert_called_once()
@@ -288,7 +288,7 @@ def test_research_competitors_force_api_usage(mock_base_agent_generate_competito
     """Test forcing API usage instead of CLI"""
     agent = CompetitorResearchAgent(api_key="test-key", use_cli=False)
 
-    result = agent.research_competitors(topic="marketing")
+    agent.research_competitors(topic="marketing")
 
     # Verify API was called directly
     mock_base_agent_generate_competitors.assert_called_once()

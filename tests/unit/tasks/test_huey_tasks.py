@@ -13,11 +13,8 @@ Requirements:
 - Retry logic with exponential backoff
 """
 
-import pytest
-import sqlite3
-import time
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 from datetime import datetime
 
 
@@ -44,7 +41,7 @@ class TestHueyInitialization:
         from huey import SqliteHuey
 
         db_path = tmp_path / "tasks.db"
-        test_huey = SqliteHuey(filename=str(db_path))
+        SqliteHuey(filename=str(db_path))
 
         # Database should be created
         assert db_path.exists()
@@ -124,7 +121,6 @@ class TestRetryLogic:
     def test_task_retries_on_failure(self, tmp_path):
         """Should retry task on failure with exponential backoff"""
         from huey import SqliteHuey
-        from huey.exceptions import TaskException
 
         db_path = tmp_path / "retry_test.db"
         test_huey = SqliteHuey(filename=str(db_path), immediate=True)
@@ -139,7 +135,7 @@ class TestRetryLogic:
             return "success after retries"
 
         # Execute task
-        result = failing_task()
+        failing_task()
 
         # In immediate mode with retries, should eventually succeed
         # Huey retries automatically in background, but in immediate mode
@@ -276,7 +272,7 @@ class TestErrorHandling:
         try:
             result = task_that_fails()
             result()
-        except (RuntimeError, TaskException) as e:
+        except (RuntimeError, TaskException):
             # Task failed as expected
             assert True
 
@@ -309,7 +305,6 @@ class TestTaskConfiguration:
     def test_huey_config_path_configurable(self):
         """Should allow custom database path for Huey"""
         from huey import SqliteHuey
-        from pathlib import Path
 
         custom_path = Path("/tmp/custom_tasks.db")
         test_huey = SqliteHuey(filename=str(custom_path))
@@ -429,7 +424,7 @@ class TestActualTaskImplementations:
 
         try:
             # Mock the function to raise an error
-            with patch('src.tasks.huey_tasks.logger') as mock_logger:
+            with patch('src.tasks.huey_tasks.logger'):
                 # Normal execution should work
                 result = collect_all_sources()
                 stats = result()
@@ -439,7 +434,7 @@ class TestActualTaskImplementations:
 
     def test_daily_collection_execution(self):
         """Should execute daily_collection task"""
-        from src.tasks.huey_tasks import daily_collection, huey, collect_all_sources
+        from src.tasks.huey_tasks import daily_collection, huey
 
         huey.immediate = True
 

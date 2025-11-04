@@ -3,7 +3,6 @@
 import streamlit as st
 from pathlib import Path
 import json
-from datetime import datetime
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -222,8 +221,8 @@ def render():
         st.subheader("📊 Performance")
         avg_words = stats["total_words"] / stats["total_blogs"] if stats["total_blogs"] > 0 else 0
         st.caption(f"**Avg Words/Post:** {avg_words:.0f}")
-        st.caption(f"**Cost/Post:** $0.98")
-        st.caption(f"**Sync Rate:** 2.5 req/s")
+        st.caption("**Cost/Post:** $0.98")
+        st.caption("**Sync Rate:** 2.5 req/s")
 
     with col3:
         st.subheader("🎯 Monthly Target")

@@ -31,16 +31,13 @@ Usage:
 import praw
 from prawcore.exceptions import (
     Forbidden,
-    NotFound,
-    ResponseException,
-    RequestException
+    NotFound
 )
 import time
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict, Optional
 from dataclasses import dataclass
-import hashlib
 
 from src.utils.logger import get_logger
 from src.models.document import Document

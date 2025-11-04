@@ -71,7 +71,7 @@ def test_real_research_agent(api_key):
     # Should have actual sources (not mocked)
     assert len(result['sources']) > 0 or len(result['keywords']) > 0
 
-    print(f"\n✅ Research completed:")
+    print("\n✅ Research completed:")
     print(f"  - Sources: {len(result['sources'])}")
     print(f"  - Keywords: {len(result['keywords'])}")
     print(f"  - Summary: {result['summary'][:100]}...")
@@ -109,7 +109,7 @@ def test_real_writing_agent(api_key, temp_e2e_cache):
     assert len(result['content']) > 500
     assert result['cost'] > 0  # Real API cost
 
-    print(f"\n✅ Blog generated:")
+    print("\n✅ Blog generated:")
     print(f"  - Word count: {result['metadata']['word_count']}")
     print(f"  - Cost: ${result['cost']:.4f}")
     print(f"  - Cached: {result['cache_path']}")
@@ -146,7 +146,7 @@ def test_real_complete_pipeline_without_notion(api_key, temp_e2e_cache):
     assert len(cached_posts) == 1
     assert cached_posts[0]['metadata']['topic'] == "AI content automation"
 
-    print(f"\n✅ Pipeline completed:")
+    print("\n✅ Pipeline completed:")
     print(f"  - Research: {len(research_data['sources'])} sources")
     print(f"  - Content: {writing_result['metadata']['word_count']} words")
     print(f"  - Cost: ${writing_result['cost']:.4f}")
@@ -197,7 +197,7 @@ def test_real_sync_manager_with_mocked_notion(api_key, temp_e2e_cache):
     assert 'database_id' in call_args.kwargs
     assert 'properties' in call_args.kwargs
 
-    print(f"\n✅ Sync completed (mocked Notion):")
+    print("\n✅ Sync completed (mocked Notion):")
     print(f"  - Synced: {results['successful']}/{results['total']}")
 
 
@@ -232,10 +232,10 @@ def test_fixed_sync_blog_post_signature(api_key, temp_e2e_cache):
     # This should work with slug parameter (previously required blog_data dict)
     result = sync_manager.sync_blog_post(slug=slug)
 
-    assert result['success'] == True
+    assert result['success']
     assert 'page_id' in result
 
-    print(f"\n✅ Bug #1 fix verified: sync_blog_post accepts slug parameter")
+    print("\n✅ Bug #1 fix verified: sync_blog_post accepts slug parameter")
 
 
 @pytest.mark.e2e
@@ -265,7 +265,7 @@ def test_fixed_notion_client_database_ids(notion_token):
     assert isinstance(notion_client.database_ids, dict)
     assert 'blog_posts' in notion_client.database_ids or len(notion_client.database_ids) == 0
 
-    print(f"\n✅ Bug #2 fix verified: NotionClient loads database_ids")
+    print("\n✅ Bug #2 fix verified: NotionClient loads database_ids")
     print(f"  - Database IDs: {list(notion_client.database_ids.keys())}")
 
 

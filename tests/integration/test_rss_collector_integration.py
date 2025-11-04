@@ -262,7 +262,7 @@ def test_deduplication_across_feeds(rss_collector):
         "https://www.heise.de/rss/heise.rdf",  # Same feed
     ]
 
-    all_documents = rss_collector.collect_from_feeds(feed_urls, skip_errors=True)
+    rss_collector.collect_from_feeds(feed_urls, skip_errors=True)
 
     # Should deduplicate the second feed's articles
     # (Deduplicator should mark them as duplicates)
@@ -319,7 +319,7 @@ def test_error_handling_with_invalid_feed(rss_collector):
     assert len(invalid_health) == 1
     assert invalid_health[0]['failure_count'] == 1
 
-    print(f"✓ Error handling: failure recorded in health tracking")
+    print("✓ Error handling: failure recorded in health tracking")
 
 
 def test_rate_limiting_enforcement(rss_collector):

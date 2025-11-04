@@ -24,10 +24,9 @@ import json
 import re
 import requests
 import subprocess
-from typing import Dict, Any, List, Optional
-from urllib.parse import urlparse
+from typing import Dict, Any, List
 
-from src.agents.base_agent import BaseAgent, AgentError
+from src.agents.base_agent import BaseAgent
 from src.agents.research_agent import ResearchAgent
 
 logger = logging.getLogger(__name__)
@@ -185,7 +184,7 @@ class FactCheckerAgent(BaseAgent):
                 hallucinations.append({
                     'type': 'fake_url',
                     'url': url,
-                    'evidence': f'HTTP status: 404 (URL does not exist)'
+                    'evidence': 'HTTP status: 404 (URL does not exist)'
                 })
 
             logger.info(f"Layer 2 complete: {urls_real} real, {len(urls_fake)} fake")

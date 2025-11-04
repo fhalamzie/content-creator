@@ -303,3 +303,55 @@ class ConfigLoader:
         )
 
         return full_config
+
+
+# === Convenience Functions ===
+
+def load_config(config_path: str) -> FullConfig:
+    """
+    Convenience function to load config from file path
+
+    Args:
+        config_path: Full path to YAML config file
+
+    Returns:
+        FullConfig object
+
+    Example:
+        config = load_config("config/markets/proptech_de.yaml")
+    """
+    config_file = Path(config_path)
+
+    # Load and parse YAML
+    with open(config_file, 'r', encoding='utf-8') as f:
+        yaml_data = yaml.safe_load(f)
+
+    # Handle flat structure (domain, market, language at top level)
+    # Extract market config fields from top level
+    market_fields = ['domain', 'market', 'language', 'vertical', 'target_audience', 'seed_keywords', 'competitor_urls']
+    market_data = {k: v for k, v in yaml_data.items() if k in market_fields}
+
+    # Validate required market fields
+    required_fields = {'domain', 'market', 'language', 'vertical'}
+    missing_fields = required_fields - set(market_data.keys())
+    if missing_fields:
+        raise ValueError(f"Missing required fields in {config_file}: {missing_fields}")
+
+    market_config = MarketConfig(**market_data)
+
+    # Collectors (optional section)
+    collectors_config = CollectorConfig()
+    if 'collectors' in yaml_data:
+        collectors_config = CollectorConfig(**yaml_data['collectors'])
+
+    # Scheduling (optional section)
+    scheduling_config = SchedulingConfig()
+    if 'scheduling' in yaml_data:
+        scheduling_config = SchedulingConfig(**yaml_data['scheduling'])
+
+    # Combine into full config
+    return FullConfig(
+        market=market_config,
+        collectors=collectors_config,
+        scheduling=scheduling_config
+    )
