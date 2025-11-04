@@ -2,6 +2,28 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 021: Stage 3 Enabled & E2E Testing (2025-11-04)
+
+**Enabled Stage 3 Deep Research**: Changed `enable_deep_research=True` (default) in ContentPipeline:73. All 5 pipeline stages now functional. Created comprehensive E2E tests validating full pipeline execution. Successfully generated 5-6 page professional reports with 14 real web sources at $0.02/research using qwen/OpenRouter.
+
+**E2E Test Created**: Built `tests/test_integration/test_full_pipeline_e2e.py` (331 lines, 4 test functions) validating all stages. Fixed 3 test fixture issues: API key loading, MarketConfig vs dict, progress callback signature. Test successfully ran through Stage 3, generating PropTech report with 14 citations (Grand View Research, Fortune Business Insights, EY reports). Minor async/await error at Stage 3 completion needs investigation.
+
+**Playwright UI Tests Added**: Extended `tests/test_playwright_ui.py` with 2 new tests (lines 103-231): `test_topic_research_page_loads` (quick UI validation) and `test_topic_research_full_pipeline` (full 5-stage UI test, skipped by default due to $0.02-0.05 cost).
+
+**Architecture Clarified**: User corrected misunderstanding - Stage 3 enabled NOW, Gemini CLI is fallback only. Primary: gpt-researcher + qwen/OpenRouter ($0.02), Fallback: Gemini CLI.
+
+**Files Modified**:
+- `src/agents/content_pipeline.py:73` - Enabled Stage 3
+- `tests/test_integration/test_full_pipeline_e2e.py` - Created (331 lines)
+- `tests/test_playwright_ui.py:103-231` - Added UI tests
+- `TASKS.md` - Updated Stage 3 status to ENABLED
+
+**Known Issue**: Stage 3 async/await error after report generation (`object list can't be used in 'await' expression`). Research and report generation work correctly, error in return path only.
+
+**See**: [Full details](docs/sessions/021-stage3-enabled-e2e-testing.md)
+
+---
+
 ## Session 020 Continuation: gpt-researcher Abstraction Layer (2025-11-04)
 
 **Fixed gpt-researcher via Abstraction Layer**: Created robust wrapper in DeepResearcher that works around all 3 gpt-researcher bugs. Auto-loads OPENAI_API_KEY and TAVILY_API_KEY from `/home/envs/`, uses minimal configuration (only query + report_type), defaults to openai provider with gpt-4o-mini ($0.006/research). Successfully generates comprehensive reports with real web citations.

@@ -99,6 +99,137 @@ def test_generate_page_loads(streamlit_page: Page):
     heading = streamlit_page.get_by_text("Generate Content", exact=False)
     expect(heading.first).to_be_visible()
 
+
+@pytest.mark.e2e
+@pytest.mark.slow
+def test_topic_research_page_loads(streamlit_page: Page):
+    """Test: Topic Research page loads with configuration"""
+
+    # Navigate to Topic Research page (look for "Research" or "Topic Research" button)
+    research_button = streamlit_page.get_by_role("button").filter(has_text="Research")
+    if research_button.count() > 0:
+        research_button.first.click()
+    else:
+        # Try alternative navigation text
+        streamlit_page.get_by_text("Topic Research", exact=False).first.click()
+
+    time.sleep(2)
+
+    # Check for heading
+    heading = streamlit_page.get_by_text("Topic Research", exact=False)
+    expect(heading.first).to_be_visible()
+
+    # Check for configuration sidebar
+    sidebar = streamlit_page.locator("[data-testid='stSidebar']")
+    expect(sidebar).to_be_visible()
+
+    # Check for configuration inputs
+    domain_input = streamlit_page.get_by_label("Domain", exact=False)
+    expect(domain_input).to_be_visible()
+
+    market_input = streamlit_page.get_by_label("Market", exact=False)
+    expect(market_input).to_be_visible()
+
+    language_input = streamlit_page.get_by_label("Language Code", exact=False)
+    expect(language_input).to_be_visible()
+
+    print("✅ Topic Research page loads correctly")
+
+
+@pytest.mark.e2e
+@pytest.mark.slow
+@pytest.mark.skipif(True, reason="Requires real API keys and takes ~2 minutes to run")
+def test_topic_research_full_pipeline(streamlit_page: Page):
+    """Test: Full 5-stage ContentPipeline execution via UI
+
+    This test simulates a user running the complete pipeline:
+    1. Configure research settings
+    2. Enter a topic
+    3. Submit and watch progress through all 5 stages
+    4. View enhanced results
+
+    NOTE: This test makes real API calls and costs ~$0.02-0.05
+    """
+
+    # Navigate to Topic Research page
+    research_button = streamlit_page.get_by_role("button").filter(has_text="Research")
+    if research_button.count() > 0:
+        research_button.first.click()
+    else:
+        streamlit_page.get_by_text("Topic Research", exact=False).first.click()
+
+    time.sleep(2)
+
+    # Fill in configuration
+    domain_input = streamlit_page.get_by_label("Domain", exact=False)
+    domain_input.fill("SaaS")
+
+    market_input = streamlit_page.get_by_label("Market", exact=False)
+    market_input.fill("Germany")
+
+    language_input = streamlit_page.get_by_label("Language Code", exact=False)
+    language_input.fill("de")
+
+    vertical_input = streamlit_page.get_by_label("Vertical", exact=False)
+    vertical_input.fill("PropTech")
+
+    # Save configuration
+    save_button = streamlit_page.get_by_role("button").filter(has_text="Save Configuration")
+    save_button.click()
+    time.sleep(1)
+
+    # Enter topic
+    topic_input = streamlit_page.get_by_label("Topic Title", exact=False)
+    topic_input.fill("PropTech SaaS Solutions 2025")
+
+    description_input = streamlit_page.get_by_label("Topic Description", exact=False)
+    description_input.fill("Emerging PropTech software solutions transforming real estate management")
+
+    # Submit
+    submit_button = streamlit_page.get_by_role("button").filter(has_text="Start Research")
+    submit_button.click()
+
+    # Wait for progress bar to appear
+    progress_bar = streamlit_page.locator("[data-testid='stProgress']")
+    expect(progress_bar.first).to_be_visible(timeout=10000)
+
+    # Wait for all 5 stages to complete (up to 3 minutes)
+    # Stage 1: Competitor Research
+    stage_1 = streamlit_page.get_by_text("Stage 1/5", exact=False)
+    expect(stage_1).to_be_visible(timeout=30000)
+    print("✅ Stage 1: Competitor Research started")
+
+    # Stage 2: Keyword Research
+    stage_2 = streamlit_page.get_by_text("Stage 2/5", exact=False)
+    expect(stage_2).to_be_visible(timeout=30000)
+    print("✅ Stage 2: Keyword Research started")
+
+    # Stage 3: Deep Research (the newly enabled stage!)
+    stage_3 = streamlit_page.get_by_text("Stage 3/5", exact=False)
+    expect(stage_3).to_be_visible(timeout=30000)
+    print("✅ Stage 3: Deep Research started")
+
+    # Stage 4: Content Optimization
+    stage_4 = streamlit_page.get_by_text("Stage 4/5", exact=False)
+    expect(stage_4).to_be_visible(timeout=30000)
+    print("✅ Stage 4: Content Optimization started")
+
+    # Stage 5: Scoring & Ranking
+    stage_5 = streamlit_page.get_by_text("Stage 5/5", exact=False)
+    expect(stage_5).to_be_visible(timeout=30000)
+    print("✅ Stage 5: Scoring & Ranking started")
+
+    # Wait for completion message
+    completion = streamlit_page.get_by_text("Processing Complete", exact=False)
+    expect(completion).to_be_visible(timeout=120000)  # Up to 2 minutes for Stage 3
+    print("✅ All 5 stages completed successfully")
+
+    # Check results
+    results = streamlit_page.get_by_text("Topic processed", exact=False)
+    expect(results).to_be_visible()
+
+    print("✅ Full 5-stage pipeline executed successfully via UI")
+
     # Check for topic input
     topic_input = streamlit_page.get_by_label("Topic", exact=False)
     if topic_input.count() > 0:
