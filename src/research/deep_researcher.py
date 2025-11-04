@@ -241,8 +241,8 @@ class DeepResearcher:
             # Generate report
             report = await researcher.write_report()
 
-            # Get sources
-            sources = await researcher.get_source_urls()
+            # Get sources (synchronous method, returns list directly)
+            sources = researcher.get_source_urls()
 
             # Update statistics
             self.total_sources_found += len(sources)
