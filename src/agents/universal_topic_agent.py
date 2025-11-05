@@ -393,29 +393,60 @@ class UniversalTopicAgent:
             try:
                 clusters = self.topic_clusterer.cluster_documents(documents)
                 logger.info("clustering_completed", clusters=len(clusters))
+                using_fallback = False
             except Exception as e:
                 logger.error("clustering_failed", error=str(e))
-                # Fallback: treat each document as a topic
-                clusters = [[doc] for doc in documents[:limit]] if limit else [[doc] for doc in documents]
+                # Fallback: create simple clusters (one document per cluster)
+                from src.processors.topic_clusterer import TopicCluster
+                from dataclasses import dataclass
 
-            # 3. Convert clusters to topics
+                clusters = []
+                fallback_docs = documents[:limit] if limit else documents
+                for i, doc in enumerate(fallback_docs):
+                    cluster = TopicCluster(
+                        cluster_id=i,
+                        label=doc.title,
+                        document_ids=[doc.id],
+                        topic_titles=[doc.title],
+                        size=1,
+                        representative_title=doc.title
+                    )
+                    clusters.append(cluster)
+                using_fallback = True
+                logger.info("using_fallback_clusters", count=len(clusters))
+
+            # 3. Convert TopicClusters to Topic objects
             topics = []
+            # Build document lookup map
+            doc_map = {doc.id: doc for doc in documents}
+
             for cluster in clusters[:limit] if limit else clusters:
-                # Use the first document's title as the topic title
-                representative_doc = cluster[0]
+                # Get the first document from cluster for metadata
+                if not cluster.document_ids:
+                    logger.warning("empty_cluster", cluster_id=cluster.cluster_id)
+                    continue
+
+                # Get first document as representative
+                representative_doc_id = cluster.document_ids[0]
+                representative_doc = doc_map.get(representative_doc_id)
+
+                if not representative_doc:
+                    logger.warning("document_not_found", doc_id=representative_doc_id)
+                    continue
 
                 # Map document source to TopicSource enum
                 topic_source = self._map_document_source_to_topic_source(representative_doc.source)
 
                 topic = Topic(
-                    title=representative_doc.title,
-                    description=representative_doc.summary,
+                    title=cluster.representative_title or representative_doc.title,
+                    description=representative_doc.summary or cluster.label,
+                    cluster_label=cluster.label if not using_fallback else None,
                     source=topic_source,
-                    source_url=representative_doc.url,
+                    source_url=representative_doc.source_url,
                     domain=self.config.domain,
                     market=self.config.market,
                     language=self.config.language,
-                    engagement_score=0,  # TODO: Calculate from document metrics
+                    engagement_score=cluster.size,  # Use cluster size as engagement proxy
                     trending_score=0.0,  # TODO: Calculate from document timestamps
                     status=TopicStatus.DISCOVERED
                 )

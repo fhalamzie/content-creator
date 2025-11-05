@@ -2,6 +2,35 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 027: SQLite In-Memory Persistence Fixed - Document Collection Working (2025-11-05)
+
+**ALL 13 Integration Bugs FIXED**: Fixed critical SQLite in-memory database persistence issue + 4 additional bugs. Document collection pipeline now fully functional with 100% save success rate (was 0%). All 143 collected documents now persist correctly and are queryable from database.
+
+**🔴 CRITICAL FIX - SQLite In-Memory Persistence** (Bug #9):
+- **Problem**: Each `sqlite3.connect(':memory:')` creates separate database - schema/data didn't persist across operations
+- **Solution**: Persistent connection for `:memory:` databases via `self._persistent_conn` + context manager
+- **Files**: `src/database/sqlite_manager.py:46-250` - Added `_get_connection()` context manager, persistent connection logic
+- **Result**: ✅ 143/143 documents saved (was 0/150), ✅ documents retrievable from database (was "no such table")
+
+**🟢 ADDITIONAL FIXES** (Bugs #10-13):
+- Bug #10: `src/agents/universal_topic_agent.py:394` - TopicClusterer method: `cluster()` → `cluster_documents()`
+- Bug #11: `src/agents/universal_topic_agent.py:498-530` - Added `_map_document_source_to_topic_source()` helper (maps 'rss_github.blog' → TopicSource.RSS enum)
+- Bug #12: `src/agents/universal_topic_agent.py:401-454` - TopicCluster object structure: proper field access + document lookup map
+- Bug #13: `src/agents/universal_topic_agent.py:445` - Document attribute: `.url` → `.source_url`
+
+**E2E Test Results**:
+- **Before**: 0/150 documents saved (0%), database queries failed, 150+ errors
+- **After**: 143/143 documents saved (100%), database queries work, 0 errors
+- ✅ Feed Discovery: 16 feeds from 27 domains
+- ✅ RSS + Autocomplete: 143 unique documents collected
+- ✅ Database: 100% save success, documents retrievable
+- ✅ Clustering: 3 clusters created from 10 documents
+- ✅ Runtime: ~3.5 minutes (consistent performance)
+
+**See**: [Full details](docs/sessions/027-sqlite-inmemory-persistence-fixed.md)
+
+---
+
 ## Session 026: Multi-Backend Search Architecture (Phase 1-2 Complete) (2025-11-05)
 
 **Parallel Complementary Backends Implemented**: Built fault-tolerant 3-backend research system with graceful degradation. Tavily (DEPTH) + SearXNG (BREADTH) + Gemini API (TRENDS) run in parallel for 20-25 sources per report (vs 8-10) at same $0.02 cost. Zero silent failures via comprehensive logging.
