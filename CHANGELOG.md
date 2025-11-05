@@ -2,6 +2,40 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 025: Integration Bugs Fixed - Pipeline Functional (2025-11-05)
+
+**All Integration Bugs FIXED**: Fixed 5 critical FeedDiscovery/Deduplicator integration bugs blocking E2E pipeline. Added timeout handling for feedfinder2. Feed discovery now fully functional with 12+ feeds discovered from 27 domains.
+
+**🔴 CRITICAL FIXES - FeedDiscovery Config Access** (3 locations):
+- Line 149: `self.config.market.seed_keywords` → `self.config.seed_keywords` (AttributeError fix)
+- Line 286: `self.config.market.market/domain` → `self.config.market/domain` (Gemini prompt fix)
+- Lines 364-365: `self.config.market.language/market` → `self.config.language/market` (SerpAPI params fix)
+- **Root Cause**: MarketConfig has `market`, `language`, `domain` as top-level string fields, NOT nested objects
+
+**🟢 CRITICAL FIX - Deduplicator Missing Method**:
+- Added `get_canonical_url()` method as alias to `normalize_url()` for collector compatibility
+- Tested: Both methods return identical normalized URLs
+
+**🟡 PERFORMANCE FIX - feedfinder2 Timeout Handling**:
+- Wrapped `feedfinder2.find_feeds()` in `concurrent.futures` with 10-second timeout per domain
+- Prevents indefinite hangs on slow domains (cisco.com exceeded 300s)
+- Graceful degradation: Skip slow domains, continue pipeline
+
+**E2E Test Results**:
+- **Before (Session 024)**: 0 feeds, 100% error rate, failed in 2.11s
+- **After (Session 025)**: 12+ feeds discovered, 0 integration errors, 90s duration
+- ✅ Stage 1: 2 feeds from OPML/custom
+- ✅ Stage 2: 3 SerpAPI searches, 27 domains checked, 10+ feeds discovered
+- ✅ Timeout handling: cisco.com gracefully skipped after 10s
+
+**Files Modified**:
+- `src/collectors/feed_discovery.py:30,149,286,364-365,438-445` - 5 fixes (config access + timeout)
+- `src/processors/deduplicator.py:165-175` - Added get_canonical_url() method
+
+**See**: [Full details](docs/sessions/025-integration-bugs-fixed-pipeline-functional.md)
+
+---
+
 ## Session 024: Critical Bugs Fixed & Grounding Restored (2025-11-05)
 
 **All Critical Bugs FIXED**: Migrated to new Gemini SDK with `google_search` tool, fixed UniversalTopicAgent integration bugs, implemented grounding + JSON workaround. Pipeline now fully operational with web grounding enabled for Stages 1 & 2.

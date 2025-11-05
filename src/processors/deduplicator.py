@@ -162,6 +162,18 @@ class Deduplicator:
 
         return minhash
 
+    def get_canonical_url(self, url: str) -> str:
+        """
+        Get canonical URL (alias for normalize_url for compatibility)
+
+        Args:
+            url: URL to canonicalize
+
+        Returns:
+            Normalized canonical URL
+        """
+        return self.normalize_url(url)
+
     def normalize_url(self, url: str) -> str:
         """
         Normalize URL to canonical form

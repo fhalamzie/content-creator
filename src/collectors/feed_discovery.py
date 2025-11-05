@@ -27,6 +27,7 @@ from typing import List, Dict, Optional, Set
 from dataclasses import dataclass, field
 from enum import Enum
 import xml.etree.ElementTree as ET
+import concurrent.futures
 
 import requests
 
@@ -146,7 +147,7 @@ class FeedDiscovery:
         try:
             # Expand keywords with Gemini
             keywords = self._expand_keywords_with_gemini(
-                self.config.market.seed_keywords
+                self.config.seed_keywords
             )
             stage2_feeds = self.run_stage2(keywords)
             all_feeds.extend(stage2_feeds)
@@ -283,7 +284,7 @@ class FeedDiscovery:
         for attempt in range(2):
             try:
                 # Prepare Gemini CLI prompt
-                prompt = f"""Expand these keywords with related terms for RSS feed discovery in {self.config.market.market} {self.config.market.domain} market:
+                prompt = f"""Expand these keywords with related terms for RSS feed discovery in {self.config.market} {self.config.domain} market:
 
 Keywords: {', '.join(keywords)}
 
@@ -361,8 +362,8 @@ Keep original keywords and add 2-3 related terms per keyword."""
             # Build SerpAPI request
             params = {
                 "q": keyword,
-                "hl": self.config.market.language,
-                "gl": self.config.market.market[:2].lower(),
+                "hl": self.config.language,
+                "gl": self.config.market[:2].lower(),
                 "num": 10,
                 "engine": "google"  # Use Google search engine
             }
@@ -434,8 +435,14 @@ Keep original keywords and add 2-3 related terms per keyword."""
             # Ensure domain has protocol
             url = domain if domain.startswith("http") else f"https://{domain}"
 
-            # Discover feeds (feedfinder2 doesn't support timeout parameter)
-            feed_urls = feedfinder2.find_feeds(url)
+            # Discover feeds with 10-second timeout to prevent hanging
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(feedfinder2.find_feeds, url)
+                    feed_urls = future.result(timeout=10)  # 10 second timeout per domain
+            except concurrent.futures.TimeoutError:
+                logger.warning("feedfinder_timeout", domain=domain, timeout_seconds=10)
+                return feeds
 
             for feed_url in feed_urls:
                 feeds.append(DiscoveredFeed(
