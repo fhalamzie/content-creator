@@ -4,8 +4,36 @@ Configuration Models
 Universal configuration system for ANY domain/market/language.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, HttpUrl
+
+
+class CollectorsConfig(BaseModel):
+    """
+    Collectors configuration
+
+    Controls which collectors are enabled and their settings.
+    """
+    # Collector toggles
+    rss_enabled: bool = Field(default=True, description="Enable RSS collector")
+    reddit_enabled: bool = Field(default=False, description="Enable Reddit collector")
+    trends_enabled: bool = Field(default=False, description="Enable Trends collector")
+    autocomplete_enabled: bool = Field(default=False, description="Enable Autocomplete collector")
+
+    # Custom feeds for RSS collector
+    custom_feeds: List[HttpUrl] = Field(
+        default_factory=list,
+        description="Custom RSS feed URLs"
+    )
+
+    # Reddit subreddits
+    reddit_subreddits: List[str] = Field(
+        default_factory=list,
+        description="Subreddits to monitor (without r/ prefix)"
+    )
+
+    class Config:
+        extra = "allow"  # Allow additional collector-specific settings
 
 
 class MarketConfig(BaseModel):
@@ -65,6 +93,12 @@ class MarketConfig(BaseModel):
     # Research settings
     research_max_sources: int = Field(default=8, ge=3, le=20)
     research_depth: str = Field(default="balanced", pattern="^(quick|balanced|deep)$")
+
+    # Collectors configuration
+    collectors: CollectorsConfig = Field(
+        default_factory=CollectorsConfig,
+        description="Collectors configuration and toggles"
+    )
 
 
 class LLMConfig(BaseModel):

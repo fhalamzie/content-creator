@@ -7,7 +7,7 @@ Target: <5% deduplication rate
 Uses: datasketch library for efficient similarity search
 """
 
-from typing import Dict, Set
+from typing import Dict, Set, List
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from datasketch import MinHash, MinHashLSH
 
@@ -102,6 +102,33 @@ class Deduplicator:
         self.lsh.insert(doc.id, minhash)
 
         logger.info("document_added_to_index", doc_id=doc.id)
+
+    def deduplicate(self, documents: List[Document]) -> List[Document]:
+        """
+        Deduplicate a list of documents.
+
+        Args:
+            documents: List of documents to deduplicate
+
+        Returns:
+            List of unique documents (duplicates removed)
+        """
+        unique_docs = []
+
+        for doc in documents:
+            if not self.is_duplicate(doc):
+                self.add(doc)
+                unique_docs.append(doc)
+
+        logger.info(
+            "deduplication_completed",
+            total=len(documents),
+            unique=len(unique_docs),
+            duplicates=len(documents) - len(unique_docs),
+            duplicate_rate=f"{(len(documents) - len(unique_docs)) / len(documents) * 100:.2f}%" if documents else "0%"
+        )
+
+        return unique_docs
 
     def is_canonical_duplicate(self, doc1: Document, doc2: Document) -> bool:
         """

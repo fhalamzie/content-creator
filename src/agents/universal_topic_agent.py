@@ -157,23 +157,23 @@ class UniversalTopicAgent:
             # Initialize database
             db = SQLiteManager()
 
+            # Initialize processors first (collectors need deduplicator)
+            deduplicator = Deduplicator(threshold=0.7, num_perm=128)
+            topic_clusterer = TopicClusterer()
+
             # Initialize feed discovery
             feed_discovery = FeedDiscovery(config=config)
 
-            # Initialize collectors
-            rss_collector = RSSCollector(config=config, db_manager=db)
+            # Initialize collectors (all require deduplicator)
+            rss_collector = RSSCollector(config=config, db_manager=db, deduplicator=deduplicator)
 
-            reddit_enabled = config.collectors.get('reddit_enabled', False)
-            reddit_collector = RedditCollector(config=config, db_manager=db) if reddit_enabled else None
+            reddit_enabled = config.collectors.reddit_enabled
+            reddit_collector = RedditCollector(config=config, db_manager=db, deduplicator=deduplicator) if reddit_enabled else None
 
-            trends_enabled = config.collectors.get('trends_enabled', False)
-            trends_collector = TrendsCollector(config=config, db_manager=db) if trends_enabled else None
+            trends_enabled = config.collectors.trends_enabled
+            trends_collector = TrendsCollector(config=config, db_manager=db, deduplicator=deduplicator) if trends_enabled else None
 
-            autocomplete_collector = AutocompleteCollector(config=config, db_manager=db)
-
-            # Initialize processors
-            deduplicator = Deduplicator(db_manager=db)
-            topic_clusterer = TopicClusterer()
+            autocomplete_collector = AutocompleteCollector(config=config, db_manager=db, deduplicator=deduplicator)
 
             # Initialize content pipeline
             # Note: ContentPipeline requires these agents which we need to initialize
@@ -263,7 +263,7 @@ class UniversalTopicAgent:
                 feed_urls = [feed.url for feed in discovered_feeds]
 
                 # Also add custom feeds from config
-                custom_feeds = self.config.collectors.get('custom_feeds', [])
+                custom_feeds = self.config.collectors.custom_feeds
                 feed_urls.extend(custom_feeds)
 
                 rss_docs = self.rss_collector.collect(feed_urls=feed_urls)
@@ -278,7 +278,7 @@ class UniversalTopicAgent:
             if self.reddit_collector:
                 logger.info("stage_reddit_collection")
                 try:
-                    subreddits = self.config.collectors.get('reddit_subreddits', [])
+                    subreddits = self.config.collectors.reddit_subreddits
                     reddit_docs = self.reddit_collector.collect(subreddits=subreddits)
                     all_documents.extend(reddit_docs)
                     sources_processed += len(subreddits)
@@ -304,7 +304,7 @@ class UniversalTopicAgent:
             logger.info("stage_autocomplete_collection")
             try:
                 keywords = self.config.seed_keywords
-                autocomplete_docs = self.autocomplete_collector.collect(seed_keywords=keywords)
+                autocomplete_docs = self.autocomplete_collector.collect_suggestions(keywords=keywords)
                 all_documents.extend(autocomplete_docs)
                 sources_processed += len(keywords)
                 logger.info("autocomplete_collection_completed", documents=len(autocomplete_docs), keywords=len(keywords))

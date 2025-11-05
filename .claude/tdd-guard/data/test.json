@@ -1,102 +1,17 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/agents/test_content_pipeline.py",
+      "moduleId": "tests/test_integration/test_simplified_pipeline_e2e.py",
       "tests": [
         {
-          "name": "test_init_with_all_dependencies",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestContentPipelineInitialization::test_init_with_all_dependencies",
-          "state": "passed"
-        },
-        {
-          "name": "test_init_with_optional_parameters",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestContentPipelineInitialization::test_init_with_optional_parameters",
-          "state": "passed"
-        },
-        {
-          "name": "test_init_missing_competitor_agent",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestContentPipelineInitialization::test_init_missing_competitor_agent",
-          "state": "passed"
-        },
-        {
-          "name": "test_init_missing_keyword_agent",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestContentPipelineInitialization::test_init_missing_keyword_agent",
-          "state": "passed"
-        },
-        {
-          "name": "test_init_missing_deep_researcher",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestContentPipelineInitialization::test_init_missing_deep_researcher",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage1_competitor_research_success",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage1CompetitorResearch::test_stage1_competitor_research_success",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage1_competitor_research_failure",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage1CompetitorResearch::test_stage1_competitor_research_failure",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage2_keyword_research_success",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage2KeywordResearch::test_stage2_keyword_research_success",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage2_keyword_research_with_target_audience",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage2KeywordResearch::test_stage2_keyword_research_with_target_audience",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage3_deep_research_success",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage3DeepResearch::test_stage3_deep_research_success",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage3_deep_research_disabled",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage3DeepResearch::test_stage3_deep_research_disabled",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage4_content_optimization",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage4ContentOptimization::test_stage4_content_optimization",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage5_scoring_ranking",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage5ScoringRanking::test_stage5_scoring_ranking",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage5_demand_score_calculation",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage5ScoringRanking::test_stage5_demand_score_calculation",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage5_opportunity_score_calculation",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestStage5ScoringRanking::test_stage5_opportunity_score_calculation",
-          "state": "passed"
-        },
-        {
-          "name": "test_process_topic_success",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestFullPipelineExecution::test_process_topic_success",
-          "state": "passed"
-        },
-        {
-          "name": "test_process_topic_with_callback",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestFullPipelineExecution::test_process_topic_with_callback",
-          "state": "passed"
-        },
-        {
-          "name": "test_process_topic_failure_handling",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestFullPipelineExecution::test_process_topic_failure_handling",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_statistics",
-          "fullName": "tests/unit/agents/test_content_pipeline.py::TestContentPipelineStatistics::test_get_statistics",
-          "state": "passed"
+          "name": "test_simplified_full_pipeline_proptech",
+          "fullName": "tests/test_integration/test_simplified_pipeline_e2e.py::test_simplified_full_pipeline_proptech",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/site-packages/pytest_asyncio/plugin.py:426: in runtest\n    super().runtest()\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/site-packages/pytest_asyncio/plugin.py:642: in inner\n    _loop.run_until_complete(task)\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/asyncio/base_events.py:678: in run_until_complete\n    self.run_forever()\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/asyncio/base_events.py:645: in run_forever\n    self._run_once()\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/asyncio/base_events.py:1961: in _run_once\n    event_list = self._selector.select(timeout)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/selectors.py:468: in select\n    fd_event_list = self._selector.poll(timeout, max_ev)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: Timeout (>300.0s) from pytest-timeout."
+            }
+          ]
         }
       ]
     }

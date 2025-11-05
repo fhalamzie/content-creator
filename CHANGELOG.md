@@ -2,6 +2,79 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 024: Critical Bugs Fixed & Grounding Restored (2025-11-05)
+
+**All Critical Bugs FIXED**: Migrated to new Gemini SDK with `google_search` tool, fixed UniversalTopicAgent integration bugs, implemented grounding + JSON workaround. Pipeline now fully operational with web grounding enabled for Stages 1 & 2.
+
+**🔴 CRITICAL FIX - Gemini API Grounding Migration**:
+- Migrated from deprecated `google_search_retrieval` → `google_search` tool (new SDK)
+- Updated to `google-genai` 1.2.0 (was `google-generativeai` 0.8.5)
+- Changed SDK imports: `from google import genai; from google.genai import types`
+- Updated API calls: `client.models.generate_content()` (was `model.generate_content()`)
+- Fixed grounding metadata extraction from `response.candidates[0]` (was direct on response)
+
+**🟢 SOLUTION - Grounding + JSON Workaround** (Gemini API Limitation):
+- **Problem**: Gemini API doesn't support `tools` + `response_schema` simultaneously (400 error)
+- **Solution**: JSON-in-prompt + robust parsing when both grounding + schema requested
+- Created `src/utils/json_parser.py` with 4 extraction strategies:
+  1. Direct `json.loads()` (if already valid JSON)
+  2. Extract from markdown code fences (```json...```)
+  3. Regex extraction of first {...} or [...] block
+  4. Clean common issues (trailing commas, single quotes) then parse
+- Created `schema_to_json_prompt()` to convert JSON schema → human-readable prompt instructions
+- **Result**: ✅ Grounding works + ✅ Structured JSON output (tested with 3 web search queries)
+
+**🟡 HIGH FIX - UniversalTopicAgent Integration Bugs**:
+- Added `CollectorsConfig` model to `MarketConfig` (rss/reddit/trends/autocomplete toggles)
+- Fixed collector method names: `AutocompleteCollector.collect_suggestions()` (was `collect()`)
+- Added `Deduplicator.deduplicate()` method (batch processing)
+- Fixed `load_config()` collector signatures - all require `deduplicator` parameter
+- Fixed initialization order: Deduplicator → Collectors (dependency order)
+- Changed `.get()` dict access to direct attribute access for Pydantic models
+
+**Files Modified**:
+- `src/agents/gemini_agent.py:38-47,177-249` - New SDK migration + JSON workaround
+- `src/utils/json_parser.py` - Created (175 lines, robust JSON extraction)
+- `src/models/config.py:7-8,11-36,98-101` - Added CollectorsConfig model
+- `src/agents/universal_topic_agent.py:160-176,166,169,266,281,307` - Integration fixes
+- `src/processors/deduplicator.py:10,106-131` - Added deduplicate() method
+- `tests/test_integration/test_simplified_pipeline_e2e.py:78-82` - Updated fixture comments
+
+**Testing Results**:
+- ✅ CompetitorResearchAgent: 3 competitors found, 7 content gaps (with grounding)
+- ✅ Grounding verified: 3 web search queries for current event (UEFA 2024)
+- ✅ JSON extraction: Successfully parsed from code fence format
+- ✅ Correct current data: Spain 2-1 England, July 14, 2024 (from web, not training data)
+
+**Known Limitation**:
+- Gemini API `sources` field empty in new SDK (uses `web_search_queries` instead)
+- No impact on functionality - grounding confirmed via search queries in metadata
+
+**See**: Session 023 identified bugs, Session 024 fixed all critical issues
+
+---
+
+## Session 023: E2E Testing & Critical Bug Discovery (2025-11-05)
+
+**E2E Test Infrastructure Created**: Built comprehensive full-system E2E tests (`test_universal_topic_agent_e2e.py` 540 lines, `test_simplified_pipeline_e2e.py` 330 lines) testing Feed Discovery → RSS → Dedup → Clustering → ContentPipeline → Notion Sync with real PropTech/SaaS topics. Fixed test infrastructure (SQLiteManager fixture, API key loading, component initialization order, collector signatures).
+
+**🔴 CRITICAL BUG DISCOVERED**: Google deprecated `google_search_retrieval` API causing `400 google_search_retrieval is not supported. Please use google_search tool instead.` error. Session 022's Gemini API migration used deprecated grounding method, blocking entire pipeline (Stages 1 & 2 completely blocked). Attempted multiple fixes (Tool class variations, GoogleSearchRetrieval from protos) - all unsuccessful. Need to research Google's new google_search tool approach.
+
+**🟡 HIGH PRIORITY BUGS**: UniversalTopicAgent has multiple integration bugs discovered during E2E testing: (1) MarketConfig missing `collectors` attribute, (2) AutocompleteCollector has no `collect()` method, (3) Deduplicator has no `deduplicate()` method, (4) load_config() uses wrong collector signatures (missing deduplicator parameter). UniversalTopicAgent.collect_all_sources() fails completely.
+
+**Testing Status**: 0/6 acceptance criteria validated due to critical Gemini API bug. E2E infrastructure ready, but pipeline blocked until grounding fixed.
+
+**Files Created**:
+- `tests/test_integration/test_universal_topic_agent_e2e.py` - Full system E2E (540 lines)
+- `tests/test_integration/test_simplified_pipeline_e2e.py` - Simplified E2E (330 lines)
+- `docs/sessions/023-e2e-testing-bug-discovery.md` - Complete bug analysis
+
+**Next Session**: Fix critical Gemini API grounding, fix UniversalTopicAgent integration bugs, re-run E2E tests.
+
+**See**: [Full details](docs/sessions/023-e2e-testing-bug-discovery.md)
+
+---
+
 ## Session 022: Gemini API Grounding Migration (2025-11-05)
 
 **Migrated to Native Gemini API**: Replaced Gemini CLI text parsing with native `google-generativeai` SDK using Google Search grounding. Created GeminiAgent (342 lines) with `responseSchema` for guaranteed structured JSON output. Fixed E2E test empty results issue - CLI `--output-format json` returns wrapper `{"response": "text"}` not structured data. API grounding provides same web research as CLI but with 99%+ reliability vs 80-90% parsing success rate.

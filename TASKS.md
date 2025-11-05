@@ -1,8 +1,22 @@
 # Tasks
 
-## 🔥 URGENT - Next Steps
+## ✅ Session 024 - Critical Bugs FIXED
 
-- [ ] **Test full 5-stage ContentPipeline end-to-end** - Stage 3 now enabled
+- [x] **Fix Gemini API Grounding** ✅ **FIXED** (Session 024)
+  - Migrated to new `google-genai` 1.2.0 SDK with `google_search` tool
+  - Implemented grounding + JSON workaround (JSON-in-prompt + robust parsing)
+  - Created `src/utils/json_parser.py` with 4 extraction strategies
+  - **TESTED**: ✅ 3 web search queries, ✅ Structured JSON output, ✅ Current data from web
+
+- [x] **Fix UniversalTopicAgent Integration Bugs** ✅ **FIXED** (Session 024)
+  - Added `CollectorsConfig` model to `MarketConfig`
+  - Fixed `AutocompleteCollector.collect_suggestions()` method name
+  - Added `Deduplicator.deduplicate()` batch method
+  - Fixed `load_config()` collector signatures (all require `deduplicator`)
+  - Fixed initialization order (Deduplicator before Collectors)
+
+- [ ] **Complete E2E Testing** - Ready to run (bugs fixed)
+  - Re-run `test_universal_topic_agent_e2e.py` and `test_simplified_pipeline_e2e.py`
   - Verify: Feed Discovery → RSS → Dedup → Clustering → Deep Research → Notion Sync
   - Test with real PropTech/SaaS topics
   - Validate all acceptance criteria (50+ topics/week, <5% dedup, etc.)
@@ -191,6 +205,11 @@
   - Fallback: Gemini CLI (if gpt-researcher fails)
   - All 5 stages now functional end-to-end
   - See: Session 020 continuation for abstraction layer implementation
+- **Gemini API grounding deprecated** - ✅ FIXED in Session 024
+  - Migrated to new `google-genai` SDK 1.2.0 with `google_search` tool
+  - Implemented grounding + JSON workaround for Gemini API limitation
+  - CompetitorResearchAgent/KeywordResearchAgent now use web grounding + structured JSON
+  - See: `src/agents/gemini_agent.py`, `src/utils/json_parser.py`
 - **gpt-researcher bugs workaround via abstraction layer** - ✅ FIXED in Session 020 continuation
   - Bug 1 (Duplicate parameter): Fixed by minimal initialization (only query + report_type)
   - Bug 2 (Missing OPENAI_API_KEY): Fixed by auto-loader from `/home/envs/openai.env`
