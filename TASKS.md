@@ -1,25 +1,52 @@
 # Tasks
 
-## ✅ Session 024 - Critical Bugs FIXED
+## 🔄 Session 024 - Critical Bugs FIXED (E2E Integration Ongoing)
+
+### ✅ MAJOR FIXES COMPLETED:
 
 - [x] **Fix Gemini API Grounding** ✅ **FIXED** (Session 024)
   - Migrated to new `google-genai` 1.2.0 SDK with `google_search` tool
   - Implemented grounding + JSON workaround (JSON-in-prompt + robust parsing)
   - Created `src/utils/json_parser.py` with 4 extraction strategies
   - **TESTED**: ✅ 3 web search queries, ✅ Structured JSON output, ✅ Current data from web
+  - **STATUS**: CompetitorResearchAgent/KeywordResearchAgent work with grounding
 
-- [x] **Fix UniversalTopicAgent Integration Bugs** ✅ **FIXED** (Session 024)
-  - Added `CollectorsConfig` model to `MarketConfig`
-  - Fixed `AutocompleteCollector.collect_suggestions()` method name
-  - Added `Deduplicator.deduplicate()` batch method
-  - Fixed `load_config()` collector signatures (all require `deduplicator`)
-  - Fixed initialization order (Deduplicator before Collectors)
+- [x] **Fix UniversalTopicAgent Core Integration** ✅ **PARTIALLY FIXED** (Session 024)
+  - ✅ Added `CollectorsConfig` model to `MarketConfig`
+  - ✅ Added `Deduplicator.deduplicate()` batch method
+  - ✅ Fixed `load_config()` collector signatures (all require `deduplicator`)
+  - ✅ Fixed initialization order (Deduplicator before Collectors)
+  - ✅ Fixed RSSCollector: `collect()` → `collect_from_feeds()`
+  - ✅ Fixed AutocompleteCollector: `keywords` → `seed_keywords` parameter
+  - ⚠️ **INCOMPLETE**: Additional collector integration issues discovered in E2E tests
 
-- [ ] **Complete E2E Testing** - Ready to run (bugs fixed)
-  - Re-run `test_universal_topic_agent_e2e.py` and `test_simplified_pipeline_e2e.py`
-  - Verify: Feed Discovery → RSS → Dedup → Clustering → Deep Research → Notion Sync
-  - Test with real PropTech/SaaS topics
-  - Validate all acceptance criteria (50+ topics/week, <5% dedup, etc.)
+### 🔴 REMAINING INTEGRATION ISSUES (E2E Testing):
+
+- [ ] **Deduplicator Missing Method**: `get_canonical_url()`
+  - Called by: AutocompleteCollector (and possibly other collectors)
+  - Impact: AutocompleteCollector fails after successfully fetching 260+ suggestions
+  - Fix: Add `get_canonical_url()` method to Deduplicator or refactor collector calls
+
+- [ ] **Unknown Additional Collector Bugs**
+  - E2E tests show: 0 documents collected despite successful API calls
+  - Suggests: More method signature mismatches or integration issues
+  - Need: Full E2E run to discover all remaining bugs
+
+- [~] **Complete E2E Testing** - IN PROGRESS (additional integration bugs found)
+  - Status: Main bugs fixed (Gemini grounding, CollectorsConfig), but E2E reveals more issues
+  - Test: `test_universal_topic_agent_e2e.py::test_proptech_saas_topics_discovery`
+
+  **Remaining Integration Issues** (discovered during E2E testing):
+  - [x] RSSCollector method name: `collect()` → `collect_from_feeds()` ✅ FIXED
+  - [x] AutocompleteCollector parameter: `keywords` → `seed_keywords` ✅ FIXED
+  - [ ] Deduplicator missing method: `get_canonical_url()` (called by AutocompleteCollector)
+  - [ ] Additional collector integration bugs may exist (need to run full pipeline)
+
+  **Next Steps**:
+  1. Fix remaining Deduplicator/Collector integration issues
+  2. Re-run E2E tests until 0 documents collected → >0 documents
+  3. Validate all 5 stages work end-to-end
+  4. Test acceptance criteria (50+ topics/week, <5% dedup, etc.)
 
 ## High Priority (Universal Topic Research Agent - Phase 1)
 

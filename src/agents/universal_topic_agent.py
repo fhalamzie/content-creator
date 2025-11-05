@@ -266,7 +266,7 @@ class UniversalTopicAgent:
                 custom_feeds = self.config.collectors.custom_feeds
                 feed_urls.extend(custom_feeds)
 
-                rss_docs = self.rss_collector.collect(feed_urls=feed_urls)
+                rss_docs = self.rss_collector.collect_from_feeds(feed_urls=feed_urls)
                 all_documents.extend(rss_docs)
                 sources_processed += len(feed_urls)
                 logger.info("rss_collection_completed", documents=len(rss_docs), feeds=len(feed_urls))
@@ -304,7 +304,7 @@ class UniversalTopicAgent:
             logger.info("stage_autocomplete_collection")
             try:
                 keywords = self.config.seed_keywords
-                autocomplete_docs = self.autocomplete_collector.collect_suggestions(keywords=keywords)
+                autocomplete_docs = self.autocomplete_collector.collect_suggestions(seed_keywords=keywords)
                 all_documents.extend(autocomplete_docs)
                 sources_processed += len(keywords)
                 logger.info("autocomplete_collection_completed", documents=len(autocomplete_docs), keywords=len(keywords))
