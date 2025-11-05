@@ -351,7 +351,23 @@ class DeepResearcher:
 
         query = " ".join(parts)
 
-        logger.debug("query_built", original_topic=topic, contextualized_query=query)
+        # Hard limit: Max 400 characters for gpt-researcher queries
+        # Longer queries cause exponentially slower research and timeouts
+        MAX_QUERY_LENGTH = 400
+
+        if len(query) > MAX_QUERY_LENGTH:
+            logger.warning(
+                "query_too_long_truncating",
+                original_length=len(query),
+                max_length=MAX_QUERY_LENGTH
+            )
+
+            # Strategy: Truncate from end to preserve topic context
+            # Keep topic + domain + market + language (core context)
+            # Truncate emphasis/keywords if needed
+            query = query[:MAX_QUERY_LENGTH - 3] + "..."
+
+        logger.debug("query_built", original_topic=topic, contextualized_query=query, length=len(query))
 
         return query
 
