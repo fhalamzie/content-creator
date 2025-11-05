@@ -1,21 +1,36 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_integration/test_hybrid_orchestrator_stage4_5_smoke.py",
+      "moduleId": "tests/test_integration/test_hybrid_orchestrator_e2e.py",
       "tests": [
         {
-          "name": "test_stage4_5_validate_and_score_topics",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_stage4_5_smoke.py::TestStage4_5Integration::test_stage4_5_validate_and_score_topics",
+          "name": "test_full_pipeline_success",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestFullPipeline::test_full_pipeline_success",
           "state": "passed"
         },
         {
-          "name": "test_stage4_5_empty_topics",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_stage4_5_smoke.py::TestStage4_5Integration::test_stage4_5_empty_topics",
+          "name": "test_manual_topic_research",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestManualTopicResearch::test_manual_topic_research",
           "state": "passed"
         },
         {
-          "name": "test_stage4_5_high_threshold_filters_more",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_stage4_5_smoke.py::TestStage4_5Integration::test_stage4_5_high_threshold_filters_more",
+          "name": "test_stage2_fallback_in_pipeline",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestAutomaticFallback::test_stage2_fallback_in_pipeline",
+          "state": "passed"
+        },
+        {
+          "name": "test_pipeline_resilience_to_failures",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestAutomaticFallback::test_pipeline_resilience_to_failures",
+          "state": "passed"
+        },
+        {
+          "name": "test_free_tier_usage_priority",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestCostOptimization::test_free_tier_usage_priority",
+          "state": "passed"
+        },
+        {
+          "name": "test_topic_validation_reduces_research_costs",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestCostOptimization::test_topic_validation_reduces_research_costs",
           "state": "passed"
         }
       ]

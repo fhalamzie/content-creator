@@ -346,19 +346,26 @@
     - [x] Research button with progress tracking
     - [x] Display: cost, duration, sources, article with citations
 
-- [ ] **Phase 4: Automatic Fallback** 🔄 **TODO** (Day 7)
-  - [ ] RateLimitError exception class
-  - [ ] Stage 2 fallback: Gemini → Tavily API
-  - [ ] Stage 4 fallback: Free news → Paid news API
-  - [ ] CostTracker class (track free vs paid calls)
-  - [ ] 8 tests (fallback behavior, cost tracking)
+- [x] **Phase 4: Automatic Fallback** ✅ **COMPLETE** (Session 036)
+  - [x] RateLimitError exception class (already existed in backends/exceptions.py)
+  - [x] CostTracker class (177 lines, 15 tests) - tracks free vs paid calls per stage
+  - [x] Stage 2 fallback: Gemini → Tavily API ($0.02) with rate limit detection
+  - [x] Stage 4 fallback: N/A (pattern-based, no API calls)
+  - [x] 7 fallback unit tests (all passing)
+  - [x] Cost tracking integrated across all API transitions
 
-- [ ] **Phase 5: E2E Testing & Docs** 🔄 **TODO** (Day 8)
-  - [ ] E2E Test 1: Full pipeline (Website → Article)
-  - [ ] E2E Test 2: Manual topic research
-  - [ ] E2E Test 3: Automatic fallback behavior
-  - [ ] Update README.md (hybrid orchestrator usage)
-  - [ ] Update ARCHITECTURE.md (Stage 4.5 scoring)
+- [x] **Phase 5: E2E Testing** ✅ **COMPLETE** (Session 036)
+  - [x] E2E Test 1: Full pipeline (Website → Article) - graceful degradation
+  - [x] E2E Test 2: Manual topic research - direct API usage
+  - [x] E2E Test 3: Automatic fallback behavior - rate limit triggers Tavily
+  - [x] E2E Test 4: Pipeline resilience - continues with failures
+  - [x] E2E Test 5: Free-tier priority - cost optimization
+  - [x] E2E Test 6: Topic validation savings - 60% cost reduction
+  - [x] Total: 28 new tests (15 CostTracker + 7 fallback + 6 E2E) - **100% passing**
+
+- [ ] **Phase 5: Documentation** 🔄 **TODO**
+  - [ ] Update README.md (hybrid orchestrator usage examples)
+  - [ ] Update ARCHITECTURE.md (Stage 4.5 scoring details)
   - [ ] Create docs/hybrid_orchestrator.md (detailed guide)
 
 **Cost Structure** (with fallback):

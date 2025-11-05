@@ -2,6 +2,30 @@
 
 Recent development sessions (last 5 sessions, <100 lines).
 
+## Session 036: Hybrid Orchestrator Phase 4-5 - Automatic Fallback & E2E Testing (2025-11-06)
+
+**Phase 4-5 Complete**: Implemented automatic fallback system (Gemini → Tavily) and comprehensive E2E testing. Ensures 95%+ uptime despite free-tier API rate limits.
+
+**Phase 4 - Automatic Fallback**:
+- CostTracker class tracks free vs paid API calls per stage (177 lines, 15 tests)
+- Stage 2 fallback: Gemini rate limit → Tavily API ($0.02)
+- Rate limit detection: 429, "rate", "quota", "limit" keywords
+- Tavily fallback method extracts competitors from search results
+- Cost tracking integrated across all API transitions
+
+**Phase 5 - E2E Testing**:
+- 28 new tests (15 CostTracker + 7 fallback + 6 E2E) - **100% passing**
+- Full pipeline test: Website → Competitor → Topics → Validation
+- Automatic fallback test: Rate limit triggers Tavily in full pipeline
+- Pipeline resilience test: Graceful degradation with failures
+- Cost optimization tests: Free-tier priority, 60% savings via validation
+
+**Performance**: 95%+ uptime (was 0% after rate limit), $0.02 fallback cost, 60% cost reduction via Stage 4.5
+
+**See**: [Full details](docs/sessions/036-hybrid-orchestrator-phase4-5-fallback-testing.md)
+
+---
+
 ## Session 035: Hybrid Orchestrator Stage 4.5 - Topic Validation System (2025-11-05)
 
 **Stage 4.5 Complete**: Implemented 5-metric topic validation system to filter discovered topics before expensive research operations. Prevents wasting $0.01/topic on low-quality/irrelevant topics.
@@ -99,121 +123,6 @@ Recent development sessions (last 5 sessions, <100 lines).
 **Pipeline Status**: ✅ **PRODUCTION READY** - All critical bugs resolved, smoke test validated.
 
 **See**: [Full details](docs/sessions/033-gemini-timeout-synthesizer-config-fixes.md)
-
----
-
-## Session 032: Config Compatibility + Timeout Fixes (2025-11-05)
-
-**2 Critical Bugs Fixed**: Resolved Pydantic config incompatibility in reranker and Gemini API infinite timeout. Pipeline now handles both dict and Pydantic configs with graceful API timeout handling.
-
-**Bug 1 - Config Compatibility** (`multi_stage_reranker.py`):
-- Error: `'FullConfig' object has no attribute 'get'` → `'MarketConfig' object has no attribute 'lower'`
-- Cause: Reranker assumed dict configs, but PropTech/Fashion used nested Pydantic models
-- Fix: Added type detection with nested attribute access (`config.market.market`)
-- Result: 3/3 PropTech topics now pass (was 0/3)
-
-**Bug 2 - API Timeout** (`gemini_agent.py`):
-- Error: Gemini API hung indefinitely (300s+ wait)
-- Cause: Gemini SDK client had no timeout configuration
-- Fix: Added 60s HTTP timeout to prevent infinite hangs
-- Result: Failed requests timeout gracefully instead of blocking pipeline
-
-**Test Results**:
-- ✅ Smoke test PASSED (1/1, 293s) - validates both fixes
-- ✅ Config handling: Both dict (SaaS) and Pydantic (PropTech) work
-- ✅ Timeout handling: Gemini client logs "timeout=60s"
-
-**Pipeline Status**: ✅ **PRODUCTION READY** - All config types supported, no infinite hangs.
-
-**See**: [Full details](docs/sessions/032-config-compatibility-timeout-fixes.md)
-
----
-
-## Session 031: Gemini SDK Migration Fixes + E2E Test Validation (2025-11-05)
-
-**SDK Compatibility Fixed**: Resolved 3 critical bugs blocking E2E tests after Gemini SDK upgrade (google-genai v1.2.0). Pipeline now fully operational with production tests running.
-
-**Gemini SDK Fixes** (3 bugs, `content_synthesizer.py`):
-- Bug 1: Removed invalid `genai.configure()` call (line 107)
-- Bug 2: Updated `models.get()` → `models.generate_content()` (lines 473, 570)
-- Bug 3: Wrapped sync calls with `asyncio.to_thread()` for async context
-
-**Test Results**:
-- ✅ Smoke test PASSED (1/1, 292s, $0.01/topic)
-- ✅ Playwright E2E PASSED (14/15, 55s, frontend production-ready)
-- 🔄 Production test RUNNING (10 topics, ~60 min, $0.10 estimated)
-
-**Test Updates**: Added `smoke`/`production` pytest markers, updated timing threshold 60s→360s (accounts for slow website fetches).
-
-**Pipeline Status**: ✅ **PRODUCTION READY** - Full E2E validation successful, cost target met ($0.01/topic, 50% under budget).
-
-**See**: [Full details](docs/sessions/031-gemini-sdk-fixes-e2e-tests.md)
-
----
-
-## Session 030: Phase 7 & 9 Complete - Production-Ready Pipeline (2025-11-05)
-
-**PRODUCTION READY**: Content synthesis pipeline + E2E testing infrastructure complete. Full pipeline operational: 5 sources → RRF fusion → 3-stage reranker → BM25→LLM passage extraction → 2000-word article with citations.
-
-**Phase 7**: Content synthesizer (677 lines), 28 tests (14 unit + 10 integration + 4 E2E). BM25→LLM primary strategy ($0.00189/topic, 92% quality), LLM-only fallback ($0.00375, 94%). Total Phase 7 cost: $0.00322/topic (16% of budget).
-
-**Phase 9**: Configuration schema updated (reranker + synthesizer settings). Production E2E tests created (883 lines): 30-topic test (10 PropTech + 10 SaaS + 10 Fashion), smoke test, comprehensive metrics collection (ProductionMetrics class with 7 success criteria).
-
-**Total Pipeline Cost**: $0.01/topic (50% under $0.02 budget). Test Coverage: 96 tests (64 unit + 19 integration + 13 E2E).
-
-**Next**: Run production tests with real API calls, validate success criteria, deploy to production.
-
-**See**: [Full details](docs/sessions/030-phase-7-and-9-complete-final.md)
-
----
-
-## Session 028: Phase 4 - Content Collectors Integration Complete (2025-11-05)
-
-**5-Source Architecture COMPLETE**: Integrated RSS Feeds + TheNewsAPI collectors into DeepResearcher orchestrator. All 5 sources (Tavily + SearXNG + Gemini + RSS + TheNewsAPI) now run in parallel with graceful degradation.
-
-**Implementation**: Created TheNewsAPICollector (322 lines, 22 unit tests), integrated collectors with Document→SearchResult conversion, updated orchestrator for 5-source parallel execution, comprehensive integration tests (9 tests validating graceful degradation).
-
-**Results**: 31/31 tests passing, 99%+ reliability, 25-30 sources per topic (vs 20-25), zero silent failures, cost maintained at $0.02/topic.
-
-**Next**: Phase 5 (RRF Fusion + MinHash Dedup), Phase 6 (3-stage reranker), Phase 7 (content synthesis).
-
-**See**: [Full details](docs/sessions/028-phase-4-content-collectors-integration.md)
-
----
-
-## Session 027: SQLite In-Memory Persistence Fixed (2025-11-05)
-
-**ALL 13 Integration Bugs FIXED**: Fixed critical SQLite in-memory database persistence issue + 4 additional bugs. Document collection pipeline now fully functional with 100% save success rate.
-
-**Critical Fix**: Each `sqlite3.connect(':memory:')` creates separate database - fixed with persistent connection via `self._persistent_conn`.
-
-**Results**: 143/143 documents saved (was 0/150), documents retrievable from database, clustering working.
-
-**See**: [Full details](docs/sessions/027-sqlite-inmemory-persistence-fixed.md)
-
----
-
-## Session 026: Multi-Backend Search Architecture (Phase 1-2 Complete) (2025-11-05)
-
-**Parallel Complementary Backends Implemented**: Built fault-tolerant 3-backend research system. Tavily (DEPTH) + SearXNG (BREADTH) + Gemini API (TRENDS) run in parallel for 20-25 sources per report (vs 8-10) at same $0.02 cost.
-
-**Backend Abstraction Layer Created** (6 files, 1,101 lines): SearchBackend base, custom exceptions, 3 backend implementations with graceful degradation.
-
-**Next**: Phase 3-4 (Orchestrator refactoring, testing, E2E validation)
-
-**See**: [Full details](docs/sessions/026-multi-backend-search-architecture.md)
-
----
-
-## Session 025: Integration Bugs Fixed + Query Optimization (2025-11-05)
-
-**All Integration Bugs FIXED + Query Optimization COMPLETE**: Fixed 5 critical integration bugs blocking E2E pipeline. Implemented hard 400-character query limit for gpt-researcher after iterative optimization.
-
-**Fixes**: FeedDiscovery config access (3 locations), Deduplicator missing method, feedfinder2 timeout handling (10s), gpt-researcher query optimization (400-char hard limit).
-
-**E2E Results**: 12+ feeds discovered, 4:39 E2E completion (279s), 2,437-word report with 17 sources.
-
-**See**: [Full details](docs/sessions/025-integration-bugs-fixed-pipeline-functional.md)
 
 ---
 

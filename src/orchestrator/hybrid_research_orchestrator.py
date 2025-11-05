@@ -32,6 +32,9 @@ from src.research.synthesizer.content_synthesizer import (
 from src.utils.config_loader import ConfigLoader
 from src.agents.gemini_agent import GeminiAgent, GeminiAgentError
 from src.orchestrator.topic_validator import TopicValidator, TopicMetadata
+from src.orchestrator.cost_tracker import CostTracker, APIType
+from src.research.backends.exceptions import RateLimitError
+from src.research.backends.tavily_backend import TavilyBackend
 
 logger = get_logger(__name__)
 
@@ -87,6 +90,8 @@ class HybridResearchOrchestrator:
         self._synthesizer = None
         self._gemini_agent = None
         self._topic_validator = None
+        self._tavily_backend = None
+        self._cost_tracker = CostTracker()  # Always initialized for cost tracking
 
         logger.info(
             "hybrid_orchestrator_initialized",
@@ -148,6 +153,23 @@ class HybridResearchOrchestrator:
         if self._topic_validator is None:
             self._topic_validator = TopicValidator()
         return self._topic_validator
+
+    @property
+    def cost_tracker(self) -> CostTracker:
+        """Get cost tracker"""
+        return self._cost_tracker
+
+    @property
+    def tavily_backend(self) -> Optional[TavilyBackend]:
+        """Lazy load Tavily backend for fallback"""
+        if self._tavily_backend is None and self.enable_tavily:
+            try:
+                self._tavily_backend = TavilyBackend()
+                logger.info("tavily_backend_loaded_for_fallback")
+            except Exception as e:
+                logger.warning("tavily_backend_init_failed", error=str(e))
+                return None
+        return self._tavily_backend
 
     async def extract_website_keywords(
         self,
@@ -380,6 +402,116 @@ Return ONLY valid JSON (no markdown fences)."""
                 "error": f"Extraction failed: {str(e)}"
             }
 
+    async def _research_competitors_with_tavily(
+        self,
+        keywords: List[str],
+        customer_info: Dict,
+        max_competitors: int = 10
+    ) -> Dict:
+        """
+        Fallback: Research competitors using Tavily API.
+
+        Used when Gemini API hits rate limits. Uses Tavily search to
+        find competitors and extract market information.
+
+        Args:
+            keywords: Keywords from stage 1
+            customer_info: Dict with market, vertical, language
+            max_competitors: Max competitors to analyze
+
+        Returns:
+            Dict with competitors, keywords, market_topics, cost
+        """
+        logger.info("stage2_fallback_tavily_research")
+
+        if not self.tavily_backend:
+            logger.error("tavily_backend_not_available")
+            return {
+                "competitors": [],
+                "additional_keywords": [],
+                "market_topics": [],
+                "cost": 0.0,
+                "error": "Tavily backend not available"
+            }
+
+        try:
+            market = customer_info.get("market", "")
+            vertical = customer_info.get("vertical", "")
+            domain = customer_info.get("domain", "")
+
+            # Build search query for competitors
+            keywords_str = " ".join(keywords[:10])
+            competitor_query = f"{vertical} companies {market} competitors in {domain}"
+
+            logger.info("tavily_competitor_search", query=competitor_query[:100])
+
+            # Search with Tavily
+            results = await self.tavily_backend.search(
+                query=competitor_query,
+                max_results=max_competitors,
+                search_depth="basic"  # Basic depth for cost optimization
+            )
+
+            # Parse results to extract competitor info
+            competitors = []
+            additional_keywords = set(keywords)  # Start with existing keywords
+            market_topics = set()
+
+            for result in results:
+                # Each result is a potential competitor
+                competitors.append({
+                    "name": result.get("title", "Unknown")[:50],
+                    "url": result.get("url", ""),
+                    "topics": result.get("snippet", "").split()[:5]  # Extract key words from snippet
+                })
+
+                # Extract keywords from content
+                content = result.get("content", "")
+                if content:
+                    # Simple keyword extraction: split and filter
+                    words = content.lower().split()
+                    relevant_words = [w for w in words if len(w) > 4 and w.isalpha()][:10]
+                    additional_keywords.update(relevant_words)
+
+            # Market topics from result titles
+            for result in results:
+                title = result.get("title", "")
+                if title:
+                    # Extract key phrases from title
+                    words = title.split()
+                    for i in range(len(words) - 1):
+                        phrase = f"{words[i]} {words[i+1]}"
+                        if len(phrase) > 8:
+                            market_topics.add(phrase)
+
+            # Tavily search cost: $0.02 per query
+            cost = 0.02
+
+            logger.info(
+                "tavily_fallback_complete",
+                competitors=len(competitors),
+                additional_keywords=len(additional_keywords),
+                market_topics=len(market_topics),
+                cost=f"${cost:.4f}"
+            )
+
+            return {
+                "competitors": competitors[:max_competitors],
+                "additional_keywords": list(additional_keywords)[:50],
+                "market_topics": list(market_topics)[:20],
+                "cost": cost
+            }
+
+        except Exception as e:
+            logger.error("tavily_fallback_failed", error=str(e), exc_info=True)
+            return {
+                "competitors": [],
+                "additional_keywords": [],
+                "market_topics": [],
+                "cost": 0.0,
+                "error": f"Tavily fallback failed: {str(e)}"
+            }
+
     async def research_competitors(
         self,
         keywords: List[str],
@@ -483,38 +615,109 @@ Return in strict JSON format matching the schema below."""
 
             # Call Gemini API with grounding (synchronous method)
             logger.info("calling_gemini_api", grounding=True)
-            result_raw = self.gemini_agent.generate(
-                prompt=prompt,
-                response_schema=response_schema
-            )
+            try:
+                result_raw = self.gemini_agent.generate(
+                    prompt=prompt,
+                    response_schema=response_schema
+                )
 
-            # Extract parsed content
-            content_data = result_raw.get("content", {})
-            if isinstance(content_data, str):
-                # Parse JSON string if needed
-                import json
-                content_data = json.loads(content_data)
+                # Track successful free API call
+                self.cost_tracker.track_call(
+                    api_type=APIType.GEMINI_FREE,
+                    stage="stage2",
+                    success=True,
+                    cost=result_raw.get("cost", 0.0)
+                )
 
-            # Build result with limits enforced
-            result = {
-                "competitors": content_data.get("competitors", [])[:max_competitors],
-                "additional_keywords": content_data.get("additional_keywords", [])[:50],
-                "market_topics": content_data.get("market_topics", [])[:20],
-                "cost": result_raw.get("cost", 0.0)
-            }
+                # Extract parsed content
+                content_data = result_raw.get("content", {})
+                if isinstance(content_data, str):
+                    # Parse JSON string if needed
+                    import json
+                    content_data = json.loads(content_data)
 
-            logger.info(
-                "stage2_complete",
-                competitors_count=len(result["competitors"]),
-                additional_keywords_count=len(result["additional_keywords"]),
-                market_topics_count=len(result["market_topics"]),
-                cost=f"${result['cost']:.4f}"
-            )
+                # Build result with limits enforced
+                result = {
+                    "competitors": content_data.get("competitors", [])[:max_competitors],
+                    "additional_keywords": content_data.get("additional_keywords", [])[:50],
+                    "market_topics": content_data.get("market_topics", [])[:20],
+                    "cost": result_raw.get("cost", 0.0)
+                }
 
-            return result
+                logger.info(
+                    "stage2_complete_gemini",
+                    competitors_count=len(result["competitors"]),
+                    additional_keywords_count=len(result["additional_keywords"]),
+                    market_topics_count=len(result["market_topics"]),
+                    cost=f"${result['cost']:.4f}"
+                )
+
+                return result
+
+            except Exception as gemini_error:
+                # Check if it's a rate limit error (429 status code in error message)
+                error_str = str(gemini_error).lower()
+                is_rate_limit = (
+                    "429" in error_str or
+                    "rate" in error_str or
+                    "quota" in error_str or
+                    "limit" in error_str
+                )
+
+                if is_rate_limit:
+                    logger.warning("gemini_rate_limit_detected", error=str(gemini_error))
+
+                    # Track failed free API call
+                    self.cost_tracker.track_call(
+                        api_type=APIType.GEMINI_FREE,
+                        stage="stage2",
+                        success=False,
+                        cost=0.0,
+                        error="Rate limit exceeded"
+                    )
+
+                    # FALLBACK: Try Tavily API
+                    logger.info("stage2_fallback_to_tavily")
+                    tavily_result = await self._research_competitors_with_tavily(
+                        keywords=keywords,
+                        customer_info=customer_info,
+                        max_competitors=max_competitors
+                    )
+
+                    # Track fallback call
+                    if not tavily_result.get("error"):
+                        self.cost_tracker.track_call(
+                            api_type=APIType.TAVILY,
+                            stage="stage2",
+                            success=True,
+                            cost=tavily_result.get("cost", 0.0)
+                        )
+                    else:
+                        self.cost_tracker.track_call(
+                            api_type=APIType.TAVILY,
+                            stage="stage2",
+                            success=False,
+                            cost=0.0,
+                            error=tavily_result.get("error")
+                        )
+
+                    return tavily_result
+                else:
+                    # Non-rate-limit error, raise
+                    raise
 
         except GeminiAgentError as e:
             logger.error("gemini_api_failed", error=str(e))
+
+            # Track failed API call
+            self.cost_tracker.track_call(
+                api_type=APIType.GEMINI_FREE,
+                stage="stage2",
+                success=False,
+                cost=0.0,
+                error=str(e)
+            )
+
             return {
                 "competitors": [],
                 "additional_keywords": [],
