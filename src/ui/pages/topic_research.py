@@ -1,12 +1,16 @@
 """
-Topic Research Page - ContentPipeline UI Integration
+Topic Research Page - Production Pipeline UI
 
-Process discovered topics through the 5-stage ContentPipeline:
-1. Competitor Research (identify gaps)
-2. Keyword Research (find SEO opportunities)
-3. Deep Research (generate sourced reports)
-4. Content Optimization (apply insights)
-5. Scoring & Ranking (calculate priority scores)
+Process topics through the production-ready pipeline:
+1. Multi-Backend Research (Tavily + SearXNG + Gemini + RSS + TheNewsAPI)
+2. 3-Stage Reranking (BM25 → Voyage Lite → Voyage Full)
+3. Content Synthesis (BM25→LLM passage extraction → 2000-word article)
+
+Features:
+- Real-time progress tracking
+- Cost estimation and tracking
+- Source diversity visualization
+- Backend reliability monitoring
 """
 
 import streamlit as st
@@ -14,24 +18,25 @@ from pathlib import Path
 import json
 import os
 import asyncio
+from datetime import datetime
+from typing import Dict, List
+from collections import defaultdict
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()  # Load local .env first
-load_dotenv("/home/envs/openrouter.env")  # Override with openrouter env
+load_dotenv()
 
-# Import agents and pipeline
+# Import production pipeline components
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.agents.content_pipeline import ContentPipeline
-from src.agents.competitor_research_agent import CompetitorResearchAgent
-from src.agents.keyword_research_agent import KeywordResearchAgent
-from src.research.deep_researcher import DeepResearcher
-from src.models.topic import Topic, TopicSource
-from src.models.config import MarketConfig
-from src.notion_integration.topics_sync import TopicsSync
-from src.notion_integration.notion_client import NotionClient
+from src.research.deep_researcher_refactored import DeepResearcher
+from src.research.reranker.multi_stage_reranker import MultiStageReranker
+from src.research.synthesizer.content_synthesizer import (
+    ContentSynthesizer,
+    PassageExtractionStrategy
+)
+from src.utils.config_loader import ConfigLoader
 
 
 CACHE_DIR = Path(__file__).parent.parent.parent.parent / "cache"
@@ -44,11 +49,16 @@ def load_research_config():
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {
-        "domain": "SaaS",
-        "market": "Germany",
-        "language": "de",
-        "vertical": "Proptech",
-        "seed_keywords": ["DSGVO", "Immobilien SaaS"]
+        "market": "proptech_de",
+        "enable_tavily": True,
+        "enable_searxng": True,
+        "enable_gemini": True,
+        "enable_rss": False,
+        "enable_thenewsapi": False,
+        "enable_reranking": True,
+        "enable_synthesis": True,
+        "max_article_words": 2000,
+        "synthesis_strategy": "bm25_llm"
     }
 
 
@@ -62,30 +72,92 @@ def save_research_config(config: dict):
 def render_config_sidebar():
     """Render configuration sidebar."""
     with st.sidebar:
-        st.header("📝 Research Configuration")
+        st.header("⚙️ Pipeline Configuration")
 
         config = load_research_config()
 
-        domain = st.text_input("Domain", value=config.get("domain", "SaaS"))
-        market = st.text_input("Market", value=config.get("market", "Germany"))
-        language = st.text_input("Language Code", value=config.get("language", "de"))
-        vertical = st.text_input("Vertical (Optional)", value=config.get("vertical", ""))
-        target_audience = st.text_input("Target Audience (Optional)", value=config.get("target_audience", ""))
-
-        seed_keywords_str = st.text_area(
-            "Seed Keywords (one per line)",
-            value="\n".join(config.get("seed_keywords", []))
+        # Market config
+        st.subheader("📍 Market Config")
+        market_preset = st.selectbox(
+            "Market Preset",
+            ["proptech_de", "fashion_fr", "saas_us", "custom"],
+            index=0 if config.get("market") == "proptech_de" else 3,
+            help="Load predefined market configuration"
         )
-        seed_keywords = [k.strip() for k in seed_keywords_str.split("\n") if k.strip()]
+
+        # Backend configuration
+        st.subheader("🔍 Research Backends")
+        enable_tavily = st.checkbox(
+            "Tavily (DEPTH)",
+            value=config.get("enable_tavily", True),
+            help="Deep, comprehensive search results"
+        )
+        enable_searxng = st.checkbox(
+            "SearXNG (BREADTH)",
+            value=config.get("enable_searxng", True),
+            help="Wide coverage across multiple sources"
+        )
+        enable_gemini = st.checkbox(
+            "Gemini API (TRENDS)",
+            value=config.get("enable_gemini", True),
+            help="Google Search grounding for trending content"
+        )
+        enable_rss = st.checkbox(
+            "RSS Feeds (NICHE)",
+            value=config.get("enable_rss", False),
+            help="Industry-specific RSS feeds"
+        )
+        enable_thenewsapi = st.checkbox(
+            "TheNewsAPI (NEWS)",
+            value=config.get("enable_thenewsapi", False),
+            help="Real-time news coverage"
+        )
+
+        # Pipeline stages
+        st.subheader("🎯 Pipeline Stages")
+        enable_reranking = st.checkbox(
+            "Enable Reranking",
+            value=config.get("enable_reranking", True),
+            help="3-stage reranker (BM25 → Voyage Lite → Voyage Full)"
+        )
+        enable_synthesis = st.checkbox(
+            "Enable Content Synthesis",
+            value=config.get("enable_synthesis", True),
+            help="Generate 2000-word article with citations"
+        )
+
+        # Synthesis settings
+        if enable_synthesis:
+            st.subheader("📝 Synthesis Settings")
+            max_article_words = st.slider(
+                "Max Article Words",
+                min_value=500,
+                max_value=3000,
+                value=config.get("max_article_words", 2000),
+                step=500
+            )
+            synthesis_strategy = st.selectbox(
+                "Strategy",
+                ["bm25_llm", "llm_only"],
+                index=0 if config.get("synthesis_strategy") == "bm25_llm" else 1,
+                help="BM25→LLM: fast, cheap (92% quality) | LLM-only: slower, expensive (94% quality)"
+            )
+        else:
+            max_article_words = 2000
+            synthesis_strategy = "bm25_llm"
 
         if st.button("💾 Save Configuration", use_container_width=True):
             new_config = {
-                "domain": domain,
-                "market": market,
-                "language": language,
-                "vertical": vertical if vertical else None,
-                "target_audience": target_audience if target_audience else None,
-                "seed_keywords": seed_keywords
+                "market": market_preset,
+                "enable_tavily": enable_tavily,
+                "enable_searxng": enable_searxng,
+                "enable_gemini": enable_gemini,
+                "enable_rss": enable_rss,
+                "enable_thenewsapi": enable_thenewsapi,
+                "enable_reranking": enable_reranking,
+                "enable_synthesis": enable_synthesis,
+                "max_article_words": max_article_words,
+                "synthesis_strategy": synthesis_strategy
             }
             save_research_config(new_config)
             st.success("✅ Configuration saved!")
@@ -93,321 +165,268 @@ def render_config_sidebar():
 
         st.divider()
 
-        st.caption("💡 **Configuration Guide**")
-        st.caption("• **Domain**: Business type (SaaS, E-commerce)")
-        st.caption("• **Market**: Target country")
-        st.caption("• **Language**: Content language (de, en, fr)")
-        st.caption("• **Vertical**: Optional niche (Proptech, Fashion)")
+        # Cost estimation
+        st.caption("💰 **Cost Estimation**")
+        enabled_backends = sum([enable_tavily, enable_searxng, enable_gemini, enable_rss, enable_thenewsapi])
+        base_cost = 0.005 * enabled_backends  # ~$0.005 per backend
+        reranking_cost = 0.002 if enable_reranking else 0
+        synthesis_cost = 0.003 if enable_synthesis else 0
+        total_cost = base_cost + reranking_cost + synthesis_cost
+        st.caption(f"• Estimated: ${total_cost:.4f}/topic")
+        st.caption(f"• {enabled_backends} backend{'s' if enabled_backends != 1 else ''} enabled")
 
         return config
 
 
 async def process_topic_async(
-    topic: Topic,
-    config: MarketConfig,
-    pipeline: ContentPipeline,
+    topic: str,
+    config: dict,
     progress_container
-):
-    """Process topic through pipeline with real-time updates."""
+) -> Dict:
+    """Process topic through production pipeline with real-time updates."""
 
     # Progress tracking
     progress_bar = progress_container.progress(0.0)
     status_text = progress_container.empty()
-    stage_details = progress_container.empty()
+    metrics_container = progress_container.container()
 
-    def progress_callback(stage: int, message: str):
-        """Update progress UI."""
-        progress = stage / 5.0
-        progress_bar.progress(progress)
-        status_text.info(f"**Stage {stage}/5**: {message}")
+    start_time = datetime.now()
+    total_cost = 0.0
 
-        # Stage details
-        stage_info = {
-            1: "🔎 Analyzing competitors and identifying content gaps",
-            2: "🎯 Researching SEO keywords and search volume",
-            3: "📚 Generating deep research report with citations",
-            4: "✨ Optimizing content with insights and metadata",
-            5: "📊 Calculating priority scores (demand, opportunity, fit, novelty)"
+    try:
+        # Load market config
+        config_loader = ConfigLoader()
+        if config["market"] == "custom":
+            market_config = {"market": "USA", "language": "en", "domain": "SaaS"}
+        else:
+            market_config = config_loader.load(config["market"])
+
+        # Stage 1: Initialize components
+        progress_bar.progress(0.1)
+        status_text.info("🔧 **Stage 1/4**: Initializing pipeline components...")
+
+        researcher = DeepResearcher(
+            enable_tavily=config["enable_tavily"],
+            enable_searxng=config["enable_searxng"],
+            enable_gemini=config["enable_gemini"],
+            enable_rss=config["enable_rss"],
+            enable_thenewsapi=config["enable_thenewsapi"]
+        )
+
+        reranker = MultiStageReranker(
+            enable_voyage=config["enable_reranking"],
+            stage3_final_count=25
+        ) if config["enable_reranking"] else None
+
+        synthesizer = ContentSynthesizer(
+            strategy=PassageExtractionStrategy.BM25_LLM if config["synthesis_strategy"] == "bm25_llm" else PassageExtractionStrategy.LLM_ONLY,
+            max_article_words=config["max_article_words"]
+        ) if config["enable_synthesis"] else None
+
+        # Stage 2: Research
+        progress_bar.progress(0.25)
+        status_text.info(f"🔍 **Stage 2/4**: Researching topic across {sum([config['enable_tavily'], config['enable_searxng'], config['enable_gemini'], config['enable_rss'], config['enable_thenewsapi']])} backends...")
+
+        results = await researcher.search(topic, max_results=10)
+        backend_counts = defaultdict(int)
+        for result in results:
+            backend_counts[result.get('backend', 'unknown')] += 1
+
+        with metrics_container:
+            cols = st.columns(4)
+            cols[0].metric("Sources Found", len(results))
+            cols[1].metric("Backends Used", len(backend_counts))
+            cols[2].metric("Tavily", backend_counts.get('tavily', 0))
+            cols[3].metric("Gemini", backend_counts.get('gemini', 0))
+
+        # Stage 3: Reranking
+        if reranker and results:
+            progress_bar.progress(0.5)
+            status_text.info("🎯 **Stage 3/4**: Reranking sources (BM25 → Voyage Lite → Voyage Full)...")
+
+            reranked = await reranker.rerank(
+                query=topic,
+                sources=results,
+                config=market_config
+            )
+
+            with metrics_container:
+                st.info(f"✅ Reranking complete: {len(results)} → {len(reranked)} sources")
+                if reranked:
+                    st.caption(f"Top score: {reranked[0].get('score', 0):.3f}")
+
+            results = reranked
+
+        # Stage 4: Content Synthesis
+        article = None
+        if synthesizer and results:
+            progress_bar.progress(0.75)
+            status_text.info("📝 **Stage 4/4**: Synthesizing article with citations...")
+
+            synthesis_result = await synthesizer.synthesize(
+                query=topic,
+                sources=results,
+                config=market_config
+            )
+
+            article = synthesis_result["article"]
+            total_cost += synthesis_result.get("cost", 0)
+
+            with metrics_container:
+                st.success(f"✅ Article generated: {synthesis_result.get('word_count', 0)} words, {len(synthesis_result.get('citations', []))} citations")
+
+        # Complete
+        progress_bar.progress(1.0)
+        duration = (datetime.now() - start_time).total_seconds()
+        status_text.success(f"✅ **Processing Complete!** ({duration:.1f}s, ${total_cost:.4f})")
+
+        return {
+            "success": True,
+            "topic": topic,
+            "sources": results,
+            "article": article,
+            "cost": total_cost,
+            "duration_sec": duration,
+            "backend_counts": dict(backend_counts)
         }
-        stage_details.info(stage_info.get(stage, "Processing..."))
 
-    # Process topic
-    enhanced_topic = await pipeline.process_topic(
-        topic=topic,
-        config=config,
-        progress_callback=progress_callback
-    )
-
-    progress_bar.progress(1.0)
-    status_text.success("✅ **Processing Complete!**")
-    stage_details.empty()
-
-    return enhanced_topic
+    except Exception as e:
+        progress_bar.progress(0.0)
+        status_text.error(f"❌ **Pipeline Failed**: {str(e)}")
+        raise
 
 
-def render_topic_results(topic: Topic):
-    """Render enhanced topic results."""
-    st.success(f"✅ Topic processed: **{topic.title}**")
+def render_results(result: Dict):
+    """Render pipeline results."""
+    st.success(f"✅ Topic processed: **{result['topic']}**")
 
-    # Tabs for different result views
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "📚 Research Report", "🎯 Details", "📈 Scores"])
+    # Metrics row
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Sources", len(result['sources']))
+    col2.metric("Total Cost", f"${result['cost']:.4f}")
+    col3.metric("Duration", f"{result['duration_sec']:.1f}s")
+    col4.metric("Backends", len(result['backend_counts']))
 
-    with tab1:
-        st.subheader("Topic Overview")
+    # Tabs for different views
+    tabs = st.tabs(["📝 Article", "📊 Sources", "📈 Analytics", "🔍 Raw Data"])
 
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.metric("Status", topic.status.value)
-            st.metric("Priority", f"{topic.priority}/10")
-
-        with col2:
-            st.metric("Language", topic.language.upper())
-            st.metric("Domain", topic.domain)
-
-        with col3:
-            st.metric("Word Count", topic.word_count or 0)
-            st.metric("Citations", len(topic.citations))
-
-        if topic.description:
-            st.info(f"**Description**: {topic.description}")
-
-    with tab2:
-        st.subheader("Deep Research Report")
-
-        if topic.research_report:
-            st.markdown(topic.research_report)
-
-            if topic.citations:
-                st.divider()
-                st.subheader("📎 Citations")
-                for i, citation in enumerate(topic.citations, 1):
-                    st.caption(f"{i}. {citation}")
+    with tabs[0]:
+        st.subheader("Generated Article")
+        if result.get('article'):
+            st.markdown(result['article'])
         else:
-            st.warning("No research report available. Deep research may have been disabled.")
+            st.info("Content synthesis was disabled")
 
-    with tab3:
-        st.subheader("Topic Details")
+    with tabs[1]:
+        st.subheader("Top Sources")
+        for i, source in enumerate(result['sources'][:10], 1):
+            with st.expander(f"{i}. {source.get('title', 'Untitled')[:80]}"):
+                st.caption(f"**Backend**: {source.get('backend', 'unknown')}")
+                st.caption(f"**URL**: {source.get('url', 'N/A')}")
+                if 'score' in source:
+                    st.caption(f"**Score**: {source['score']:.3f}")
+                if 'snippet' in source:
+                    st.text(source['snippet'][:200] + "...")
 
+    with tabs[2]:
+        st.subheader("Backend Distribution")
+
+        # Backend breakdown
+        backend_data = result['backend_counts']
+        if backend_data:
+            import pandas as pd
+            df = pd.DataFrame(list(backend_data.items()), columns=['Backend', 'Count'])
+            st.bar_chart(df.set_index('Backend'))
+
+        # Cost breakdown
+        st.subheader("Cost Breakdown")
+        st.caption(f"• Total: ${result['cost']:.4f}")
+        st.caption(f"• Per source: ${result['cost'] / max(len(result['sources']), 1):.5f}")
+
+    with tabs[3]:
+        st.subheader("Raw Result Data")
         st.json({
-            "id": topic.id,
-            "title": topic.title,
-            "source": topic.source.value,
-            "domain": topic.domain,
-            "market": topic.market,
-            "language": topic.language,
-            "vertical": getattr(topic, "vertical", None),
-            "status": topic.status.value,
-            "priority": topic.priority,
-            "engagement_score": topic.engagement_score,
-            "trending_score": topic.trending_score,
-            "word_count": topic.word_count,
-            "citations_count": len(topic.citations),
-            "discovered_at": topic.discovered_at.isoformat(),
-            "updated_at": topic.updated_at.isoformat()
+            "topic": result['topic'],
+            "sources_count": len(result['sources']),
+            "has_article": result.get('article') is not None,
+            "cost": result['cost'],
+            "duration_sec": result['duration_sec'],
+            "backend_counts": result['backend_counts']
         })
-
-    with tab4:
-        st.subheader("Priority Scores")
-
-        st.info("**Note**: Detailed scores will be available once Topic model includes score fields (Phase 2)")
-
-        # Show priority mapping
-        priority = topic.priority
-        if priority >= 9:
-            score_label = "🔥 Very High Priority"
-            score_color = "green"
-        elif priority >= 7:
-            score_label = "⬆️ High Priority"
-            score_color = "blue"
-        elif priority >= 5:
-            score_label = "➡️ Medium Priority"
-            score_color = "orange"
-        else:
-            score_label = "⬇️ Low Priority"
-            score_color = "red"
-
-        st.markdown(f"**Priority Level**: :{score_color}[{score_label}]")
-
-        st.caption("Priority is calculated from: demand (search volume + engagement), opportunity (competition + gaps), fit (domain alignment), and novelty (trending)")
-
-
-async def sync_to_notion_async(topic: Topic, notion_client: NotionClient):
-    """Sync enhanced topic to Notion."""
-    topics_sync = TopicsSync(notion_client=notion_client)
-
-    # Sync single topic
-    results = topics_sync.sync_topics(
-        topics=[topic],
-        update_existing=True,
-        skip_errors=False
-    )
-
-    return results
 
 
 def render():
     """Render Topic Research page."""
     st.title("🔬 Topic Research Lab")
-    st.caption("Process topics through the 5-stage ContentPipeline")
+    st.caption("Production-ready pipeline with 5 backends, 3-stage reranking, and content synthesis")
 
     # Render config sidebar
-    config_dict = render_config_sidebar()
+    config = render_config_sidebar()
 
     # Initialize session state
-    if "processed_topic" not in st.session_state:
-        st.session_state.processed_topic = None
+    if "research_result" not in st.session_state:
+        st.session_state.research_result = None
 
     # Main content
-    st.header("🎯 Topic Input")
+    st.header("🎯 Research a Topic")
 
-    # Topic input method
-    input_method = st.radio(
-        "Choose input method:",
-        ["Manual Entry", "Load from Collectors"],
-        horizontal=True
+    # Topic input
+    topic = st.text_input(
+        "Enter your research topic",
+        placeholder="e.g., PropTech AI automation trends 2025",
+        help="The system will research this topic across multiple backends"
     )
 
-    if input_method == "Manual Entry":
-        topic_title = st.text_input(
-            "Topic Title",
-            placeholder="e.g., PropTech Trends 2025",
-            help="Enter the topic you want to research"
-        )
+    # Quick examples
+    with st.expander("💡 Example Topics"):
+        st.caption("**PropTech**: Smart building IoT sensors Germany, DSGVO compliance property management")
+        st.caption("**SaaS**: B2B pricing strategies 2025, Customer success platforms")
+        st.caption("**Fashion**: Sustainable fashion e-commerce, AI styling recommendations")
 
-        col1, col2 = st.columns(2)
+    # Process button
+    process_button = st.button("🚀 Research Topic", type="primary", use_container_width=True, disabled=not topic)
 
-        with col1:
-            topic_source = st.selectbox(
-                "Source",
-                ["trends", "rss", "reddit", "autocomplete", "manual"]
+    if process_button and topic:
+        # Check API keys
+        required_keys = []
+        if config["enable_tavily"]:
+            required_keys.append("TAVILY_API_KEY")
+        if config["enable_gemini"]:
+            required_keys.append("GEMINI_API_KEY")
+        if config["enable_reranking"]:
+            required_keys.append("VOYAGE_API_KEY")
+
+        missing_keys = [key for key in required_keys if not os.getenv(key)]
+        if missing_keys:
+            st.error(f"❌ Missing API keys: {', '.join(missing_keys)}")
+            return
+
+        # Process topic
+        st.divider()
+        st.header("⚙️ Pipeline Processing")
+        progress_container = st.container()
+
+        try:
+            # Run async processing
+            result = asyncio.run(
+                process_topic_async(topic, config, progress_container)
             )
 
-        with col2:
-            engagement_score = st.slider(
-                "Engagement Score",
-                min_value=0,
-                max_value=100,
-                value=50,
-                help="Estimated engagement (likes, shares, comments)"
-            )
+            # Store in session state
+            st.session_state.research_result = result
 
-        trending_score = st.slider(
-            "Trending Score",
-            min_value=0.0,
-            max_value=100.0,
-            value=50.0,
-            help="How trending is this topic?"
-        )
-
-        process_button = st.button("🚀 Process Topic", type="primary", use_container_width=True)
-
-        if process_button and topic_title:
-            # Create topic object
-            topic = Topic(
-                title=topic_title,
-                source=TopicSource(topic_source),
-                domain=config_dict["domain"],
-                market=config_dict["market"],
-                language=config_dict["language"],
-                engagement_score=engagement_score,
-                trending_score=trending_score
-            )
-
-            # Create market config
-            market_config = MarketConfig(
-                domain=config_dict["domain"],
-                market=config_dict["market"],
-                language=config_dict["language"],
-                vertical=config_dict.get("vertical"),
-                target_audience=config_dict.get("target_audience"),
-                seed_keywords=config_dict["seed_keywords"]
-            )
-
-            # Get API key
-            api_key = os.getenv("OPENROUTER_API_KEY")
-            if not api_key:
-                st.error("❌ OPENROUTER_API_KEY not found in environment")
-                return
-
-            # Initialize pipeline
-            with st.spinner("Initializing pipeline..."):
-                # Enable Gemini CLI (FREE Google Search) with stdin fix applied
-                # Falls back to OpenRouter API if CLI fails
-                competitor_agent = CompetitorResearchAgent(api_key=api_key, use_cli=True)
-                keyword_agent = KeywordResearchAgent(api_key=api_key, use_cli=True)
-                deep_researcher = DeepResearcher()
-
-                pipeline = ContentPipeline(
-                    competitor_agent=competitor_agent,
-                    keyword_agent=keyword_agent,
-                    deep_researcher=deep_researcher,
-                    max_competitors=5,
-                    max_keywords=10
-                )
-
-            # Process topic
-            st.header("⚙️ Processing Pipeline")
-            progress_container = st.container()
-
-            try:
-                # Run async processing
-                enhanced_topic = asyncio.run(
-                    process_topic_async(topic, market_config, pipeline, progress_container)
-                )
-
-                # Store in session state
-                st.session_state.processed_topic = enhanced_topic
-
-                st.success("✅ Topic processing complete!")
-
-            except Exception as e:
-                st.error(f"❌ Pipeline failed: {str(e)}")
-                st.exception(e)
-
-    else:  # Load from Collectors
-        st.info("🚧 Collector integration coming soon!")
-        st.caption("This will allow you to load topics from RSS, Reddit, Trends, and Autocomplete collectors.")
+        except Exception as e:
+            st.error(f"❌ Pipeline failed: {str(e)}")
+            st.exception(e)
 
     # Display results if available
-    if st.session_state.processed_topic:
+    if st.session_state.research_result:
         st.divider()
-        st.header("📊 Enhanced Topic Results")
+        st.header("📊 Results")
 
-        render_topic_results(st.session_state.processed_topic)
-
-        # Notion sync section
-        st.divider()
-        st.header("📤 Sync to Notion")
-
-        notion_token = os.getenv("NOTION_TOKEN")
-        if notion_token:
-            col1, col2 = st.columns([3, 1])
-
-            with col1:
-                st.info("📝 Ready to sync enhanced topic to Notion database")
-
-            with col2:
-                if st.button("🔄 Sync to Notion", use_container_width=True):
-                    with st.spinner("Syncing to Notion..."):
-                        try:
-                            notion_client = NotionClient(token=notion_token)
-
-                            results = asyncio.run(
-                                sync_to_notion_async(st.session_state.processed_topic, notion_client)
-                            )
-
-                            if results["success_count"] > 0:
-                                st.success(f"✅ Synced {results['success_count']} topic to Notion!")
-                            else:
-                                st.error(f"❌ Sync failed: {results['error_count']} errors")
-
-                        except Exception as e:
-                            st.error(f"❌ Notion sync failed: {str(e)}")
-        else:
-            st.warning("⚠️ NOTION_TOKEN not found in environment. Cannot sync to Notion.")
+        render_results(st.session_state.research_result)
 
         # Clear results button
         if st.button("🗑️ Clear Results", use_container_width=True):
-            st.session_state.processed_topic = None
+            st.session_state.research_result = None
             st.rerun()

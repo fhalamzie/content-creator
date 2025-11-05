@@ -540,8 +540,22 @@ The indices must be from the passages above (0 to {len(paragraphs) - 1}).
             citations = self._extract_citations(passages_with_sources)
 
             # Build synthesis prompt
-            domain = config.get('domain', 'general')
-            language = config.get('language', 'en')
+            # Handle both dict and Pydantic model configs
+            if isinstance(config, dict):
+                # Plain dict config (SaaS topics)
+                domain = config.get('domain', 'general')
+                language = config.get('language', 'en')
+            else:
+                # Pydantic FullConfig with nested MarketConfig (PropTech/Fashion topics)
+                market_obj = getattr(config, 'market', None)
+                if market_obj:
+                    # Nested access: config.market.domain, config.market.language
+                    domain = str(getattr(market_obj, 'domain', 'general'))
+                    language = str(getattr(market_obj, 'language', 'en'))
+                else:
+                    # Fallback to defaults
+                    domain = 'general'
+                    language = 'en'
 
             prompt = f"""You are a professional content writer creating an SEO-optimized article.
 

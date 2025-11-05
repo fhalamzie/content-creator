@@ -125,12 +125,17 @@ class GeminiAgent:
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        # Initialize Gemini client (new SDK)
-        self.client = genai.Client(api_key=self.api_key)
+        # Initialize Gemini client (new SDK) with 60s timeout
+        # This prevents indefinite hangs when API is slow/unresponsive
+        # NOTE: timeout is in MILLISECONDS (60000ms = 60s)
+        self.client = genai.Client(
+            api_key=self.api_key,
+            http_options={'timeout': 60000}  # 60 second timeout (in milliseconds)
+        )
 
         logger.info(
             f"GeminiAgent initialized: model={model}, "
-            f"grounding={enable_grounding}, temp={temperature}"
+            f"grounding={enable_grounding}, temp={temperature}, timeout=60s"
         )
 
     def generate(

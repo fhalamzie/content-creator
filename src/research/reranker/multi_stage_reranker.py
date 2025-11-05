@@ -659,14 +659,29 @@ class MultiStageReranker:
 
         Args:
             source: Source to evaluate
-            config: Market configuration
+            config: Market configuration (dict or Pydantic model)
 
         Returns:
             Locality score [0,1]
         """
         url = source.get('url', '')
-        market = config.get('market', '').lower()
-        language = config.get('language', '').lower()
+
+        # Handle both dict and Pydantic model configs
+        if isinstance(config, dict):
+            # Plain dict config
+            market = config.get('market', '').lower()
+            language = config.get('language', '').lower()
+        else:
+            # Pydantic FullConfig with nested MarketConfig
+            market_obj = getattr(config, 'market', None)
+            if market_obj and hasattr(market_obj, 'market'):
+                # Nested MarketConfig object
+                market = str(getattr(market_obj, 'market', '')).lower()
+                language = str(getattr(market_obj, 'language', '')).lower()
+            else:
+                # Fallback to empty string
+                market = ''
+                language = ''
 
         if not url:
             return 0.5  # Neutral

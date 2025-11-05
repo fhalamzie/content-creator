@@ -1,3 +1,14 @@
 {
-  "testModules": []
+  "testModules": [
+    {
+      "moduleId": "tests/e2e/test_smoke_single_topic.py",
+      "tests": [
+        {
+          "name": "test_smoke_single_topic_pipeline",
+          "fullName": "tests/e2e/test_smoke_single_topic.py::test_smoke_single_topic_pipeline",
+          "state": "passed"
+        }
+      ]
+    }
+  ]
 }
