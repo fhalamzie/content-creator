@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 # Import will fail initially (TDD approach)
 try:
     from src.research.reranker.multi_stage_reranker import MultiStageReranker, RerankingError
+    from src.utils.config_loader import FullConfig, MarketConfig, CollectorConfig, SchedulingConfig
 except ImportError:
     pytest.skip("MultiStageReranker not implemented yet", allow_module_level=True)
 
@@ -70,12 +71,18 @@ def sample_sources():
 @pytest.fixture
 def reranker_config():
     """Configuration for reranker"""
-    return {
-        'domain': 'SaaS',
-        'market': 'Germany',
-        'language': 'de',
-        'vertical': 'Proptech'
-    }
+    market = MarketConfig(
+        domain='SaaS',
+        market='Germany',
+        language='de',
+        vertical='Proptech',
+        seed_keywords=['PropTech', 'Smart Building']
+    )
+    return FullConfig(
+        market=market,
+        collectors=CollectorConfig(),
+        scheduling=SchedulingConfig()
+    )
 
 
 class TestMultiStageRerankerInit:
@@ -271,7 +278,7 @@ class TestStage3VoyageFullMetrics:
     """Test Stage 3: Voyage Full + 6 custom SEO metrics"""
 
     @pytest.mark.asyncio
-    async def test_stage3_calls_voyage_full_api(self, sample_sources):
+    async def test_stage3_calls_voyage_full_api(self, sample_sources, reranker_config):
         """Should call Voyage Full API (rerank-2)"""
         with patch('voyageai.Client') as MockVoyageClient:
             mock_client = Mock()
@@ -285,12 +292,11 @@ class TestStage3VoyageFullMetrics:
 
             reranker = MultiStageReranker(voyage_api_key="test_key")
             query = "PropTech AI"
-            config = {'domain': 'SaaS', 'market': 'Germany', 'language': 'de'}
 
             result = await reranker._stage3_voyage_full_metrics(
                 sample_sources[:2],
                 query,
-                config
+                reranker_config
             )
 
             # Should call Voyage API with rerank-2 model
@@ -302,7 +308,7 @@ class TestStage3VoyageFullMetrics:
             assert all('voyage_full_score' in s for s in result)
 
     @pytest.mark.asyncio
-    async def test_stage3_calculates_relevance_metric(self, sample_sources):
+    async def test_stage3_calculates_relevance_metric(self, sample_sources, reranker_config):
         """Should calculate Relevance metric (30% weight)"""
         with patch('voyageai.Client') as MockVoyageClient:
             mock_client = Mock()
@@ -316,12 +322,11 @@ class TestStage3VoyageFullMetrics:
 
             reranker = MultiStageReranker(voyage_api_key="test_key")
             query = "PropTech"
-            config = {'domain': 'SaaS'}
 
             result = await reranker._stage3_voyage_full_metrics(
                 sample_sources[:2],
                 query,
-                config
+                reranker_config
             )
 
             # Relevance metric should be present
@@ -413,7 +418,7 @@ class TestStage3VoyageFullMetrics:
         assert 0 <= de_locality <= 1
 
     @pytest.mark.asyncio
-    async def test_stage3_combines_all_metrics(self, sample_sources):
+    async def test_stage3_combines_all_metrics(self, sample_sources, reranker_config):
         """Should combine all 6 metrics with proper weights"""
         with patch('voyageai.Client') as MockVoyageClient:
             mock_client = Mock()
@@ -424,12 +429,11 @@ class TestStage3VoyageFullMetrics:
 
             reranker = MultiStageReranker(voyage_api_key="test_key")
             query = "PropTech"
-            config = {'domain': 'SaaS', 'market': 'Germany', 'language': 'de'}
 
             result = await reranker._stage3_voyage_full_metrics(
                 sample_sources[:1],
                 query,
-                config
+                reranker_config
             )
 
             # Should have all metrics
@@ -446,7 +450,7 @@ class TestStage3VoyageFullMetrics:
             assert 0 <= result[0]['final_score'] <= 1
 
     @pytest.mark.asyncio
-    async def test_stage3_limits_to_final_count(self, sample_sources):
+    async def test_stage3_limits_to_final_count(self, sample_sources, reranker_config):
         """Should limit results to stage3_final_count"""
         with patch('voyageai.Client') as MockVoyageClient:
             mock_client = Mock()
@@ -459,12 +463,11 @@ class TestStage3VoyageFullMetrics:
                 stage3_final_count=3
             )
             query = "PropTech"
-            config = {'domain': 'SaaS'}
 
             result = await reranker._stage3_voyage_full_metrics(
                 sample_sources,
                 query,
-                config
+                reranker_config
             )
 
             # Should limit to 3 results

@@ -17,6 +17,7 @@ from src.research.synthesizer.content_synthesizer import (
     PassageExtractionStrategy
 )
 from src.research.backends.base import SearchResult
+from src.utils.config_loader import FullConfig, MarketConfig, CollectorConfig, SchedulingConfig
 
 
 @pytest.fixture
@@ -57,6 +58,23 @@ def sample_sources():
             final_score=0.90
         ),
     ]
+
+
+@pytest.fixture
+def synthesizer_config():
+    """Configuration for synthesizer"""
+    market = MarketConfig(
+        domain='SaaS',
+        market='Germany',
+        language='de',
+        vertical='Proptech',
+        seed_keywords=['PropTech', 'Smart Building']
+    )
+    return FullConfig(
+        market=market,
+        collectors=CollectorConfig(),
+        scheduling=SchedulingConfig()
+    )
 
 
 class TestContentSynthesizerInit:
@@ -228,7 +246,7 @@ class TestArticleSynthesis:
     """Test article synthesis with Gemini 2.5 Flash"""
 
     @pytest.mark.asyncio
-    async def test_synthesize_article_success(self, mock_gemini_client, sample_sources):
+    async def test_synthesize_article_success(self, mock_gemini_client, sample_sources, synthesizer_config):
         """Test successful article synthesis with citations"""
         with patch('src.research.synthesizer.content_synthesizer.genai') as mock_genai:
             mock_genai.Client.return_value = mock_gemini_client
@@ -242,7 +260,7 @@ class TestArticleSynthesis:
             ]
 
             query = "PropTech AI trends"
-            config = {'domain': 'SaaS', 'language': 'de'}
+            config = synthesizer_config
 
             # Mock Gemini response
             response = MagicMock()
@@ -285,7 +303,7 @@ class TestFullPipeline:
     """Test full synthesis pipeline (E2E)"""
 
     @pytest.mark.asyncio
-    async def test_synthesize_full_pipeline_bm25_llm(self, mock_gemini_client, sample_sources):
+    async def test_synthesize_full_pipeline_bm25_llm(self, mock_gemini_client, sample_sources, synthesizer_config):
         """Test full pipeline with BM25→LLM strategy"""
         with patch('src.research.synthesizer.content_synthesizer.genai') as mock_genai:
             mock_genai.Client.return_value = mock_gemini_client
@@ -314,7 +332,7 @@ class TestFullPipeline:
                             result = await synthesizer.synthesize(
                                 sources=sample_sources,
                                 query="PropTech AI",
-                                config={'domain': 'SaaS'}
+                                config=synthesizer_config
                             )
 
                             assert 'article' in result
@@ -324,7 +342,7 @@ class TestFullPipeline:
                             assert result['metadata']['total_sources'] == 2
 
     @pytest.mark.asyncio
-    async def test_synthesize_full_pipeline_llm_only(self, mock_gemini_client, sample_sources):
+    async def test_synthesize_full_pipeline_llm_only(self, mock_gemini_client, sample_sources, synthesizer_config):
         """Test full pipeline with LLM-only strategy"""
         with patch('src.research.synthesizer.content_synthesizer.genai') as mock_genai:
             mock_genai.Client.return_value = mock_gemini_client
@@ -351,16 +369,16 @@ class TestFullPipeline:
                         result = await synthesizer.synthesize(
                             sources=sample_sources,
                             query="PropTech AI",
-                            config={'domain': 'SaaS'}
+                            config=synthesizer_config
                         )
 
                         assert result['metadata']['strategy'] == 'llm_only'
 
     @pytest.mark.asyncio
-    async def test_synthesize_no_sources_raises(self):
+    async def test_synthesize_no_sources_raises(self, synthesizer_config):
         """Test synthesis raises error when no sources provided"""
         with patch('src.research.synthesizer.content_synthesizer.genai'):
             synthesizer = ContentSynthesizer(gemini_api_key="test_key")
 
             with pytest.raises(SynthesisError, match="No sources provided"):
-                await synthesizer.synthesize(sources=[], query="test", config={})
+                await synthesizer.synthesize(sources=[], query="test", config=synthesizer_config)

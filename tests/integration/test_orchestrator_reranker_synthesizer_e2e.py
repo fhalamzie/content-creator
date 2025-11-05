@@ -19,6 +19,7 @@ from src.research.synthesizer.content_synthesizer import (
     ContentSynthesizer,
     PassageExtractionStrategy
 )
+from src.utils.config_loader import FullConfig, MarketConfig, CollectorConfig, SchedulingConfig
 
 
 # Skip if API keys not available
@@ -42,12 +43,18 @@ async def test_full_pipeline_orchestrator_reranker_synthesizer():
     This is the complete SEO content generation pipeline.
     """
     # Configuration
-    config = {
-        'domain': 'PropTech',
-        'market': 'Germany',
-        'language': 'en',
-        'vertical': 'PropTech'
-    }
+    market = MarketConfig(
+        domain='PropTech',
+        market='Germany',
+        language='en',
+        vertical='PropTech',
+        seed_keywords=['PropTech', 'Smart Building']
+    )
+    config = FullConfig(
+        market=market,
+        collectors=CollectorConfig(),
+        scheduling=SchedulingConfig()
+    )
 
     query = "PropTech AI trends 2025"
 

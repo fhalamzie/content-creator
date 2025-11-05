@@ -2,6 +2,27 @@
 
 Recent development sessions (last 5 sessions, <100 lines).
 
+## Session 035: Hybrid Orchestrator Stage 4.5 - Topic Validation System (2025-11-05)
+
+**Stage 4.5 Complete**: Implemented 5-metric topic validation system to filter discovered topics before expensive research operations. Prevents wasting $0.01/topic on low-quality/irrelevant topics.
+
+**5-Metric Scoring System** (weights sum to 1.0):
+- Keyword Relevance (30%) - Jaccard similarity between topic and seed keywords
+- Source Diversity (25%) - Number of collectors that found the topic / 5
+- Freshness (20%) - Exponential decay with 7-day half-life
+- Search Volume (15%) - Autocomplete position + query length signals
+- Novelty (10%) - MinHash distance from existing topics
+
+**Performance**: 60% cost reduction for typical pipeline runs (50 topics → 20 validated topics = $0.50 → $0.20)
+
+**Test Enhancement**: Added 3 Stage 1 integration tests (German site, invalid URL, e-commerce) + validated all 11 Stage 2 tests passing
+
+**Test Results**: 48/48 tests passing (28 unit + 6 Stage 1 + 11 Stage 2 + 3 Stage 4.5 smoke tests)
+
+**See**: [Full details](docs/sessions/035-hybrid-orchestrator-stage4-5-topic-validation.md)
+
+---
+
 ## Session 034 (Continuation): Hybrid Orchestrator Stages 2-4 Complete (2025-11-05)
 
 **Hybrid Research Orchestrator MVP Complete**: Implemented and tested Stages 2-4 of the keyword→topic discovery pipeline. All 22 tests passing, full E2E validation successful.

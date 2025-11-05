@@ -16,14 +16,19 @@ Metrics (Stage 3):
 
 Example:
     from src.research.reranker.multi_stage_reranker import MultiStageReranker
+    from src.utils.config_loader import ConfigLoader
 
     reranker = MultiStageReranker(voyage_api_key="your_key")
+
+    # Load Pydantic config
+    loader = ConfigLoader()
+    config = loader.load("proptech_de")
 
     # Rerank sources from 5-source orchestrator
     reranked = await reranker.rerank(
         sources=search_results,
         query="PropTech AI trends",
-        config={'domain': 'SaaS', 'market': 'Germany', 'language': 'de'}
+        config=config
     )
 
     # Top 25 SEO-optimized sources
@@ -40,6 +45,7 @@ from rank_bm25 import BM25Okapi
 from datasketch import MinHash
 
 from src.utils.logger import get_logger
+from src.utils.config_loader import FullConfig
 
 logger = get_logger(__name__)
 
@@ -127,7 +133,7 @@ class MultiStageReranker:
         self,
         sources: List[Dict],
         query: str,
-        config: Dict
+        config: FullConfig
     ) -> List[Dict]:
         """
         Rerank sources using 3-stage pipeline
@@ -135,7 +141,7 @@ class MultiStageReranker:
         Args:
             sources: List of search results from orchestrator (with RRF/MinHash already applied)
             query: Research query
-            config: Market configuration (domain, market, language, vertical)
+            config: Market configuration (Pydantic FullConfig model)
 
         Returns:
             Reranked list of sources (top 25) sorted by final_score descending
@@ -360,7 +366,7 @@ class MultiStageReranker:
         self,
         sources: List[Dict],
         query: str,
-        config: Dict
+        config: FullConfig
     ) -> List[Dict]:
         """
         Stage 3: Voyage Full + 6 custom SEO metrics
@@ -377,7 +383,7 @@ class MultiStageReranker:
         Args:
             sources: Filtered sources from Stage 2
             query: Research query
-            config: Market configuration
+            config: Market configuration (Pydantic FullConfig model)
 
         Returns:
             Final ranked sources with all metrics + final_score
@@ -649,7 +655,7 @@ class MultiStageReranker:
         else:
             return 0.0
 
-    def _calculate_locality(self, source: Dict, config: Dict) -> float:
+    def _calculate_locality(self, source: Dict, config: FullConfig) -> float:
         """
         Calculate Locality metric for market/language matching
 
@@ -659,29 +665,16 @@ class MultiStageReranker:
 
         Args:
             source: Source to evaluate
-            config: Market configuration (dict or Pydantic model)
+            config: Market configuration (Pydantic FullConfig model)
 
         Returns:
             Locality score [0,1]
         """
         url = source.get('url', '')
 
-        # Handle both dict and Pydantic model configs
-        if isinstance(config, dict):
-            # Plain dict config
-            market = config.get('market', '').lower()
-            language = config.get('language', '').lower()
-        else:
-            # Pydantic FullConfig with nested MarketConfig
-            market_obj = getattr(config, 'market', None)
-            if market_obj and hasattr(market_obj, 'market'):
-                # Nested MarketConfig object
-                market = str(getattr(market_obj, 'market', '')).lower()
-                language = str(getattr(market_obj, 'language', '')).lower()
-            else:
-                # Fallback to empty string
-                market = ''
-                language = ''
+        # Extract market and language from Pydantic FullConfig
+        market = str(config.market.market).lower()
+        language = str(config.market.language).lower()
 
         if not url:
             return 0.5  # Neutral

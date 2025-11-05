@@ -11,14 +11,19 @@ Quality: 92% precision (BM25→LLM), 94% (LLM-only fallback)
 
 Example:
     from src.research.synthesizer.content_synthesizer import ContentSynthesizer
+    from src.utils.config_loader import ConfigLoader
 
     synthesizer = ContentSynthesizer(gemini_api_key="your_key")
+
+    # Load Pydantic config
+    loader = ConfigLoader()
+    config = loader.load("proptech_de")
 
     # Synthesize article from reranked sources
     result = await synthesizer.synthesize(
         sources=reranked_sources,  # Top 25 from 3-stage reranker
         query="PropTech AI trends",
-        config={'domain': 'SaaS', 'language': 'de'}
+        config=config
     )
 
     print(f"Article: {result['article']}")
@@ -39,6 +44,7 @@ from google import genai
 
 from src.research.backends.base import SearchResult
 from src.utils.logger import get_logger
+from src.utils.config_loader import FullConfig
 
 logger = get_logger(__name__)
 
@@ -122,7 +128,7 @@ class ContentSynthesizer:
         self,
         sources: List[SearchResult],
         query: str,
-        config: Dict
+        config: FullConfig
     ) -> Dict:
         """
         Synthesize article from research sources
@@ -130,7 +136,7 @@ class ContentSynthesizer:
         Args:
             sources: Reranked search results (top 25 from 3-stage reranker)
             query: Original research query
-            config: Market configuration (domain, language, etc.)
+            config: Market configuration (Pydantic FullConfig model)
 
         Returns:
             Dict with:
@@ -516,7 +522,7 @@ The indices must be from the passages above (0 to {len(paragraphs) - 1}).
         self,
         passages_with_sources: List[Dict],
         query: str,
-        config: Dict
+        config: FullConfig
     ) -> Dict:
         """
         Synthesize article from passages using Gemini 2.5 Flash
@@ -524,7 +530,7 @@ The indices must be from the passages above (0 to {len(paragraphs) - 1}).
         Args:
             passages_with_sources: List of passages with source attribution
             query: Research query
-            config: Market configuration (domain, language, etc.)
+            config: Market configuration (Pydantic FullConfig model)
 
         Returns:
             Dict with article, citations, metadata
@@ -540,22 +546,9 @@ The indices must be from the passages above (0 to {len(paragraphs) - 1}).
             citations = self._extract_citations(passages_with_sources)
 
             # Build synthesis prompt
-            # Handle both dict and Pydantic model configs
-            if isinstance(config, dict):
-                # Plain dict config (SaaS topics)
-                domain = config.get('domain', 'general')
-                language = config.get('language', 'en')
-            else:
-                # Pydantic FullConfig with nested MarketConfig (PropTech/Fashion topics)
-                market_obj = getattr(config, 'market', None)
-                if market_obj:
-                    # Nested access: config.market.domain, config.market.language
-                    domain = str(getattr(market_obj, 'domain', 'general'))
-                    language = str(getattr(market_obj, 'language', 'en'))
-                else:
-                    # Fallback to defaults
-                    domain = 'general'
-                    language = 'en'
+            # Extract domain and language from Pydantic FullConfig
+            domain = str(config.market.domain)
+            language = str(config.market.language)
 
             prompt = f"""You are a professional content writer creating an SEO-optimized article.
 

@@ -1,11 +1,21 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/e2e/test_smoke_single_topic.py",
+      "moduleId": "tests/test_integration/test_hybrid_orchestrator_stage4_5_smoke.py",
       "tests": [
         {
-          "name": "test_smoke_single_topic_pipeline",
-          "fullName": "tests/e2e/test_smoke_single_topic.py::test_smoke_single_topic_pipeline",
+          "name": "test_stage4_5_validate_and_score_topics",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_stage4_5_smoke.py::TestStage4_5Integration::test_stage4_5_validate_and_score_topics",
+          "state": "passed"
+        },
+        {
+          "name": "test_stage4_5_empty_topics",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_stage4_5_smoke.py::TestStage4_5Integration::test_stage4_5_empty_topics",
+          "state": "passed"
+        },
+        {
+          "name": "test_stage4_5_high_threshold_filters_more",
+          "fullName": "tests/test_integration/test_hybrid_orchestrator_stage4_5_smoke.py::TestStage4_5Integration::test_stage4_5_high_threshold_filters_more",
           "state": "passed"
         }
       ]

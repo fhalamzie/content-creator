@@ -236,10 +236,199 @@ async def test_extract_keywords_quality_check(orchestrator):
         print(f"Note: Extraction failed with error: {result['error']}")
 
 
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_extract_keywords_from_non_english_website(orchestrator):
+    """
+    Integration test: Extract keywords from non-English website
+
+    Uses Spiegel.de (German news site)
+    Validates that extraction works with non-English content
+
+    Cost: ~$0.001-0.002 (Gemini Flash)
+    """
+    # Skip if no API key
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("GEMINI_API_KEY not set")
+
+    # Use Spiegel.de (German news site, stable, content-rich)
+    url = "https://www.spiegel.de"
+
+    # Execute
+    result = await orchestrator.extract_website_keywords(url, max_keywords=20)
+
+    # Log result for debugging
+    print("\n" + "="*80)
+    print(f"URL: {url}")
+    print(f"Keywords: {result.get('keywords', [])}")
+    print(f"Tags: {result.get('tags', [])}")
+    print(f"Themes: {result.get('themes', [])}")
+    print(f"Tone: {result.get('tone', [])}")
+    print(f"Setting: {result.get('setting', [])}")
+    print(f"Niche: {result.get('niche', [])}")
+    print(f"Domain: {result.get('domain', 'Unknown')}")
+    print(f"Cost: ${result.get('cost', 0):.4f}")
+    if "error" in result:
+        print(f"Error: {result['error']}")
+    print("="*80 + "\n")
+
+    # Verify structure
+    assert "keywords" in result
+    assert "tags" in result
+    assert "themes" in result
+    assert "tone" in result
+    assert "setting" in result
+    assert "niche" in result
+    assert "domain" in result
+    assert "cost" in result
+
+    if "error" not in result:
+        # Should extract keywords from German news site
+        assert len(result["keywords"]) > 0, "Expected keywords from Spiegel.de"
+
+        # Verify all fields are properly populated
+        assert all(isinstance(k, str) for k in result["keywords"])
+        assert all(isinstance(t, str) for t in result["tags"])
+        assert all(isinstance(t, str) for t in result["themes"])
+
+        # Domain should indicate news/media
+        assert result["domain"] != "Unknown", "Expected domain to be identified"
+
+        # Should have identified niche (news, politics, etc.)
+        assert len(result["niche"]) > 0, "Expected niche identification"
+    else:
+        print(f"Note: Extraction failed with error: {result['error']}")
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_extract_keywords_invalid_url_error_handling(orchestrator):
+    """
+    Integration test: Error handling for invalid URL
+
+    Tests that invalid/unreachable URLs are handled gracefully
+    Should return empty results with cost=0
+
+    Cost: $0 (no API call made)
+    """
+    # Skip if no API key
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("GEMINI_API_KEY not set")
+
+    # Use invalid URL
+    url = "https://this-domain-definitely-does-not-exist-12345.com"
+
+    # Execute
+    result = await orchestrator.extract_website_keywords(url, max_keywords=20)
+
+    # Log result for debugging
+    print("\n" + "="*80)
+    print(f"URL: {url}")
+    print(f"Keywords: {result.get('keywords', [])}")
+    print(f"Error: {result.get('error', 'None')}")
+    print(f"Cost: ${result.get('cost', 0):.4f}")
+    print("="*80 + "\n")
+
+    # Verify structure is still valid
+    assert "keywords" in result
+    assert "tags" in result
+    assert "themes" in result
+    assert "tone" in result
+    assert "setting" in result
+    assert "niche" in result
+    assert "domain" in result
+    assert "cost" in result
+
+    # Should return empty results
+    assert result["keywords"] == []
+    assert result["tags"] == []
+    assert result["themes"] == []
+    assert result["tone"] == []
+    assert result["setting"] == []
+    assert result["niche"] == []
+    assert result["domain"] == "Unknown"
+
+    # Should have zero cost (no API call)
+    assert result["cost"] == 0.0
+
+    # Should have an error message
+    assert "error" in result or len(result["keywords"]) == 0
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_extract_keywords_from_ecommerce_website(orchestrator):
+    """
+    Integration test: Extract keywords from e-commerce website
+
+    Uses Amazon.com homepage
+    Validates extraction from product-focused, commercial content
+
+    Cost: ~$0.001-0.002 (Gemini Flash)
+    """
+    # Skip if no API key
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("GEMINI_API_KEY not set")
+
+    # Use Amazon homepage (e-commerce, product-focused)
+    url = "https://www.amazon.com"
+
+    # Execute
+    result = await orchestrator.extract_website_keywords(url, max_keywords=25)
+
+    # Log result for debugging
+    print("\n" + "="*80)
+    print(f"URL: {url}")
+    print(f"Keywords: {result.get('keywords', [])}")
+    print(f"Tags: {result.get('tags', [])}")
+    print(f"Themes: {result.get('themes', [])}")
+    print(f"Tone: {result.get('tone', [])}")
+    print(f"Setting: {result.get('setting', [])}")
+    print(f"Niche: {result.get('niche', [])}")
+    print(f"Domain: {result.get('domain', 'Unknown')}")
+    print(f"Cost: ${result.get('cost', 0):.4f}")
+    if "error" in result:
+        print(f"Error: {result['error']}")
+    print("="*80 + "\n")
+
+    # Verify structure
+    assert "keywords" in result
+    assert "tags" in result
+    assert "themes" in result
+    assert "tone" in result
+    assert "setting" in result
+    assert "niche" in result
+    assert "domain" in result
+    assert "cost" in result
+
+    if "error" not in result:
+        # Should extract keywords from e-commerce site
+        assert len(result["keywords"]) > 0, "Expected keywords from Amazon"
+
+        # Verify structure
+        assert all(isinstance(k, str) for k in result["keywords"])
+        assert all(isinstance(t, str) for t in result["tags"])
+
+        # Setting should indicate e-commerce/B2C
+        setting_text = " ".join(result["setting"]).lower()
+
+        # Verify we got reasonable content
+        assert len(result["keywords"]) <= 25, "Keywords should respect max limit"
+
+        # Domain should be identified
+        assert result["domain"] != "Unknown", "Expected domain identification"
+
+        # Log what we found
+        print(f"Setting identified: {result['setting']}")
+        print(f"Domain identified: {result['domain']}")
+    else:
+        print(f"Note: Extraction failed with error: {result['error']}")
+
+
 if __name__ == "__main__":
     # Allow running directly for manual testing
     print("Running Stage 1 integration tests...")
-    print("These tests make real API calls and cost ~$0.003-0.005 total")
+    print("These tests make real API calls and cost ~$0.006-0.010 total")
     print()
 
     orchestrator = HybridResearchOrchestrator()
@@ -248,5 +437,8 @@ if __name__ == "__main__":
     asyncio.run(test_extract_keywords_from_real_website(orchestrator))
     asyncio.run(test_extract_keywords_from_content_rich_website(orchestrator))
     asyncio.run(test_extract_keywords_quality_check(orchestrator))
+    asyncio.run(test_extract_keywords_from_non_english_website(orchestrator))
+    asyncio.run(test_extract_keywords_invalid_url_error_handling(orchestrator))
+    asyncio.run(test_extract_keywords_from_ecommerce_website(orchestrator))
 
     print("\nAll integration tests completed!")

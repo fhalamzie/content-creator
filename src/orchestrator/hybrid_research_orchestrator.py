@@ -31,6 +31,7 @@ from src.research.synthesizer.content_synthesizer import (
 )
 from src.utils.config_loader import ConfigLoader
 from src.agents.gemini_agent import GeminiAgent, GeminiAgentError
+from src.orchestrator.topic_validator import TopicValidator, TopicMetadata
 
 logger = get_logger(__name__)
 
@@ -85,6 +86,7 @@ class HybridResearchOrchestrator:
         self._reranker = None
         self._synthesizer = None
         self._gemini_agent = None
+        self._topic_validator = None
 
         logger.info(
             "hybrid_orchestrator_initialized",
@@ -139,6 +141,13 @@ class HybridResearchOrchestrator:
                 max_tokens=4000
             )
         return self._gemini_agent
+
+    @property
+    def topic_validator(self) -> TopicValidator:
+        """Lazy load topic validator"""
+        if self._topic_validator is None:
+            self._topic_validator = TopicValidator()
+        return self._topic_validator
 
     async def extract_website_keywords(
         self,
@@ -689,6 +698,97 @@ Return in strict JSON format matching the schema below."""
 
         return result
 
+    def validate_and_score_topics(
+        self,
+        discovered_topics: List[str],
+        topics_by_source: Dict[str, List[str]],
+        consolidated_keywords: List[str],
+        threshold: float = 0.6,
+        top_n: int = 20
+    ) -> Dict:
+        """
+        Stage 4.5: Validate and score discovered topics using 5-metric scoring.
+
+        Filters topics by relevance before expensive research operations.
+        Uses TopicValidator with:
+        - Keyword relevance (30%)
+        - Source diversity (25%)
+        - Freshness (20%)
+        - Search volume (15%)
+        - Novelty (10%)
+
+        Args:
+            discovered_topics: Topics from Stage 4
+            topics_by_source: Topics grouped by source
+            consolidated_keywords: Keywords from Stage 3
+            threshold: Minimum score threshold (0.0-1.0, default: 0.6)
+            top_n: Maximum topics to return (default: 20)
+
+        Returns:
+            Dict with:
+                - scored_topics: List[ScoredTopic] - Validated topics
+                - filtered_count: int - Topics that passed threshold
+                - rejected_count: int - Topics that failed threshold
+                - avg_score: float - Average score of validated topics
+        """
+        logger.info(
+            "stage4_5_topic_validation",
+            total_topics=len(discovered_topics),
+            threshold=threshold,
+            top_n=top_n
+        )
+
+        # Create topic metadata for scoring
+        topics_with_metadata = []
+        now = datetime.now()
+
+        for topic in discovered_topics:
+            # Find which sources discovered this topic
+            sources = []
+            for source, source_topics in topics_by_source.items():
+                if topic in source_topics:
+                    sources.append(source)
+
+            # Create metadata
+            metadata = TopicMetadata(
+                source=sources[0] if sources else "unknown",
+                timestamp=now,
+                sources=sources
+            )
+
+            topics_with_metadata.append((topic, metadata))
+
+        # Score and filter topics
+        scored_topics = self.topic_validator.filter_topics(
+            topics=topics_with_metadata,
+            keywords=consolidated_keywords,
+            threshold=threshold,
+            top_n=top_n
+        )
+
+        # Calculate statistics
+        avg_score = (
+            sum(st.total_score for st in scored_topics) / len(scored_topics)
+            if scored_topics else 0.0
+        )
+        rejected_count = len(discovered_topics) - len(scored_topics)
+
+        result = {
+            "scored_topics": scored_topics,
+            "filtered_count": len(scored_topics),
+            "rejected_count": rejected_count,
+            "avg_score": avg_score
+        }
+
+        logger.info(
+            "stage4_5_complete",
+            filtered_topics=result["filtered_count"],
+            rejected_topics=result["rejected_count"],
+            avg_score=f"{avg_score:.3f}"
+        )
+
+        return result
+
     async def research_topic(
         self,
         topic: str,
@@ -809,23 +909,29 @@ Return in strict JSON format matching the schema below."""
             max_topics_per_collector=10
         )
 
-        # Stage 5: Research priority topics
-        # Combine priority topics from Stage 3 + discovered topics from Stage 4
-        priority_topics = consolidated_data["priority_topics"][:max_topics_to_research]
-        discovered_topics = discovered_topics_data["discovered_topics"]
-
-        # Optionally add some discovered topics to research queue
-        # (for now, we just use Stage 3 priority topics)
-        logger.info(
-            "stage5_topic_selection",
-            priority_topics=len(priority_topics),
-            discovered_topics=len(discovered_topics)
+        # Stage 4.5: Validate and score discovered topics
+        validation_data = self.validate_and_score_topics(
+            discovered_topics=discovered_topics_data["discovered_topics"],
+            topics_by_source=discovered_topics_data["topics_by_source"],
+            consolidated_keywords=consolidated_data["consolidated_keywords"],
+            threshold=0.6,
+            top_n=min(max_topics_to_research, 20)
         )
 
-        logger.info("stage5_batch_research", topics_count=len(priority_topics))
+        # Stage 5: Research validated topics
+        # Use scored topics from Stage 4.5 instead of priority topics from Stage 3
+        validated_topics = [st.topic for st in validation_data["scored_topics"]][:max_topics_to_research]
+
+        logger.info(
+            "stage5_topic_selection",
+            validated_topics=len(validated_topics),
+            avg_validation_score=validation_data["avg_score"]
+        )
+
+        logger.info("stage5_batch_research", topics_count=len(validated_topics))
 
         research_results = []
-        for topic in priority_topics:
+        for topic in validated_topics:
             result = await self.research_topic(
                 topic=topic,
                 config=customer_info,
@@ -848,6 +954,7 @@ Return in strict JSON format matching the schema below."""
             "competitor_data": competitor_data,
             "consolidated_data": consolidated_data,
             "discovered_topics_data": discovered_topics_data,
+            "validation_data": validation_data,
             "research_results": research_results,
             "total_cost": total_cost,
             "total_duration_sec": total_duration
