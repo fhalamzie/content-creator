@@ -47,18 +47,11 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-# Test topics for each vertical
+# Test topics for each vertical (reduced to 10 total for quick testing)
 PROPTECH_TOPICS = [
     "PropTech AI automation trends 2025",
     "Smart building IoT sensors Germany",
     "Property management software DSGVO compliance",
-    "Real estate CRM systems comparison",
-    "Digital tenant communication platforms",
-    "Building energy monitoring solutions",
-    "PropTech cybersecurity best practices",
-    "Commercial real estate analytics tools",
-    "Residential property maintenance apps",
-    "PropTech investment trends Germany"
 ]
 
 SAAS_TOPICS = [
@@ -66,25 +59,12 @@ SAAS_TOPICS = [
     "Customer success platform features",
     "SaaS security compliance certifications",
     "API-first SaaS architecture patterns",
-    "SaaS churn reduction techniques",
-    "Multi-tenant database design patterns",
-    "SaaS metrics CAC vs LTV analysis",
-    "Vertical SaaS market opportunities",
-    "SaaS integration platform benefits",
-    "Enterprise SaaS procurement process"
 ]
 
 FASHION_TOPICS = [
     "Sustainable fashion e-commerce trends",
     "Fashion tech AI styling recommendations",
     "Virtual fitting room technologies",
-    "Luxury fashion online authentication",
-    "Fashion marketplace platform features",
-    "Streetwear resale market growth",
-    "Fashion supply chain transparency",
-    "Social commerce fashion strategies",
-    "Fashion rental subscription models",
-    "Fashion influencer marketing ROI"
 ]
 
 

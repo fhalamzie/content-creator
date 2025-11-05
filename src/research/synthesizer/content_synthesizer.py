@@ -103,8 +103,7 @@ class ContentSynthesizer:
         if not self.gemini_api_key:
             raise ValueError("GEMINI_API_KEY not found in environment or parameters")
 
-        # Configure Gemini client
-        genai.configure(api_key=self.gemini_api_key)
+        # Initialize Gemini client (new SDK - no configure() needed)
         self.client = genai.Client(api_key=self.gemini_api_key)
 
         # Configuration
@@ -470,9 +469,12 @@ Return ONLY a JSON object with this format:
 The indices must be from the passages above (0 to {len(paragraphs) - 1}).
 """
 
-            # Call Gemini Flash
-            model = self.client.models.get(self.PASSAGE_SELECTION_MODEL)
-            response = await model.generate_content_async(prompt)
+            # Call Gemini Flash (new SDK API - sync call, run in thread pool for async)
+            response = await asyncio.to_thread(
+                self.client.models.generate_content,
+                model=self.PASSAGE_SELECTION_MODEL,
+                contents=prompt
+            )
 
             # Parse response
             try:
@@ -564,9 +566,12 @@ Instructions:
 Generate the article now:
 """
 
-            # Call Gemini 2.5 Flash
-            model = self.client.models.get(self.ARTICLE_SYNTHESIS_MODEL)
-            response = await model.generate_content_async(prompt)
+            # Call Gemini 2.5 Flash (new SDK API - sync call, run in thread pool for async)
+            response = await asyncio.to_thread(
+                self.client.models.generate_content,
+                model=self.ARTICLE_SYNTHESIS_MODEL,
+                contents=prompt
+            )
 
             article = response.text.strip()
 
