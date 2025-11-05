@@ -32,6 +32,8 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse
 import os
 
+from datasketch import MinHash, MinHashLSH
+
 from src.research.backends.tavily_backend import TavilyBackend
 from src.research.backends.searxng_backend import SearXNGBackend
 from src.research.backends.gemini_api_backend import GeminiAPIBackend
@@ -80,7 +82,8 @@ class DeepResearcher:
         enable_searxng: bool = True,
         enable_gemini: bool = True,
         enable_rss: bool = True,
-        enable_thenewsapi: bool = True
+        enable_thenewsapi: bool = True,
+        _testing_mode: bool = False
     ):
         """
         Initialize multi-backend orchestrator with 5 parallel sources
@@ -98,6 +101,7 @@ class DeepResearcher:
             enable_gemini: Enable Gemini API backend (default: True)
             enable_rss: Enable RSS collector (default: True)
             enable_thenewsapi: Enable TheNewsAPI collector (default: True)
+            _testing_mode: Skip source validation for testing (default: False)
         """
         # Store dependencies for collectors
         self.config = config
@@ -166,19 +170,20 @@ class DeepResearcher:
             except TheNewsAPIError as e:
                 logger.warning("thenewsapi_collector_disabled", reason=str(e))
 
-        # Check if at least one source is available
+        # Check if at least one source is available (skip in testing mode)
         total_sources = len(self.backends) + len(self.collectors)
-        if total_sources == 0:
+        if not _testing_mode and total_sources == 0:
             raise DeepResearchError(
                 "No search backends or collectors available. At least one source must be enabled."
             )
 
-        logger.info(
-            "orchestrator_initialized",
-            backends_enabled=list(self.backends.keys()),
-            collectors_enabled=list(self.collectors.keys()),
-            total_sources=total_sources
-        )
+        if total_sources > 0:
+            logger.info(
+                "orchestrator_initialized",
+                backends_enabled=list(self.backends.keys()),
+                collectors_enabled=list(self.collectors.keys()),
+                total_sources=total_sources
+            )
 
         # Overall statistics
         self.total_research = 0
@@ -615,44 +620,200 @@ class DeepResearcher:
 
         return " ".join(parts)[:300]
 
+    def _reciprocal_rank_fusion(
+        self,
+        sources: List[SearchResult],
+        k: int = 60
+    ) -> List[SearchResult]:
+        """
+        Merge ranked lists using Reciprocal Rank Fusion (RRF) algorithm
+
+        RRF is a data fusion method that combines ranked lists from multiple
+        sources by assigning scores based on ranks. URLs appearing in multiple
+        sources get boosted due to score accumulation.
+
+        Formula: RRF_score(url) = Σ(1 / (k + rank))
+        where k=60 is the standard RRF constant
+
+        Args:
+            sources: List of search results from all sources (in rank order per source)
+            k: RRF constant (default: 60, standard value)
+
+        Returns:
+            Merged list sorted by RRF score (highest first)
+
+        Reference:
+            Cormack et al. (2009) - "Reciprocal Rank Fusion outperforms the best
+            known automatic runs on the TREC-2009 Web Track"
+        """
+        # Group sources by backend to preserve rank order
+        sources_by_backend = {}
+        for source in sources:
+            backend = source.get('backend', 'unknown')
+            if backend not in sources_by_backend:
+                sources_by_backend[backend] = []
+            sources_by_backend[backend].append(source)
+
+        # Calculate RRF scores for each URL
+        rrf_scores = {}  # url -> accumulated RRF score
+        url_metadata = {}  # url -> source metadata (first occurrence)
+
+        for backend, backend_sources in sources_by_backend.items():
+            for rank, source in enumerate(backend_sources, start=1):
+                url = source.get('url', '')
+                if not url:
+                    continue
+
+                # Calculate RRF score: 1 / (k + rank)
+                score = 1.0 / (k + rank)
+
+                # Accumulate scores for URLs appearing in multiple sources
+                if url in rrf_scores:
+                    rrf_scores[url] += score
+                else:
+                    rrf_scores[url] = score
+                    # Store metadata from first occurrence
+                    url_metadata[url] = source
+
+        # Sort URLs by RRF score (descending)
+        sorted_urls = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
+
+        # Build result list with RRF scores
+        merged_sources = []
+        for url, score in sorted_urls:
+            source = url_metadata[url].copy()
+            source['rrf_score'] = score
+            merged_sources.append(source)
+
+        logger.info(
+            "rrf_fusion_complete",
+            input_count=len(sources),
+            unique_urls=len(merged_sources),
+            top_score=merged_sources[0]['rrf_score'] if merged_sources else 0
+        )
+
+        return merged_sources
+
+    def _minhash_deduplicate(
+        self,
+        sources: List[SearchResult],
+        similarity_threshold: float = 0.8,
+        num_perm: int = 128
+    ) -> List[SearchResult]:
+        """
+        Deduplicate sources using MinHash LSH for near-duplicate detection
+
+        MinHash LSH detects near-duplicate content by:
+        1. Creating MinHash signatures for each content
+        2. Using LSH to efficiently find similar signatures
+        3. Removing duplicates above similarity threshold
+
+        Args:
+            sources: List of search results (must have 'content' field)
+            similarity_threshold: Jaccard similarity threshold (0-1, default: 0.8)
+            num_perm: Number of permutations for MinHash (default: 128)
+
+        Returns:
+            Deduplicated list with first occurrence preserved
+
+        Reference:
+            Broder (1997) - "On the resemblance and containment of documents"
+        """
+        if not sources:
+            return []
+
+        if len(sources) == 1:
+            return sources
+
+        # Initialize LSH index
+        lsh = MinHashLSH(threshold=similarity_threshold, num_perm=num_perm)
+
+        # Track which sources to keep
+        unique_sources = []
+        duplicate_count = 0
+
+        for idx, source in enumerate(sources):
+            content = source.get('content', '')
+            url = source.get('url', '')
+
+            # Skip sources without content
+            if not content or len(content.strip()) == 0:
+                logger.debug("minhash_skip_no_content", url=url)
+                continue
+
+            # Create MinHash signature for content
+            minhash = MinHash(num_perm=num_perm)
+
+            # Tokenize content into shingles (3-grams of words)
+            words = content.lower().split()
+            shingles = [' '.join(words[i:i+3]) for i in range(len(words) - 2)]
+
+            # Add shingles to MinHash
+            for shingle in shingles:
+                minhash.update(shingle.encode('utf-8'))
+
+            # Query LSH to check for near-duplicates
+            key = f"source_{idx}"
+            duplicates = lsh.query(minhash)
+
+            if duplicates:
+                # Near-duplicate found, skip this source
+                duplicate_count += 1
+                logger.debug(
+                    "minhash_duplicate_detected",
+                    url=url,
+                    similar_to=len(duplicates)
+                )
+                continue
+
+            # No duplicates, add to index and keep source
+            lsh.insert(key, minhash)
+            unique_sources.append(source)
+
+        logger.info(
+            "minhash_deduplication_complete",
+            input_count=len(sources),
+            output_count=len(unique_sources),
+            duplicates_removed=duplicate_count,
+            threshold=similarity_threshold
+        )
+
+        return unique_sources
+
     def _merge_with_diversity(self, sources: List[SearchResult]) -> List[SearchResult]:
         """
-        Merge sources with deduplication and diversity scoring
+        Merge sources with RRF fusion and MinHash deduplication
+
+        Pipeline:
+        1. RRF Fusion - Merge ranked lists from 5 sources, boost multi-source URLs
+        2. MinHash Dedup - Remove near-duplicate content (>80% similar)
 
         Args:
             sources: List of search results from all sources (backends + collectors)
 
         Returns:
-            Deduplicated list of sources sorted by diversity
+            Deduplicated list of sources sorted by RRF score, with near-duplicates removed
         """
-        # Deduplicate by URL
-        seen_urls: Set[str] = set()
-        unique_sources = []
+        # Step 1: Apply Reciprocal Rank Fusion to merge and rank sources
+        # This boosts URLs appearing in multiple sources and creates unified ranking
+        rrf_merged = self._reciprocal_rank_fusion(sources)
 
-        for source in sources:
-            url = source.get('url', '')
-            if not url or url in seen_urls:
-                continue
-
-            seen_urls.add(url)
-            unique_sources.append(source)
-
-        # Sort by diversity (backend, domain, etc.)
-        # Alternate between all 5 sources for maximum diversity
-        source_order = ['tavily', 'searxng', 'gemini', 'rss', 'thenewsapi']
-        sorted_sources = []
-
-        for source_name in source_order:
-            source_results = [s for s in unique_sources if s.get('backend') == source_name]
-            sorted_sources.extend(source_results)
-
-        logger.info(
-            "sources_merged",
-            raw_count=len(sources),
-            unique_count=len(sorted_sources)
+        # Step 2: Apply MinHash deduplication to remove near-duplicate content
+        # This catches same content on different URLs (scraper sites, syndicated content)
+        final_sources = self._minhash_deduplicate(
+            rrf_merged,
+            similarity_threshold=0.8  # Remove content >80% similar
         )
 
-        return sorted_sources
+        logger.info(
+            "sources_merged_and_deduplicated",
+            raw_count=len(sources),
+            after_rrf=len(rrf_merged),
+            after_minhash=len(final_sources),
+            duplicates_removed=len(rrf_merged) - len(final_sources)
+        )
+
+        return final_sources
 
     def _calculate_quality_score(
         self,

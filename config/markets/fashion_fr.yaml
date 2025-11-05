@@ -63,6 +63,21 @@ collectors:
     - https://www.frenchweb.fr/feed
     - https://www.journaldunet.com/rss/
 
+# === Reranker Configuration ===
+reranker:
+  # Enable Voyage AI reranking (FREE 200M token tier)
+  enable_voyage: true
+  stage1_threshold: 0.0
+  stage2_threshold: 0.3
+  stage3_final_count: 25
+
+# === Content Synthesizer Configuration ===
+synthesizer:
+  strategy: bm25_llm  # or llm_only
+  max_article_words: 2000
+  passages_per_source: 3
+  bm25_pre_filter_count: 10
+
 # === Scheduling Configuration ===
 scheduling:
   # Daily collection time (24-hour format)

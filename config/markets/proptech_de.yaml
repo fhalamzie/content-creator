@@ -71,6 +71,37 @@ collectors:
     - https://www.immobilienmanager.de/rss/news.xml
     - https://www.haufe.de/immobilien/rss.xml
 
+# === Reranker Configuration ===
+reranker:
+  # Enable Voyage AI reranking (FREE 200M token tier)
+  # Fallback to BM25-only if disabled or API unavailable
+  enable_voyage: true
+
+  # Stage 1: BM25 lexical filter threshold
+  stage1_threshold: 0.0  # Keep all sources (no filtering)
+
+  # Stage 2: Voyage Lite semantic threshold
+  stage2_threshold: 0.3  # Min similarity score to pass
+
+  # Stage 3: Final source count after full reranking
+  stage3_final_count: 25  # Top 25 sources for synthesis
+
+# === Content Synthesizer Configuration ===
+synthesizer:
+  # Passage extraction strategy
+  # - bm25_llm: BM25 pre-filter + LLM selection (92% quality, $0.00189/topic) [RECOMMENDED]
+  # - llm_only: LLM-only selection (94% quality, $0.00375/topic)
+  strategy: bm25_llm
+
+  # Target article length in words
+  max_article_words: 2000
+
+  # Number of passages to select per source
+  passages_per_source: 3
+
+  # BM25 pre-filter count (only for bm25_llm strategy)
+  bm25_pre_filter_count: 10  # Filter 22 → 10 paragraphs per source
+
 # === Scheduling Configuration ===
 scheduling:
   # Daily collection time (24-hour format)
