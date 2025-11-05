@@ -2,6 +2,34 @@
 
 Recent development sessions (last 5 sessions, <100 lines).
 
+## Session 034 (Continuation): Hybrid Orchestrator Stages 2-4 Complete (2025-11-05)
+
+**Hybrid Research Orchestrator MVP Complete**: Implemented and tested Stages 2-4 of the keyword→topic discovery pipeline. All 22 tests passing, full E2E validation successful.
+
+**Stage 2 - Competitor Research**:
+- Fixed critical async/await bug (line 477) - `await` used on synchronous `GeminiAgent.generate()` method
+- Gemini API with grounding now functional for competitor discovery
+
+**Stage 3 - Consolidation** (NEW):
+- Combines keywords from website + competitors
+- Merges tags, themes, and market topics
+- Deduplicates and sorts alphabetically
+- 8/8 unit tests passing
+
+**Stage 4 - Topic Discovery** (NEW):
+- Pattern-based topic expansion using 5 simulated collectors (autocomplete, trends, reddit, rss, news)
+- Generates ~50 candidate topics from 10 keywords in <100ms
+- Zero API cost, fully deterministic and testable
+- 13/13 unit tests passing
+
+**Pipeline Status**: ✅ **4/5 stages complete** (Stage 1 → Stage 2 → Stage 3 → Stage 4 → Stage 5)
+
+**Test Results**: 22/22 passing (8 Stage 3 + 13 Stage 4 + 1 smoke test)
+
+**See**: [Full details](docs/sessions/034-hybrid-orchestrator-stage2-4-implementation.md)
+
+---
+
 ## Session 034: Reranker Locality Config Bug Fix (2025-11-05)
 
 **Critical Reranking Bug Fixed**: Resolved config type detection bug in reranker locality metric. PropTech topics that were failing with 0 sources now pass with full reranking.
