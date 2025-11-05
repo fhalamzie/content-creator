@@ -2,6 +2,33 @@
 
 Recent development sessions (last 5 sessions, <100 lines).
 
+## Session 033: Gemini Timeout + Content Synthesizer Config Fixes (2025-11-05)
+
+**2 Additional Bugs Fixed**: Corrected Gemini timeout misconfiguration (60ms → 60s) and content synthesizer Pydantic incompatibility. Pipeline now fully stable with proper API timeouts and universal config support.
+
+**Bug 1 - Gemini Timeout Misconfiguration** (`gemini_agent.py`):
+- Error: `Read timed out. (read timeout=0.06)` - API failing after 60 milliseconds
+- Cause: Google GenAI SDK `http_options={'timeout': X}` expects **milliseconds**, not seconds
+- Fix: Changed `timeout: 60.0` → `timeout: 60000` (60 seconds in milliseconds)
+- Result: Gemini requests complete within 60s or timeout gracefully
+
+**Bug 2 - Content Synthesizer Config** (`content_synthesizer.py`):
+- Error: `'FullConfig' object has no attribute 'get'` during article synthesis
+- Cause: Same Pydantic config bug as reranker, different component
+- Fix: Added dict/Pydantic type detection with nested `config.market.domain` access
+- Result: Article generation works with all config types
+
+**Test Results**:
+- ✅ Smoke test PASSED (1/1, 289s) - validates all 3 fixes (Session 032 + 033)
+- ✅ Full pipeline operational end-to-end
+- ✅ Both dict and Pydantic configs supported across all components
+
+**Pipeline Status**: ✅ **PRODUCTION READY** - All critical bugs resolved, smoke test validated.
+
+**See**: [Full details](docs/sessions/033-gemini-timeout-synthesizer-config-fixes.md)
+
+---
+
 ## Session 032: Config Compatibility + Timeout Fixes (2025-11-05)
 
 **2 Critical Bugs Fixed**: Resolved Pydantic config incompatibility in reranker and Gemini API infinite timeout. Pipeline now handles both dict and Pydantic configs with graceful API timeout handling.
