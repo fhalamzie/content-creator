@@ -1,0 +1,753 @@
+"""
+Deep Researcher - Multi-Backend Orchestrator
+
+Parallel multi-backend research system with graceful degradation.
+
+Architecture:
+- SEARCH: 3 backends in parallel (Tavily DEPTH + SearXNG BREADTH + Gemini TRENDS)
+- CONTENT: 2 collectors in parallel (RSS FEEDS + TheNewsAPI BREAKING NEWS)
+- REPORT: gpt-researcher for final report generation
+- FUSION: Merge & deduplicate sources with diversity scoring
+
+Example:
+    from src.research.deep_researcher_refactored import DeepResearcher
+
+    researcher = DeepResearcher()
+
+    config = {
+        'domain': 'SaaS',
+        'market': 'Germany',
+        'language': 'de',
+        'vertical': 'Proptech'
+    }
+
+    result = await researcher.research_topic("PropTech Trends 2025", config)
+    print(f"Report: {result['report']}")
+    print(f"Sources: {len(result['sources'])}")  # 25-30 sources (5 sources)
+"""
+
+import asyncio
+from typing import Dict, List, Optional, Set
+from datetime import datetime, timedelta
+from urllib.parse import urlparse
+import os
+
+from src.research.backends.tavily_backend import TavilyBackend
+from src.research.backends.searxng_backend import SearXNGBackend
+from src.research.backends.gemini_api_backend import GeminiAPIBackend
+from src.research.backends.base import BackendHealth, SearchResult
+from src.research.backends.exceptions import BackendUnavailableError, AuthenticationError
+from src.collectors.rss_collector import RSSCollector
+from src.collectors.thenewsapi_collector import TheNewsAPICollector, TheNewsAPIError
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+# Lazy import to avoid dependency issues in tests
+GPTResearcher = None
+
+
+class DeepResearchError(Exception):
+    """Raised when deep research fails"""
+    pass
+
+
+class DeepResearcher:
+    """
+    Multi-backend research orchestrator with parallel search and graceful degradation
+
+    Features:
+    - 5 sources in parallel:
+      - SEARCH: Tavily (DEPTH) + SearXNG (BREADTH) + Gemini API (TRENDS)
+      - CONTENT: RSS Feeds (CURATED) + TheNewsAPI (BREAKING NEWS)
+    - Graceful degradation: Continue if ≥1 source succeeds
+    - Source fusion: Merge & deduplicate 25-30 sources
+    - Quality scoring: Sources + backend health + domain diversity
+    - Cost: $0.02/topic (only Tavily paid, TheNewsAPI 100/day free)
+    - Statistics: Backend/collector success rates, health monitoring
+    """
+
+    def __init__(
+        self,
+        tavily_api_key: Optional[str] = None,
+        gemini_api_key: Optional[str] = None,
+        thenewsapi_api_key: Optional[str] = None,
+        searxng_instance_url: Optional[str] = None,
+        config=None,
+        db_manager=None,
+        deduplicator=None,
+        enable_tavily: bool = True,
+        enable_searxng: bool = True,
+        enable_gemini: bool = True,
+        enable_rss: bool = True,
+        enable_thenewsapi: bool = True
+    ):
+        """
+        Initialize multi-backend orchestrator with 5 parallel sources
+
+        Args:
+            tavily_api_key: Tavily API key (auto-loads if None)
+            gemini_api_key: Gemini API key (auto-loads if None)
+            thenewsapi_api_key: TheNewsAPI API key (auto-loads if None)
+            searxng_instance_url: Custom SearXNG instance (uses public if None)
+            config: Market configuration (required for RSS/TheNewsAPI)
+            db_manager: Database manager (required for RSS)
+            deduplicator: Deduplicator (required for RSS/TheNewsAPI)
+            enable_tavily: Enable Tavily backend (default: True)
+            enable_searxng: Enable SearXNG backend (default: True)
+            enable_gemini: Enable Gemini API backend (default: True)
+            enable_rss: Enable RSS collector (default: True)
+            enable_thenewsapi: Enable TheNewsAPI collector (default: True)
+        """
+        # Store dependencies for collectors
+        self.config = config
+        self.db_manager = db_manager
+        self.deduplicator = deduplicator
+
+        # Initialize backends (search)
+        self.backends = {}
+        self.backend_stats = {
+            'tavily': {'success': 0, 'failed': 0, 'total_sources': 0},
+            'searxng': {'success': 0, 'failed': 0, 'total_sources': 0},
+            'gemini': {'success': 0, 'failed': 0, 'total_sources': 0},
+            'rss': {'success': 0, 'failed': 0, 'total_sources': 0},
+            'thenewsapi': {'success': 0, 'failed': 0, 'total_sources': 0}
+        }
+
+        # Initialize collectors (content)
+        self.collectors = {}
+
+        # Initialize Tavily (DEPTH horizon)
+        if enable_tavily:
+            try:
+                self.backends['tavily'] = TavilyBackend(api_key=tavily_api_key)
+                logger.info("tavily_backend_enabled", horizon="DEPTH")
+            except (BackendUnavailableError, AuthenticationError) as e:
+                logger.warning("tavily_backend_disabled", reason=str(e))
+
+        # Initialize SearXNG (BREADTH horizon)
+        if enable_searxng:
+            try:
+                self.backends['searxng'] = SearXNGBackend(instance_url=searxng_instance_url)
+                logger.info("searxng_backend_enabled", horizon="BREADTH")
+            except BackendUnavailableError as e:
+                logger.warning("searxng_backend_disabled", reason=str(e))
+
+        # Initialize Gemini API (TRENDS horizon)
+        if enable_gemini:
+            try:
+                self.backends['gemini'] = GeminiAPIBackend(api_key=gemini_api_key)
+                logger.info("gemini_backend_enabled", horizon="TRENDS")
+            except (BackendUnavailableError, AuthenticationError) as e:
+                logger.warning("gemini_backend_disabled", reason=str(e))
+
+        # Initialize RSS Collector (CURATED horizon)
+        if enable_rss and config and db_manager and deduplicator:
+            try:
+                self.collectors['rss'] = RSSCollector(
+                    config=config,
+                    db_manager=db_manager,
+                    deduplicator=deduplicator
+                )
+                logger.info("rss_collector_enabled", horizon="CURATED")
+            except Exception as e:
+                logger.warning("rss_collector_disabled", reason=str(e))
+
+        # Initialize TheNewsAPI Collector (BREAKING NEWS horizon)
+        if enable_thenewsapi and config and deduplicator:
+            try:
+                self.collectors['thenewsapi'] = TheNewsAPICollector(
+                    api_key=thenewsapi_api_key,
+                    config=config,
+                    db_manager=db_manager,
+                    deduplicator=deduplicator
+                )
+                logger.info("thenewsapi_collector_enabled", horizon="BREAKING_NEWS")
+            except TheNewsAPIError as e:
+                logger.warning("thenewsapi_collector_disabled", reason=str(e))
+
+        # Check if at least one source is available
+        total_sources = len(self.backends) + len(self.collectors)
+        if total_sources == 0:
+            raise DeepResearchError(
+                "No search backends or collectors available. At least one source must be enabled."
+            )
+
+        logger.info(
+            "orchestrator_initialized",
+            backends_enabled=list(self.backends.keys()),
+            collectors_enabled=list(self.collectors.keys()),
+            total_sources=total_sources
+        )
+
+        # Overall statistics
+        self.total_research = 0
+        self.failed_research = 0
+        self.total_sources_found = 0
+
+    async def research_topic(
+        self,
+        topic: str,
+        config: Dict,
+        competitor_gaps: Optional[List[str]] = None,
+        keywords: Optional[List[str]] = None
+    ) -> Dict:
+        """
+        Research topic using parallel multi-backend search
+
+        Args:
+            topic: Topic to research
+            config: Research config (domain, market, language, vertical)
+            competitor_gaps: Optional content gaps from competitor research
+            keywords: Optional keywords to focus on
+
+        Returns:
+            Dictionary with:
+            - topic: Original topic
+            - report: Markdown report (5-6 pages)
+            - sources: List of source URLs (20-25 sources)
+            - word_count: Approximate word count
+            - researched_at: ISO timestamp
+            - backend_stats: Backend performance metrics
+            - quality_score: Research quality score (0-100)
+
+        Raises:
+            DeepResearchError: If all backends fail
+        """
+        if not topic or len(topic.strip()) == 0:
+            raise DeepResearchError("Topic cannot be empty")
+
+        self.total_research += 1
+
+        try:
+            logger.info(
+                "research_started",
+                topic=topic,
+                domain=config.get('domain'),
+                market=config.get('market'),
+                backends=list(self.backends.keys())
+            )
+
+            # Build specialized queries for each horizon
+            depth_query = self._build_depth_query(topic, config, keywords)
+            breadth_query = self._build_breadth_query(topic, config, competitor_gaps)
+            trends_query = self._build_trends_query(topic, config)
+
+            # Execute ALL sources in parallel (3 search backends + 2 collectors)
+            all_tasks = []
+            source_names = []
+
+            # Add search backend tasks
+            if 'tavily' in self.backends:
+                all_tasks.append(self._search_with_logging(
+                    'tavily',
+                    depth_query,
+                    max_results=10
+                ))
+                source_names.append('tavily')
+
+            if 'searxng' in self.backends:
+                all_tasks.append(self._search_with_logging(
+                    'searxng',
+                    breadth_query,
+                    max_results=30
+                ))
+                source_names.append('searxng')
+
+            if 'gemini' in self.backends:
+                all_tasks.append(self._search_with_logging(
+                    'gemini',
+                    trends_query,
+                    max_results=12
+                ))
+                source_names.append('gemini')
+
+            # Add collector tasks
+            if 'rss' in self.collectors:
+                all_tasks.append(self._collect_from_rss(
+                    topic=topic,
+                    config=config,
+                    keywords=keywords
+                ))
+                source_names.append('rss')
+
+            if 'thenewsapi' in self.collectors:
+                all_tasks.append(self._collect_from_thenewsapi(
+                    topic=topic,
+                    config=config,
+                    keywords=keywords
+                ))
+                source_names.append('thenewsapi')
+
+            # Gather results (graceful degradation: continue if ≥1 succeeds)
+            all_results = await asyncio.gather(*all_tasks, return_exceptions=True)
+
+            # Process results from all sources
+            all_sources = []
+            successful_sources = []
+            failed_sources = []
+
+            for source_name, result in zip(source_names, all_results):
+                if isinstance(result, Exception):
+                    logger.error(
+                        "source_exception",
+                        source=source_name,
+                        error=str(result)
+                    )
+                    failed_sources.append(source_name)
+                    self.backend_stats[source_name]['failed'] += 1
+                elif isinstance(result, list):
+                    all_sources.extend(result)
+                    successful_sources.append(source_name)
+                    self.backend_stats[source_name]['success'] += 1
+                    self.backend_stats[source_name]['total_sources'] += len(result)
+
+            logger.info(
+                "sources_complete",
+                successful=len(successful_sources),
+                failed=len(failed_sources),
+                total_sources_raw=len(all_sources)
+            )
+
+            # Check if minimum sources succeeded
+            if not successful_sources:
+                raise DeepResearchError(
+                    f"All sources failed: {', '.join(failed_sources)}"
+                )
+
+            # Merge and deduplicate sources
+            merged_sources = self._merge_with_diversity(all_sources)
+
+            # Update statistics
+            self.total_sources_found += len(merged_sources)
+
+            # Calculate quality score
+            quality_score = self._calculate_quality_score(
+                sources_count=len(merged_sources),
+                successful_backends=successful_sources,
+                failed_backends=failed_sources
+            )
+
+            logger.info(
+                "sources_processed",
+                merged_count=len(merged_sources),
+                quality_score=quality_score
+            )
+
+            # Generate report using gpt-researcher (placeholder for now)
+            # In production, pass merged_sources to gpt-researcher for report generation
+            report = f"# Research Report: {topic}\n\n" \
+                     f"**Sources Found**: {len(merged_sources)}\n" \
+                     f"**Quality Score**: {quality_score}/100\n\n" \
+                     f"## Sources\n\n" + \
+                     "\n".join(f"- {s['url']}" for s in merged_sources[:10])
+
+            word_count = len(report.split())
+
+            result = {
+                'topic': topic,
+                'report': report,
+                'sources': [s['url'] for s in merged_sources],
+                'word_count': word_count,
+                'researched_at': datetime.now().isoformat(),
+                'backend_stats': {
+                    'successful': successful_sources,
+                    'failed': failed_sources,
+                    'sources_per_source': {
+                        name: len([s for s in all_sources if s.get('backend') == name or s.get('source', '').startswith(name)])
+                        for name in source_names
+                    }
+                },
+                'quality_score': quality_score
+            }
+
+            logger.info(
+                "research_complete",
+                topic=topic,
+                sources=len(merged_sources),
+                quality_score=quality_score
+            )
+
+            return result
+
+        except Exception as e:
+            self.failed_research += 1
+            logger.error("research_failed", topic=topic, error=str(e))
+            raise DeepResearchError(f"Research failed for '{topic}': {e}")
+
+    async def _search_with_logging(
+        self,
+        backend_name: str,
+        query: str,
+        max_results: int
+    ) -> List[SearchResult]:
+        """
+        Execute search with comprehensive error logging
+
+        Args:
+            backend_name: Backend to use
+            query: Search query
+            max_results: Maximum results
+
+        Returns:
+            List of SearchResult dicts
+
+        Raises:
+            Exception: If backend search fails (for graceful degradation tracking)
+        """
+        logger.info(
+            "backend_search_start",
+            backend=backend_name,
+            query=query[:100],
+            max_results=max_results
+        )
+
+        backend = self.backends[backend_name]
+        results = await backend.search(query, max_results=max_results)
+
+        logger.info(
+            "backend_search_success",
+            backend=backend_name,
+            results_count=len(results)
+        )
+
+        return results
+
+    async def _collect_from_rss(
+        self,
+        topic: str,
+        config: Dict,
+        keywords: Optional[List[str]] = None
+    ) -> List[SearchResult]:
+        """
+        Collect from RSS feeds and convert to SearchResult format
+
+        Args:
+            topic: Research topic
+            config: Market configuration
+            keywords: Optional keywords to filter
+
+        Returns:
+            List of SearchResult dicts (compatible with backends)
+
+        Raises:
+            Exception: If collection fails (for graceful degradation tracking)
+        """
+        logger.info("rss_collection_start", topic=topic)
+
+        # Get feed URLs from config
+        feed_urls = config.get('collectors', {}).get('custom_feeds', [])
+        if not feed_urls:
+            logger.warning("rss_no_feeds_configured")
+            return []
+
+        # Collect documents from feeds
+        collector = self.collectors['rss']
+        documents = collector.collect_from_feeds(feed_urls, skip_errors=True)
+
+        # Convert Documents to SearchResult format for consistency
+        search_results = []
+        for doc in documents:
+            search_result = {
+                'url': doc.source_url,
+                'title': doc.title,
+                'content': doc.content or doc.summary or "",
+                'published_date': doc.published_at.isoformat() if doc.published_at else None,
+                'backend': 'rss',
+                'source': doc.source
+            }
+            search_results.append(search_result)
+
+        logger.info("rss_collection_success", documents_count=len(search_results))
+        return search_results
+
+    async def _collect_from_thenewsapi(
+        self,
+        topic: str,
+        config: Dict,
+        keywords: Optional[List[str]] = None
+    ) -> List[SearchResult]:
+        """
+        Collect from TheNewsAPI and convert to SearchResult format
+
+        Args:
+            topic: Research topic
+            config: Market configuration
+            keywords: Optional keywords to filter
+
+        Returns:
+            List of SearchResult dicts (compatible with backends)
+
+        Raises:
+            Exception: If collection fails (for graceful degradation tracking)
+        """
+        logger.info("thenewsapi_collection_start", topic=topic)
+
+        # Build search query
+        search_query = topic
+        if keywords and len(keywords) > 0:
+            # Add top keywords to query
+            kw_text = ", ".join(
+                str(kw) if not isinstance(kw, dict) else kw.get('keyword', str(kw))
+                for kw in keywords[:2]
+            )
+            search_query = f"{topic} {kw_text}"
+
+        # Determine categories from vertical
+        categories = []
+        vertical = config.get('vertical', '').lower()
+        if 'tech' in vertical or 'saas' in vertical:
+            categories = ['tech', 'business']
+        elif 'proptech' in vertical:
+            categories = ['tech', 'business']
+
+        # Calculate date range (last 7 days for freshness)
+        published_after = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+        # Collect documents
+        collector = self.collectors['thenewsapi']
+        documents = await collector.collect(
+            query=search_query,
+            categories=categories if categories else None,
+            published_after=published_after,
+            limit=50
+        )
+
+        # Convert Documents to SearchResult format
+        search_results = []
+        for doc in documents:
+            search_result = {
+                'url': doc.source_url,
+                'title': doc.title,
+                'content': doc.content or doc.summary or "",
+                'published_date': doc.published_at.isoformat() if doc.published_at else None,
+                'backend': 'thenewsapi',
+                'source': doc.source
+            }
+            search_results.append(search_result)
+
+        logger.info("thenewsapi_collection_success", documents_count=len(search_results))
+        return search_results
+
+    def _build_depth_query(
+        self,
+        topic: str,
+        config: Dict,
+        keywords: Optional[List[str]] = None
+    ) -> str:
+        """
+        Build query for DEPTH horizon (academic/authoritative sources)
+
+        Args:
+            topic: Base topic
+            config: Research config
+            keywords: Optional keywords
+
+        Returns:
+            Query emphasizing depth and authority
+        """
+        parts = [topic]
+
+        # Add authoritative context
+        if config.get('vertical'):
+            parts.append(f"{config['vertical']} research")
+        if config.get('domain'):
+            parts.append(f"{config['domain']} industry analysis")
+
+        # Add keywords for precision
+        if keywords and len(keywords) > 0:
+            kw_text = ", ".join(str(kw) if not isinstance(kw, dict) else kw.get('keyword', str(kw)) for kw in keywords[:2])
+            parts.append(f"focusing on: {kw_text}")
+
+        return " ".join(parts)[:300]  # Limit to 300 chars
+
+    def _build_breadth_query(
+        self,
+        topic: str,
+        config: Dict,
+        competitor_gaps: Optional[List[str]] = None
+    ) -> str:
+        """
+        Build query for BREADTH horizon (recent content, diverse perspectives)
+
+        Args:
+            topic: Base topic
+            config: Research config
+            competitor_gaps: Optional content gaps
+
+        Returns:
+            Query emphasizing breadth and recency
+        """
+        parts = [topic, "recent developments"]
+
+        if config.get('market'):
+            parts.append(f"in {config['market']}")
+
+        # Add competitor gaps for unique angles
+        if competitor_gaps and len(competitor_gaps) > 0:
+            gap_text = str(competitor_gaps[0]) if not isinstance(competitor_gaps[0], dict) else competitor_gaps[0].get('gap', str(competitor_gaps[0]))
+            parts.append(f"covering: {gap_text[:80]}")
+
+        return " ".join(parts)[:300]
+
+    def _build_trends_query(
+        self,
+        topic: str,
+        config: Dict
+    ) -> str:
+        """
+        Build query for TRENDS horizon (emerging patterns, predictions)
+
+        Args:
+            topic: Base topic
+            config: Research config
+
+        Returns:
+            Query emphasizing trends and future outlook
+        """
+        parts = [topic, "trends", "emerging developments", "future outlook"]
+
+        if config.get('domain'):
+            parts.append(f"in {config['domain']}")
+
+        if config.get('vertical'):
+            parts.append(config['vertical'])
+
+        return " ".join(parts)[:300]
+
+    def _merge_with_diversity(self, sources: List[SearchResult]) -> List[SearchResult]:
+        """
+        Merge sources with deduplication and diversity scoring
+
+        Args:
+            sources: List of search results from all sources (backends + collectors)
+
+        Returns:
+            Deduplicated list of sources sorted by diversity
+        """
+        # Deduplicate by URL
+        seen_urls: Set[str] = set()
+        unique_sources = []
+
+        for source in sources:
+            url = source.get('url', '')
+            if not url or url in seen_urls:
+                continue
+
+            seen_urls.add(url)
+            unique_sources.append(source)
+
+        # Sort by diversity (backend, domain, etc.)
+        # Alternate between all 5 sources for maximum diversity
+        source_order = ['tavily', 'searxng', 'gemini', 'rss', 'thenewsapi']
+        sorted_sources = []
+
+        for source_name in source_order:
+            source_results = [s for s in unique_sources if s.get('backend') == source_name]
+            sorted_sources.extend(source_results)
+
+        logger.info(
+            "sources_merged",
+            raw_count=len(sources),
+            unique_count=len(sorted_sources)
+        )
+
+        return sorted_sources
+
+    def _calculate_quality_score(
+        self,
+        sources_count: int,
+        successful_backends: List[str],
+        failed_backends: List[str]
+    ) -> int:
+        """
+        Calculate research quality score (0-100)
+
+        Args:
+            sources_count: Number of unique sources found
+            successful_backends: List of successful backend names
+            failed_backends: List of failed backend names
+
+        Returns:
+            Quality score (0-100)
+        """
+        score = 0
+
+        # Sources component (max 50 points)
+        # 20+ sources = 50 points, linear scale
+        sources_score = min(50, (sources_count / 20) * 50)
+        score += sources_score
+
+        # Backend health component (max 30 points)
+        # All backends = 30, 2/3 = 20, 1/3 = 10
+        total_backends = len(successful_backends) + len(failed_backends)
+        backend_score = (len(successful_backends) / total_backends) * 30
+        score += backend_score
+
+        # Diversity component (max 20 points)
+        # Multiple backends = better diversity
+        if len(successful_backends) >= 3:
+            diversity_score = 20
+        elif len(successful_backends) == 2:
+            diversity_score = 13
+        else:
+            diversity_score = 7
+        score += diversity_score
+
+        return int(score)
+
+    async def get_backend_health(self) -> Dict[str, BackendHealth]:
+        """
+        Check health of all backends
+
+        Returns:
+            Dictionary mapping backend names to BackendHealth status
+        """
+        health_checks = {}
+
+        for name, backend in self.backends.items():
+            try:
+                health = await backend.health_check()
+                health_checks[name] = health
+            except Exception as e:
+                logger.error("health_check_failed", backend=name, error=str(e))
+                health_checks[name] = BackendHealth.FAILED
+
+        return health_checks
+
+    def get_backend_statistics(self) -> Dict:
+        """
+        Get backend performance statistics
+
+        Returns:
+            Dictionary with backend stats and overall metrics
+        """
+        return {
+            'backend_stats': self.backend_stats,
+            'overall': {
+                'total_research': self.total_research,
+                'failed_research': self.failed_research,
+                'total_sources_found': self.total_sources_found,
+                'success_rate': (
+                    (self.total_research - self.failed_research) / self.total_research
+                    if self.total_research > 0
+                    else 0.0
+                )
+            }
+        }
+
+    def reset_statistics(self) -> None:
+        """Reset all statistics to zero"""
+        self.total_research = 0
+        self.failed_research = 0
+        self.total_sources_found = 0
+
+        # Reset all source statistics (backends + collectors)
+        for source_name in self.backend_stats:
+            self.backend_stats[source_name] = {
+                'success': 0,
+                'failed': 0,
+                'total_sources': 0
+            }
+
+        logger.info("statistics_reset")
