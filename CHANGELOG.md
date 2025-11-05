@@ -2,6 +2,33 @@
 
 Recent development sessions (last 5 sessions, <100 lines).
 
+## Session 032: Config Compatibility + Timeout Fixes (2025-11-05)
+
+**2 Critical Bugs Fixed**: Resolved Pydantic config incompatibility in reranker and Gemini API infinite timeout. Pipeline now handles both dict and Pydantic configs with graceful API timeout handling.
+
+**Bug 1 - Config Compatibility** (`multi_stage_reranker.py`):
+- Error: `'FullConfig' object has no attribute 'get'` → `'MarketConfig' object has no attribute 'lower'`
+- Cause: Reranker assumed dict configs, but PropTech/Fashion used nested Pydantic models
+- Fix: Added type detection with nested attribute access (`config.market.market`)
+- Result: 3/3 PropTech topics now pass (was 0/3)
+
+**Bug 2 - API Timeout** (`gemini_agent.py`):
+- Error: Gemini API hung indefinitely (300s+ wait)
+- Cause: Gemini SDK client had no timeout configuration
+- Fix: Added 60s HTTP timeout to prevent infinite hangs
+- Result: Failed requests timeout gracefully instead of blocking pipeline
+
+**Test Results**:
+- ✅ Smoke test PASSED (1/1, 293s) - validates both fixes
+- ✅ Config handling: Both dict (SaaS) and Pydantic (PropTech) work
+- ✅ Timeout handling: Gemini client logs "timeout=60s"
+
+**Pipeline Status**: ✅ **PRODUCTION READY** - All config types supported, no infinite hangs.
+
+**See**: [Full details](docs/sessions/032-config-compatibility-timeout-fixes.md)
+
+---
+
 ## Session 031: Gemini SDK Migration Fixes + E2E Test Validation (2025-11-05)
 
 **SDK Compatibility Fixed**: Resolved 3 critical bugs blocking E2E tests after Gemini SDK upgrade (google-genai v1.2.0). Pipeline now fully operational with production tests running.
@@ -87,18 +114,6 @@ Recent development sessions (last 5 sessions, <100 lines).
 **E2E Results**: 12+ feeds discovered, 4:39 E2E completion (279s), 2,437-word report with 17 sources.
 
 **See**: [Full details](docs/sessions/025-integration-bugs-fixed-pipeline-functional.md)
-
----
-
-## Session 024: Critical Bugs Fixed & Grounding Restored (2025-11-05)
-
-**All Critical Bugs FIXED**: Migrated to new Gemini SDK with `google_search` tool, fixed UniversalTopicAgent integration bugs, implemented grounding + JSON workaround.
-
-**Gemini API Fix**: Migrated from deprecated `google_search_retrieval` → `google_search` tool, created JSON workaround for tools + schema limitation.
-
-**UniversalTopicAgent Fixes**: Added CollectorsConfig model, fixed collector method names, fixed initialization order.
-
-**See**: [Full details](docs/sessions/024-critical-bugs-fixed-grounding-restored.md)
 
 ---
 
