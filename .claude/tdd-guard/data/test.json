@@ -9,7 +9,7 @@
           "state": "failed",
           "errors": [
             {
-              "message": "/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/site-packages/pytest_asyncio/plugin.py:426: in runtest\n    super().runtest()\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/site-packages/pytest_asyncio/plugin.py:642: in inner\n    _loop.run_until_complete(task)\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/asyncio/base_events.py:678: in run_until_complete\n    self.run_forever()\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/asyncio/base_events.py:645: in run_forever\n    self._run_once()\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/asyncio/base_events.py:1961: in _run_once\n    event_list = self._selector.select(timeout)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/selectors.py:468: in select\n    fd_event_list = self._selector.poll(timeout, max_ev)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: Timeout (>300.0s) from pytest-timeout."
+              "message": "tests/test_integration/test_simplified_pipeline_e2e.py:243: in test_simplified_full_pipeline_proptech\n    if processed_topic.deep_research_report:\n       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/site-packages/pydantic/main.py:1026: in __getattr__\n    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')\nE   AttributeError: 'Topic' object has no attribute 'deep_research_report'. Did you mean: 'research_report'?"
             }
           ]
         }

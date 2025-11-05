@@ -79,7 +79,7 @@ class DeepResearcher:
         self.llm_provider = llm_provider
         self.llm_model = llm_model
         self.search_engine = search_engine
-        self.max_sources = max_sources
+        self.max_sources = max_sources  # Reduced for faster E2E testing (default: 8)
         self.report_format = report_format
 
         # Load API keys from environment
@@ -317,27 +317,35 @@ class DeepResearcher:
         if config.get('vertical'):
             parts.append(f"focusing on {config['vertical']}")
 
-        # Add competitor gaps
+        # Add competitor gaps (keep all but truncate if extremely long)
         if competitor_gaps and len(competitor_gaps) > 0:
             # Handle both string and dict formats
             gaps = []
-            for gap in competitor_gaps[:3]:
+            for gap in competitor_gaps[:3]:  # Keep all 3 gaps
                 if isinstance(gap, dict):
-                    gaps.append(gap.get('gap', str(gap)))
+                    gap_text = gap.get('gap', str(gap))
                 else:
-                    gaps.append(str(gap))
+                    gap_text = str(gap)
+                # Only truncate VERY long gaps (>150 chars) to keep query manageable
+                if len(gap_text) > 150:
+                    gap_text = gap_text[:147] + "..."
+                gaps.append(gap_text)
             gaps_str = ", ".join(gaps)
             parts.append(f"with emphasis on: {gaps_str}")
 
-        # Add keywords
+        # Add keywords (keep all, rarely need truncation)
         if keywords and len(keywords) > 0:
             # Handle both string and dict formats (keywords from KeywordResearchAgent are dicts)
             kw_list = []
-            for kw in keywords[:3]:
+            for kw in keywords[:3]:  # Keep all 3 keywords
                 if isinstance(kw, dict):
-                    kw_list.append(kw.get('keyword', str(kw)))
+                    kw_text = kw.get('keyword', str(kw))
                 else:
-                    kw_list.append(str(kw))
+                    kw_text = str(kw)
+                # Keywords are typically short, only truncate if unusually long
+                if len(kw_text) > 60:
+                    kw_text = kw_text[:57] + "..."
+                kw_list.append(kw_text)
             keywords_str = ", ".join(kw_list)
             parts.append(f"targeting keywords: {keywords_str}")
 

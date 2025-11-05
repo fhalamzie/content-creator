@@ -95,6 +95,7 @@ def content_pipeline(gemini_api_key):
 @pytest.mark.asyncio
 @pytest.mark.slow
 @pytest.mark.e2e
+@pytest.mark.timeout(600)  # 10 minutes for Deep Research
 async def test_simplified_full_pipeline_proptech(test_config, db_manager, content_pipeline, gemini_api_key):
     """
     Test: Simplified full pipeline with real PropTech topic
@@ -239,8 +240,8 @@ async def test_simplified_full_pipeline_proptech(test_config, db_manager, conten
         print(f"⚠️  Stage 2 (Keywords): No keywords data")
 
     # Validate Stage 3: Deep Research
-    if processed_topic.deep_research_report:
-        report_length = len(processed_topic.deep_research_report)
+    if processed_topic.research_report:
+        report_length = len(processed_topic.research_report)
         sources_count = len(processed_topic.research_sources) if processed_topic.research_sources else 0
 
         print(f"✅ Stage 3 (Deep Research):")
@@ -251,7 +252,7 @@ async def test_simplified_full_pipeline_proptech(test_config, db_manager, conten
         assert report_length > 500, f"Report should be substantial (>500 chars), got {report_length}"
 
         # Check for PropTech relevance
-        report_lower = processed_topic.deep_research_report.lower()
+        report_lower = processed_topic.research_report.lower()
         relevant_keywords = ['proptech', 'immobilien', 'real estate', 'software', 'technology']
         found_keywords = [kw for kw in relevant_keywords if kw in report_lower]
 
@@ -290,8 +291,8 @@ async def test_simplified_full_pipeline_proptech(test_config, db_manager, conten
     print(f"Domain: {processed_topic.domain} | Market: {processed_topic.market}")
     print(f"Stages completed: {len(stages_completed)}/5")
 
-    if processed_topic.deep_research_report:
-        print(f"Research report: {len(processed_topic.deep_research_report)} chars")
+    if processed_topic.research_report:
+        print(f"Research report: {len(processed_topic.research_report)} chars")
     if processed_topic.research_sources:
         print(f"Sources: {len(processed_topic.research_sources)}")
     if processed_topic.priority_score is not None:
