@@ -435,14 +435,35 @@ Keep original keywords and add 2-3 related terms per keyword."""
             # Ensure domain has protocol
             url = domain if domain.startswith("http") else f"https://{domain}"
 
-            # Discover feeds with 10-second timeout to prevent hanging
+            # Monkey-patch feedfinder2 to use timeouts (prevents indefinite hangs)
+            import requests
+            _original_get = requests.get
+            _original_session_get = requests.Session.get
+
+            def _get_with_timeout(*args, **kwargs):
+                kwargs.setdefault('timeout', 5)  # 5 second timeout per HTTP request
+                return _original_get(*args, **kwargs)
+
+            def _session_get_with_timeout(self, *args, **kwargs):
+                kwargs.setdefault('timeout', 5)  # 5 second timeout per HTTP request
+                return _original_session_get(self, *args, **kwargs)
+
+            # Discover feeds with timeouts and ThreadPoolExecutor wrapper
             try:
+                requests.get = _get_with_timeout
+                requests.Session.get = _session_get_with_timeout
+
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(feedfinder2.find_feeds, url)
-                    feed_urls = future.result(timeout=10)  # 10 second timeout per domain
-            except concurrent.futures.TimeoutError:
-                logger.warning("feedfinder_timeout", domain=domain, timeout_seconds=10)
+                    feed_urls = future.result(timeout=15)  # 15 second total timeout per domain
+            except (concurrent.futures.TimeoutError, requests.exceptions.Timeout,
+                    requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout) as e:
+                logger.warning("feedfinder_timeout", domain=domain, timeout_seconds=15, error=str(e))
                 return feeds
+            finally:
+                # Restore original methods
+                requests.get = _original_get
+                requests.Session.get = _original_session_get
 
             for feed_url in feed_urls:
                 feeds.append(DiscoveredFeed(

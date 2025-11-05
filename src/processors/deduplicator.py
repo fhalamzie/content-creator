@@ -143,6 +143,19 @@ class Deduplicator:
         """
         return doc1.canonical_url == doc2.canonical_url
 
+    def compute_content_hash(self, content: str) -> str:
+        """
+        Compute a simple hash of content for storage/comparison
+
+        Args:
+            content: Text content to hash
+
+        Returns:
+            SHA-256 hash of content as hex string
+        """
+        import hashlib
+        return hashlib.sha256(content.encode('utf-8')).hexdigest()
+
     def compute_minhash(self, content: str) -> MinHash:
         """
         Compute MinHash signature for content

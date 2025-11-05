@@ -308,11 +308,8 @@ class RSSCollector:
             logger.warning("entry_missing_url", feed_url=feed_url)
             return None
 
-        # Check for duplicates
+        # Get canonical URL for deduplication
         canonical_url = self.deduplicator.get_canonical_url(entry_url)
-        if self.deduplicator.is_duplicate(canonical_url):
-            self._stats["total_skipped_duplicates"] += 1
-            return None
 
         # Extract title
         title = entry.get('title', 'Untitled')
@@ -344,10 +341,10 @@ class RSSCollector:
             title=title,
             content=content,
             summary=summary,
-            language=self.config.market.language,
-            domain=self.config.market.domain,
-            market=self.config.market.market,
-            vertical=self.config.market.vertical,
+            language=self.config.language,
+            domain=self.config.domain,
+            market=self.config.market,
+            vertical=self.config.vertical,
             content_hash=content_hash,
             canonical_url=canonical_url,
             published_at=published_at,
@@ -355,6 +352,11 @@ class RSSCollector:
             author=author,
             status="new"
         )
+
+        # Check for duplicates (after Document creation)
+        if self.deduplicator.is_duplicate(document):
+            self._stats["total_skipped_duplicates"] += 1
+            return None
 
         return document
 

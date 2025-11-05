@@ -41,6 +41,14 @@ advertools==0.14.2                # Sitemap crawling, SERP analysis, no API key
 duckduckgo-search==6.3.5          # FREE SERP for automatic competitor discovery
 # Used for: Keyword→SERP→Domains→Feeds (zero manual input!)
 
+# Multi-Backend Search (Session 026)
+tavily-python==0.7.12             # Tavily Search API (high-quality sources, $0.02/query)
+# Used for: DEPTH horizon - academic/authoritative sources
+pyserxng==0.1.0                   # SearXNG metasearch client (245 engines, public instances)
+# Features: Auto-discovery of public instances, failover, 245 search engines
+# Cost: FREE (public instances) or $10-20/month (self-hosted VPS)
+# Used for: BREADTH horizon in multi-backend deep research
+
 # LLM-First NLP Strategy (Replaces 5GB!)
 # ====================================
 # qwen-turbo (7B) via OpenRouter handles ALL NLP tasks:

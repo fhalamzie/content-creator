@@ -262,8 +262,8 @@ class UniversalTopicAgent:
                 # Add discovered feeds to RSS collector
                 feed_urls = [feed.url for feed in discovered_feeds]
 
-                # Also add custom feeds from config
-                custom_feeds = self.config.collectors.custom_feeds
+                # Also add custom feeds from config (convert HttpUrl to str)
+                custom_feeds = [str(url) for url in self.config.collectors.custom_feeds]
                 feed_urls.extend(custom_feeds)
 
                 rss_docs = self.rss_collector.collect_from_feeds(feed_urls=feed_urls)
@@ -323,6 +323,19 @@ class UniversalTopicAgent:
                 unique_documents = all_documents  # Fallback: use all documents
                 errors += 1
 
+            # 7. Save documents to database
+            logger.info("stage_save_documents", count=len(unique_documents))
+            saved_count = 0
+            for doc in unique_documents:
+                try:
+                    self.db.insert_document(doc)
+                    saved_count += 1
+                except Exception as e:
+                    logger.warning("document_save_failed", doc_id=doc.id, error=str(e))
+                    errors += 1
+
+            logger.info("documents_saved", count=saved_count, total=len(unique_documents))
+
             # Update statistics
             self.stats['documents_collected'] = len(unique_documents)
             self.stats['documents_deduplicated'] = len(all_documents) - len(unique_documents)
@@ -330,6 +343,7 @@ class UniversalTopicAgent:
 
             stats = {
                 'documents_collected': len(unique_documents),
+                'documents_saved': saved_count,
                 'sources_processed': sources_processed,
                 'errors': errors
             }
@@ -363,7 +377,7 @@ class UniversalTopicAgent:
 
         try:
             # 1. Get documents from database
-            documents = self.db.search_documents(
+            documents = self.db.get_documents_by_language(
                 language=self.config.language,
                 limit=limit * 10 if limit else None  # Get more docs for clustering
             )
@@ -377,7 +391,7 @@ class UniversalTopicAgent:
             # 2. Clustering
             logger.info("stage_clustering")
             try:
-                clusters = self.topic_clusterer.cluster(documents)
+                clusters = self.topic_clusterer.cluster_documents(documents)
                 logger.info("clustering_completed", clusters=len(clusters))
             except Exception as e:
                 logger.error("clustering_failed", error=str(e))
@@ -390,10 +404,13 @@ class UniversalTopicAgent:
                 # Use the first document's title as the topic title
                 representative_doc = cluster[0]
 
+                # Map document source to TopicSource enum
+                topic_source = self._map_document_source_to_topic_source(representative_doc.source)
+
                 topic = Topic(
                     title=representative_doc.title,
                     description=representative_doc.summary,
-                    source=TopicSource(representative_doc.source) if representative_doc.source else TopicSource.RSS,
+                    source=topic_source,
                     source_url=representative_doc.url,
                     domain=self.config.domain,
                     market=self.config.market,
@@ -477,6 +494,40 @@ class UniversalTopicAgent:
         except Exception as e:
             logger.error("sync_to_notion_failed", error=str(e))
             raise UniversalTopicAgentError(f"Notion sync failed: {e}") from e
+
+    def _map_document_source_to_topic_source(self, document_source: str) -> TopicSource:
+        """
+        Map document source string to TopicSource enum
+
+        Document sources are like 'rss_example.com', 'autocomplete_suggestions', 'reddit_r/proptech'
+        TopicSource enum has: RSS, REDDIT, TRENDS, AUTOCOMPLETE, COMPETITOR, MANUAL
+
+        Args:
+            document_source: Document source string (e.g., 'rss_github.blog')
+
+        Returns:
+            TopicSource enum value
+        """
+        if not document_source:
+            return TopicSource.RSS  # Default fallback
+
+        source_lower = document_source.lower()
+
+        # Map based on prefix
+        if source_lower.startswith('rss'):
+            return TopicSource.RSS
+        elif source_lower.startswith('reddit'):
+            return TopicSource.REDDIT
+        elif source_lower.startswith('trends'):
+            return TopicSource.TRENDS
+        elif 'autocomplete' in source_lower:
+            return TopicSource.AUTOCOMPLETE
+        elif source_lower.startswith('competitor'):
+            return TopicSource.COMPETITOR
+        else:
+            # Default to RSS for unknown sources
+            logger.warning("unknown_document_source", source=document_source, mapped_to="RSS")
+            return TopicSource.RSS
 
     def get_statistics(self) -> Dict[str, Any]:
         """

@@ -29,7 +29,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any
 
 from src.agents.universal_topic_agent import UniversalTopicAgent
-from src.models.config import MarketConfig
+from src.models.config import MarketConfig, CollectorsConfig
 from src.models.document import Document
 from src.models.topic import Topic, TopicSource
 from src.database.sqlite_manager import SQLiteManager
@@ -57,15 +57,17 @@ def test_config():
         vertical='Real Estate Technology',
         target_audience='Property managers, real estate companies, PropTech startups',
         seed_keywords=['PropTech', 'Immobilien Software', 'Smart Building'],
-        collectors={
-            'custom_feeds': [
+        collectors=CollectorsConfig(
+            custom_feeds=[
                 'https://www.heise.de/news/rss/news-atom.xml',  # Tech news
                 'https://github.blog/feed/',  # GitHub blog
             ],
-            'reddit_enabled': False,  # Disabled for faster testing
-            'reddit_subreddits': [],
-            'trends_enabled': False,  # Disabled for faster testing
-        }
+            reddit_enabled=False,  # Disabled for faster testing
+            reddit_subreddits=[],
+            trends_enabled=False,  # Disabled for faster testing
+            rss_enabled=True,
+            autocomplete_enabled=True,
+        )
     )
 
 

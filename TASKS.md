@@ -27,7 +27,68 @@
   - ✅ Fixed Deduplicator `get_canonical_url()` method
   - ✅ Added feedfinder2 timeout handling
 
-### 🟢 NEXT PHASE - Full E2E Pipeline Testing:
+### 🟢 SESSION 026 - Multi-Backend Search Architecture (IN PROGRESS)
+
+**Goal**: Implement fault-tolerant parallel multi-backend research with graceful degradation
+
+**Architecture**:
+- **3 Backends**: Tavily (depth/academic), SearXNG (breadth/245 engines), Gemini API (trends)
+- **Parallel Execution**: All backends run simultaneously via `asyncio.gather()`
+- **Graceful Degradation**: Continue if ≥1 backend succeeds, no silent failures
+- **Cost**: $0.02/topic (only Tavily paid), 20-25 sources (vs 8-10 current)
+
+**Implementation Tasks** (10 days):
+
+- [x] **Phase 1: Backend Abstraction Layer** (Days 1-2) ✅ **COMPLETE**
+  - [x] Create `src/research/backends/base.py` (SearchBackend base class)
+  - [x] Create `src/research/backends/exceptions.py` (BackendError, RateLimitError, etc.)
+  - [x] Create `src/research/backends/__init__.py` (package exports)
+  - [x] Define SearchHorizon enum (DEPTH/BREADTH/TRENDS)
+  - [x] Define BackendHealth enum (SUCCESS/FAILED/DEGRADED)
+
+- [x] **Phase 2: Implement Backends** (Days 3-5) ✅ **COMPLETE**
+  - [x] `src/research/backends/tavily_backend.py` - Refactor existing with error handling (225 lines)
+  - [x] `src/research/backends/searxng_backend.py` - Use pyserxng library (234 lines, 245 engines, FREE)
+  - [x] `src/research/backends/gemini_api_backend.py` - Use existing GeminiAgent (247 lines, replaces CLI fallback)
+  - [x] Install `pyserxng==0.1.0` to requirements-topic-research.txt
+  - [x] Install `tavily-python==0.7.12` (already present)
+
+- [ ] **Phase 3: Orchestrator** (Days 6-7)
+  - [ ] Refactor `DeepResearcher.__init__()` - Initialize 3 backends
+  - [ ] Implement `research_topic()` - Parallel execution with asyncio.gather
+  - [ ] Implement `_search_with_logging()` - Comprehensive error logging wrapper
+  - [ ] Implement `_build_depth_query()` - Academic/authoritative focus
+  - [ ] Implement `_build_breadth_query()` - Recent content, diverse perspectives
+  - [ ] Implement `_build_trends_query()` - Emerging patterns, predictions
+  - [ ] Implement `_merge_with_diversity()` - Source fusion + deduplication
+  - [ ] Implement `_calculate_quality_score()` - Sources + backend health + domain diversity
+  - [ ] Add `backend_stats` tracking - Success/failure rates per backend
+  - [ ] Add `get_backend_statistics()` - Health monitoring
+
+- [ ] **Phase 4: Testing & Config** (Days 8-10)
+  - [ ] Write unit tests for TavilyBackend (graceful failure, health check)
+  - [ ] Write unit tests for SearXNGBackend (graceful failure, health check)
+  - [ ] Write unit tests for GeminiAPIBackend (graceful failure, health check)
+  - [ ] Write integration test: All backends succeed
+  - [ ] Write integration test: One backend fails (graceful continuation)
+  - [ ] Write integration test: Two backends fail (minimum threshold)
+  - [ ] Write integration test: All backends fail (appropriate error)
+  - [ ] Write integration test: Logging verification (no silent failures)
+  - [ ] Update configuration schema in `config/markets/*.yaml`
+  - [ ] Run E2E test with 30 real topics (10 PropTech, 10 SaaS, 10 Fashion)
+  - [ ] Measure: backend success rates, sources/topic, quality scores, cost, time
+
+**Success Criteria**:
+- 99%+ reliability (≥1 backend succeeds)
+- Zero silent failures (all errors logged with full context)
+- 20-25 sources per report (vs 8-10 current)
+- $0.02 cost per topic (unchanged from current)
+- Backend health tracking working
+- E2E tests passing with graceful degradation validated
+
+---
+
+### 🟡 NEXT PHASE - Full E2E Pipeline Testing (AFTER Session 026):
 
 - [ ] **Test Full Collection Pipeline** - HIGH PRIORITY
   - Feed Discovery → RSS Collection → Autocomplete → Deduplication → Clustering
@@ -37,14 +98,14 @@
 - [ ] **Test ContentPipeline Integration** - HIGH PRIORITY
   - Run 5-stage pipeline on discovered topics
   - Validate Stages 1-2 (Competitor/Keyword) with Gemini grounding
-  - Validate Stage 3 (Deep Research) with gpt-researcher + qwen
-  - Expected: Professional reports with 10-20 citations per topic
+  - Validate Stage 3 (Deep Research) with NEW multi-backend system
+  - Expected: Professional reports with 20-25 citations per topic (improved from 10-20)
 
 - [ ] **Validate Acceptance Criteria**
   - [ ] Discovers 50+ unique topics/week for test config
   - [ ] Deduplication rate <5%
   - [ ] Language detection >95% accurate
-  - [ ] Deep research generates 5-6 page reports with citations
+  - [ ] Deep research generates 5-6 page reports with 20-25 citations
   - [ ] Top 10 topics sync to Notion successfully
   - [ ] Runs automated (daily collection at 2 AM)
 

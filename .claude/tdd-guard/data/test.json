@@ -1,15 +1,15 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_integration/test_simplified_pipeline_e2e.py",
+      "moduleId": "tests/test_integration/test_universal_topic_agent_e2e.py",
       "tests": [
         {
-          "name": "test_simplified_full_pipeline_proptech",
-          "fullName": "tests/test_integration/test_simplified_pipeline_e2e.py::test_simplified_full_pipeline_proptech",
+          "name": "test_proptech_saas_topics_discovery",
+          "fullName": "tests/test_integration/test_universal_topic_agent_e2e.py::test_proptech_saas_topics_discovery",
           "state": "failed",
           "errors": [
             {
-              "message": "tests/test_integration/test_simplified_pipeline_e2e.py:243: in test_simplified_full_pipeline_proptech\n    if processed_topic.deep_research_report:\n       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/site-packages/pydantic/main.py:1026: in __getattr__\n    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')\nE   AttributeError: 'Topic' object has no attribute 'deep_research_report'. Did you mean: 'research_report'?"
+              "message": "src/agents/universal_topic_agent.py:410: in process_topics\n    source=TopicSource(representative_doc.source) if representative_doc.source else TopicSource.RSS,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/enum.py:751: in __call__\n    return cls.__new__(cls, value)\n           ^^^^^^^^^^^^^^^^^^^^^^^\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/enum.py:1170: in __new__\n    raise ve_exc\nE   ValueError: 'rss_en.wikipedia.org' is not a valid TopicSource\n\nThe above exception was the direct cause of the following exception:\ntests/test_integration/test_universal_topic_agent_e2e.py:325: in test_proptech_saas_topics_discovery\n    processed_topics = await universal_agent.process_topics(limit=1)\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc/agents/universal_topic_agent.py:453: in process_topics\n    raise UniversalTopicAgentError(f\"Topic processing failed: {e}\") from e\nE   src.agents.universal_topic_agent.UniversalTopicAgentError: Topic processing failed: 'rss_en.wikipedia.org' is not a valid TopicSource"
             }
           ]
         }

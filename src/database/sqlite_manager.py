@@ -43,10 +43,20 @@ class SQLiteManager:
 
         Creates database file and schema if they don't exist.
         """
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = db_path  # Keep as string for in-memory detection
+        self._persistent_conn = None  # For in-memory databases
+
+        # For file-based databases, ensure parent directory exists
+        if db_path != ':memory:':
+            path_obj = Path(db_path)
+            path_obj.parent.mkdir(parents=True, exist_ok=True)
 
         logger.info("initializing_sqlite_manager", db_path=str(self.db_path))
+
+        # For in-memory databases, create persistent connection
+        if db_path == ':memory:':
+            self._persistent_conn = sqlite3.connect(':memory:', check_same_thread=False)
+            logger.info("created_persistent_in_memory_connection")
 
         # Create schema
         self._create_schema()
@@ -55,7 +65,10 @@ class SQLiteManager:
 
     def _create_schema(self):
         """Create database schema (idempotent)"""
-        with sqlite3.connect(self.db_path) as conn:
+        # Use persistent connection for in-memory databases
+        conn = self._persistent_conn if self._persistent_conn else sqlite3.connect(self.db_path)
+
+        try:
             conn.execute("PRAGMA foreign_keys = ON")
             conn.execute("PRAGMA journal_mode = WAL")
 
@@ -190,8 +203,51 @@ class SQLiteManager:
             """)
 
             conn.commit()
+        finally:
+            # Only close if not using persistent connection
+            if not self._persistent_conn:
+                conn.close()
 
         logger.info("schema_created", tables=["documents", "topics", "research_reports"])
+
+    @contextmanager
+    def _get_connection(self):
+        """
+        Context manager for database connections
+
+        For in-memory databases, yields the persistent connection without closing.
+        For file-based databases, creates a new connection and closes it on exit.
+
+        Yields:
+            sqlite3.Connection
+        """
+        if self._persistent_conn:
+            # Use persistent connection for in-memory databases
+            # Don't close it on exit
+            try:
+                yield self._persistent_conn
+                self._persistent_conn.commit()
+            except Exception:
+                self._persistent_conn.rollback()
+                raise
+        else:
+            # Create new connection for file-based databases
+            conn = sqlite3.connect(self.db_path)
+            try:
+                yield conn
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
+
+    def close(self):
+        """Close persistent connection (for in-memory databases)"""
+        if self._persistent_conn:
+            self._persistent_conn.close()
+            self._persistent_conn = None
+            logger.info("closed_persistent_connection")
 
     # === Document Operations ===
 
@@ -209,7 +265,7 @@ class SQLiteManager:
         if self.get_document(doc.id) is not None:
             raise ValueError(f"Document with ID {doc.id} already exists")
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO documents (
@@ -265,7 +321,7 @@ class SQLiteManager:
         Returns:
             Document if found, None otherwise
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM documents WHERE id = ?", (doc_id,)
@@ -284,7 +340,7 @@ class SQLiteManager:
         Args:
             doc: Document with updated fields
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute(
                 """
                 UPDATE documents SET
@@ -337,7 +393,7 @@ class SQLiteManager:
         Args:
             doc_id: Document ID
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             # Delete from FTS first
             conn.execute(
                 "DELETE FROM documents_fts WHERE rowid = (SELECT rowid FROM documents WHERE id = ?)",
@@ -360,7 +416,7 @@ class SQLiteManager:
         Returns:
             List of documents
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM documents WHERE status = ?", (status,)
@@ -369,21 +425,29 @@ class SQLiteManager:
 
             return [self._row_to_document(row) for row in rows]
 
-    def get_documents_by_language(self, language: str) -> List[Document]:
+    def get_documents_by_language(self, language: str, limit: Optional[int] = None) -> List[Document]:
         """
         Get all documents in given language
 
         Args:
             language: ISO 639-1 language code
+            limit: Maximum number of documents to return (None = all)
 
         Returns:
             List of documents
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
-            cursor = conn.execute(
-                "SELECT * FROM documents WHERE language = ?", (language,)
-            )
+
+            if limit is not None:
+                cursor = conn.execute(
+                    "SELECT * FROM documents WHERE language = ? LIMIT ?", (language, limit)
+                )
+            else:
+                cursor = conn.execute(
+                    "SELECT * FROM documents WHERE language = ?", (language,)
+                )
+
             rows = cursor.fetchall()
 
             return [self._row_to_document(row) for row in rows]
@@ -398,7 +462,7 @@ class SQLiteManager:
         Returns:
             Document if found, None otherwise
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM documents WHERE content_hash = ?", (content_hash,)
@@ -421,7 +485,7 @@ class SQLiteManager:
         Returns:
             List of matching documents
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 """
@@ -452,7 +516,7 @@ class SQLiteManager:
         if self.get_topic(topic.id) is not None:
             raise ValueError(f"Topic with ID {topic.id} already exists")
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute(
                 """
                 INSERT INTO topics (
@@ -507,7 +571,7 @@ class SQLiteManager:
         Returns:
             Topic if found, None otherwise
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM topics WHERE id = ?", (topic_id,)
@@ -526,7 +590,7 @@ class SQLiteManager:
         Args:
             topic: Topic with updated fields
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.execute(
                 """
                 UPDATE topics SET
@@ -577,7 +641,7 @@ class SQLiteManager:
         Returns:
             List of topics
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM topics WHERE status = ?", (status.value,)
@@ -596,7 +660,7 @@ class SQLiteManager:
         Returns:
             List of topics ordered by priority
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM topics ORDER BY priority DESC LIMIT ?", (limit,)
