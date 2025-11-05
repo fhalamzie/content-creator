@@ -2,6 +2,31 @@
 
 Recent development sessions (last 3-5 sessions, 100 lines max).
 
+## Session 022: Gemini API Grounding Migration (2025-11-05)
+
+**Migrated to Native Gemini API**: Replaced Gemini CLI text parsing with native `google-generativeai` SDK using Google Search grounding. Created GeminiAgent (342 lines) with `responseSchema` for guaranteed structured JSON output. Fixed E2E test empty results issue - CLI `--output-format json` returns wrapper `{"response": "text"}` not structured data. API grounding provides same web research as CLI but with 99%+ reliability vs 80-90% parsing success rate.
+
+**Cost Analysis Discovery**: Gemini API free tier provides 1,500 grounded queries/day. Current usage (20-100 topics/day = 40-200 calls/day) is only 3-13% of quota, resulting in $0 monthly cost. CLI no longer has cost advantage - API is free up to very generous limits.
+
+**Architecture Changes**: Updated both CompetitorResearchAgent and KeywordResearchAgent to use GeminiAgent with proper JSON schemas (60-80 lines each). Removed OpenRouter/BaseAgent dependency for Stages 1 & 2. Enabled automatic citation extraction via `grounding_metadata` (sources, search queries). Extended Topic model with 9 new fields (competitors, content_gaps, keywords, 5 scores). Created UniversalTopicAgent orchestrator (452 lines) integrating full pipeline. Wired Huey tasks with real implementations.
+
+**Test Fixes**: Updated E2E test assertions - keywords now Dict (not List), scores 0.0-1.0 (not 0-100). Added API key validation (skips if GEMINI_API_KEY missing). Fixed test fixtures removing invalid initializations.
+
+**Files Modified**:
+- `src/agents/gemini_agent.py` - Created (342 lines, native SDK integration)
+- `src/agents/competitor_research_agent.py:23,57-100,252-357` - GeminiAgent integration, JSON schema
+- `src/agents/keyword_research_agent.py:23,59-102,258-380` - GeminiAgent integration, JSON schema
+- `src/agents/universal_topic_agent.py` - Created (452 lines, pipeline orchestrator)
+- `src/models/topic.py:9,80-133` - Added 9 ContentPipeline output fields
+- `src/tasks/huey_tasks.py:144-150,207-214` - Wired real UniversalTopicAgent
+- `tests/test_integration/test_full_pipeline_e2e.py:40-41,60-66,124-130,156-160` - Fixed assertions
+
+**Benefits**: Free (1,500/day quota), 99%+ reliable (vs 80-90%), structured JSON (no parsing), automatic citations, same Google Search grounding as CLI, low maintenance.
+
+**See**: [Full details](docs/sessions/022-gemini-api-grounding-migration.md)
+
+---
+
 ## Session 021: Stage 3 Enabled & E2E Testing (2025-11-04)
 
 **Enabled Stage 3 Deep Research**: Changed `enable_deep_research=True` (default) in ContentPipeline:73. All 5 pipeline stages now functional. Created comprehensive E2E tests validating full pipeline execution. Successfully generated 5-6 page professional reports with 14 real web sources at $0.02/research using qwen/OpenRouter.

@@ -20,6 +20,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 
 from src.agents.base_agent import BaseAgent, AgentError
+from src.agents.gemini_agent import GeminiAgent, GeminiAgentError
 from src.cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
@@ -56,27 +57,36 @@ class CompetitorResearchAgent(BaseAgent):
     def __init__(
         self,
         api_key: str,
-        use_cli: bool = True,
+        use_cli: bool = False,
         cli_timeout: int = 60,
-        cache_dir: Optional[str] = None
+        cache_dir: Optional[str] = None,
+        model: str = "gemini-2.5-flash"
     ):
         """
         Initialize CompetitorResearchAgent.
 
         Args:
-            api_key: OpenRouter API key (for fallback)
-            use_cli: Use Gemini CLI (default: True)
+            api_key: Gemini API key (GEMINI_API_KEY)
+            use_cli: Use Gemini CLI (default: False, API with grounding is better)
             cli_timeout: CLI timeout in seconds (default: 60)
             cache_dir: Optional cache directory
+            model: Gemini model (default: gemini-2.5-flash)
 
         Raises:
             AgentError: If initialization fails
         """
-        # Initialize base agent with research config
-        super().__init__(agent_type="research", api_key=api_key)
-
+        self.api_key = api_key
         self.use_cli = use_cli
         self.cli_timeout = cli_timeout
+
+        # Initialize Gemini agent with grounding enabled
+        self.gemini_agent = GeminiAgent(
+            model=model,
+            api_key=api_key,
+            enable_grounding=True,  # Enable Google Search grounding
+            temperature=0.3,
+            max_tokens=8000
+        )
 
         # Initialize cache manager if cache_dir provided
         self.cache_manager = None
@@ -85,7 +95,8 @@ class CompetitorResearchAgent(BaseAgent):
 
         logger.info(
             f"CompetitorResearchAgent initialized: "
-            f"use_cli={use_cli}, timeout={cli_timeout}s, cache={cache_dir is not None}"
+            f"model={model}, use_cli={use_cli}, "
+            f"grounding=True, timeout={cli_timeout}s, cache={cache_dir is not None}"
         )
 
     def research_competitors(
@@ -246,7 +257,7 @@ class CompetitorResearchAgent(BaseAgent):
         include_content_analysis: bool
     ) -> Dict[str, Any]:
         """
-        Perform competitor research using Gemini API via OpenRouter.
+        Perform competitor research using Gemini API with Google Search grounding.
 
         Args:
             topic: Research topic
@@ -255,67 +266,92 @@ class CompetitorResearchAgent(BaseAgent):
             include_content_analysis: Include content analysis
 
         Returns:
-            Parsed competitor data
+            Parsed competitor data with grounding metadata (sources/citations)
 
         Raises:
-            AgentError: If API call fails
+            GeminiAgentError: If API call fails
         """
         language_name = self._get_language_name(language)
 
+        # Define JSON schema for structured output
+        response_schema = {
+            "type": "object",
+            "properties": {
+                "competitors": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "website": {"type": "string"},
+                            "description": {"type": "string"},
+                            "social_handles": {
+                                "type": "object",
+                                "properties": {
+                                    "linkedin": {"type": "string"},
+                                    "twitter": {"type": "string"},
+                                    "facebook": {"type": "string"},
+                                    "instagram": {"type": "string"}
+                                }
+                            },
+                            "content_strategy": {
+                                "type": "object",
+                                "properties": {
+                                    "topics": {"type": "array", "items": {"type": "string"}},
+                                    "posting_frequency": {"type": "string"},
+                                    "content_types": {"type": "array", "items": {"type": "string"}},
+                                    "strengths": {"type": "array", "items": {"type": "string"}},
+                                    "weaknesses": {"type": "array", "items": {"type": "string"}}
+                                }
+                            }
+                        },
+                        "required": ["name", "website", "description"]
+                    }
+                },
+                "content_gaps": {"type": "array", "items": {"type": "string"}},
+                "trending_topics": {"type": "array", "items": {"type": "string"}},
+                "recommendation": {"type": "string"}
+            },
+            "required": ["competitors", "content_gaps", "trending_topics", "recommendation"]
+        }
+
         system_prompt = (
-            f"You are a competitive intelligence analyst. Research competitors in a given industry/niche "
-            f"and return results in JSON format.\n\n"
-            f"Language: {language_name}\n\n"
-            f"Required JSON structure:\n"
-            f"{{\n"
-            f'  "competitors": [\n'
-            f'    {{\n'
-            f'      "name": "Company Name",\n'
-            f'      "website": "https://example.com",\n'
-            f'      "description": "Brief description",\n'
-            f'      "social_handles": {{\n'
-            f'        "linkedin": "handle",\n'
-            f'        "twitter": "handle",\n'
-            f'        "facebook": "handle",\n'
-            f'        "instagram": "handle"\n'
-            f'      }},\n'
-            f'      "content_strategy": {{\n'
-            f'        "topics": ["topic1", "topic2"],\n'
-            f'        "posting_frequency": "frequency",\n'
-            f'        "content_types": ["blog", "video"],\n'
-            f'        "strengths": ["strength1"],\n'
-            f'        "weaknesses": ["weakness1"]\n'
-            f'      }}\n'
-            f'    }}\n'
-            f'  ],\n'
-            f'  "content_gaps": ["gap1", "gap2"],\n'
-            f'  "trending_topics": ["topic1", "topic2"],\n'
-            f'  "recommendation": "Strategic recommendation"\n'
-            f"}}\n\n"
-            f"IMPORTANT: Return valid JSON only, no additional text."
+            f"You are a competitive intelligence analyst researching competitors "
+            f"in {language_name}. Use Google Search to find current, accurate information "
+            f"about competitors, their strategies, and market gaps."
         )
 
-        content_hint = "Include detailed content strategy analysis." if include_content_analysis else ""
+        content_hint = "\nInclude detailed content strategy analysis." if include_content_analysis else ""
 
         user_prompt = (
             f"Research topic: {topic}\n"
-            f"Find top {max_competitors} competitors in this space.\n"
-            f"{content_hint}\n\n"
-            f"Return comprehensive competitor analysis in JSON format."
+            f"Find top {max_competitors} real competitors in this space.\n"
+            f"For each competitor, provide: company name, website, description, "
+            f"social media handles, and content strategy (topics, frequency, types, strengths, weaknesses).\n"
+            f"Also identify content gaps and trending topics in this niche.{content_hint}"
         )
 
-        # Call API with JSON mode enabled
-        result = self.generate(
+        # Call Gemini API with grounding enabled
+        result = self.gemini_agent.generate(
             prompt=user_prompt,
             system_prompt=system_prompt,
-            response_format={"type": "json_object"}
+            response_schema=response_schema,
+            enable_grounding=True  # Enable Google Search
         )
 
         # Parse JSON from content
         try:
             data = json.loads(result['content'])
         except json.JSONDecodeError as e:
-            raise AgentError(f"Invalid JSON from API: {e}") from e
+            raise GeminiAgentError(f"Invalid JSON from Gemini API: {e}") from e
+
+        # Log grounding metadata if available
+        if 'grounding_metadata' in result:
+            metadata = result['grounding_metadata']
+            logger.info(
+                f"Grounding used: {len(metadata.get('sources', []))} sources, "
+                f"{len(metadata.get('search_queries', []))} queries"
+            )
 
         # Validate and normalize data
         return self._normalize_competitor_data(data)

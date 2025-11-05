@@ -20,6 +20,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 
 from src.agents.base_agent import BaseAgent, AgentError
+from src.agents.gemini_agent import GeminiAgent, GeminiAgentError
 from src.cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
@@ -58,27 +59,36 @@ class KeywordResearchAgent(BaseAgent):
     def __init__(
         self,
         api_key: str,
-        use_cli: bool = True,
+        use_cli: bool = False,
         cli_timeout: int = 60,
-        cache_dir: Optional[str] = None
+        cache_dir: Optional[str] = None,
+        model: str = "gemini-2.5-flash"
     ):
         """
         Initialize KeywordResearchAgent.
 
         Args:
-            api_key: OpenRouter API key (for fallback)
-            use_cli: Use Gemini CLI (default: True)
+            api_key: Gemini API key (GEMINI_API_KEY)
+            use_cli: Use Gemini CLI (default: False, API with grounding is better)
             cli_timeout: CLI timeout in seconds (default: 60)
             cache_dir: Optional cache directory
+            model: Gemini model (default: gemini-2.5-flash)
 
         Raises:
             AgentError: If initialization fails
         """
-        # Initialize base agent with research config
-        super().__init__(agent_type="research", api_key=api_key)
-
+        self.api_key = api_key
         self.use_cli = use_cli
         self.cli_timeout = cli_timeout
+
+        # Initialize Gemini agent with grounding enabled
+        self.gemini_agent = GeminiAgent(
+            model=model,
+            api_key=api_key,
+            enable_grounding=True,  # Enable Google Search grounding
+            temperature=0.3,
+            max_tokens=8000
+        )
 
         # Initialize cache manager if cache_dir provided
         self.cache_manager = None
@@ -87,7 +97,8 @@ class KeywordResearchAgent(BaseAgent):
 
         logger.info(
             f"KeywordResearchAgent initialized: "
-            f"use_cli={use_cli}, timeout={cli_timeout}s, cache={cache_dir is not None}"
+            f"model={model}, use_cli={use_cli}, "
+            f"grounding=True, timeout={cli_timeout}s, cache={cache_dir is not None}"
         )
 
     def research_keywords(
@@ -252,7 +263,7 @@ class KeywordResearchAgent(BaseAgent):
         keyword_count: int
     ) -> Dict[str, Any]:
         """
-        Perform keyword research using Gemini API via OpenRouter.
+        Perform keyword research using Gemini API with Google Search grounding.
 
         Args:
             topic: Content topic
@@ -261,73 +272,109 @@ class KeywordResearchAgent(BaseAgent):
             keyword_count: Number of keywords
 
         Returns:
-            Parsed keyword data
+            Parsed keyword data with grounding metadata (sources/citations)
 
         Raises:
-            AgentError: If API call fails
+            GeminiAgentError: If API call fails
         """
         language_name = self._get_language_name(language)
-        audience_hint = f"\nTarget Audience: {target_audience}" if target_audience else ""
+        audience_hint = f" for {target_audience}" if target_audience else ""
+
+        # Define JSON schema for structured output
+        response_schema = {
+            "type": "object",
+            "properties": {
+                "primary_keyword": {
+                    "type": "object",
+                    "properties": {
+                        "keyword": {"type": "string"},
+                        "search_volume": {"type": "string"},
+                        "competition": {"type": "string"},
+                        "difficulty": {"type": "number"},
+                        "intent": {"type": "string"}
+                    },
+                    "required": ["keyword", "search_volume", "competition", "difficulty", "intent"]
+                },
+                "secondary_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "keyword": {"type": "string"},
+                            "search_volume": {"type": "string"},
+                            "competition": {"type": "string"},
+                            "difficulty": {"type": "number"},
+                            "relevance": {"type": "number"}
+                        },
+                        "required": ["keyword", "search_volume", "competition", "difficulty"]
+                    }
+                },
+                "long_tail_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "keyword": {"type": "string"},
+                            "search_volume": {"type": "string"},
+                            "competition": {"type": "string"},
+                            "difficulty": {"type": "number"}
+                        },
+                        "required": ["keyword"]
+                    }
+                },
+                "related_questions": {"type": "array", "items": {"type": "string"}},
+                "search_trends": {
+                    "type": "object",
+                    "properties": {
+                        "trending_up": {"type": "array", "items": {"type": "string"}},
+                        "trending_down": {"type": "array", "items": {"type": "string"}},
+                        "seasonal": {"type": "boolean"}
+                    }
+                },
+                "recommendation": {"type": "string"}
+            },
+            "required": ["primary_keyword", "secondary_keywords", "long_tail_keywords", "related_questions", "search_trends", "recommendation"]
+        }
 
         system_prompt = (
-            f"You are an SEO keyword research specialist. Research keywords for a given topic "
-            f"and return results in JSON format.\n\n"
-            f"Language: {language_name}{audience_hint}\n\n"
-            f"Required JSON structure:\n"
-            f"{{\n"
-            f'  "primary_keyword": {{\n'
-            f'    "keyword": "main keyword phrase",\n'
-            f'    "search_volume": "1K-10K",\n'
-            f'    "competition": "Low/Medium/High",\n'
-            f'    "difficulty": 0-100,\n'
-            f'    "intent": "Informational/Commercial/Navigational"\n'
-            f'  }},\n'
-            f'  "secondary_keywords": [\n'
-            f'    {{\n'
-            f'      "keyword": "supporting keyword",\n'
-            f'      "search_volume": "100-1K",\n'
-            f'      "competition": "Low",\n'
-            f'      "difficulty": 0-100,\n'
-            f'      "relevance": 0.0-1.0\n'
-            f'    }}\n'
-            f'  ],\n'
-            f'  "long_tail_keywords": [\n'
-            f'    {{\n'
-            f'      "keyword": "specific long phrase",\n'
-            f'      "search_volume": "10-100",\n'
-            f'      "competition": "Low",\n'
-            f'      "difficulty": 0-100\n'
-            f'    }}\n'
-            f'  ],\n'
-            f'  "related_questions": ["question1", "question2"],\n'
-            f'  "search_trends": {{\n'
-            f'    "trending_up": ["keyword1"],\n'
-            f'    "trending_down": ["keyword2"],\n'
-            f'    "seasonal": true/false\n'
-            f'  }},\n'
-            f'  "recommendation": "Strategic recommendation"\n'
-            f"}}\n\n"
-            f"IMPORTANT: Return valid JSON only, no additional text."
+            f"You are an SEO keyword research specialist researching keywords "
+            f"in {language_name}{audience_hint}. Use Google Search to find current, accurate "
+            f"search volumes, competition levels, and trending keywords."
         )
 
         user_prompt = (
             f"Research topic: {topic}\n"
             f"Find {keyword_count} keywords for this topic.\n\n"
-            f"Return comprehensive keyword research in JSON format."
+            f"Provide:\n"
+            f"1. Primary keyword (main target with highest potential)\n"
+            f"2. Secondary keywords (supporting keywords)\n"
+            f"3. Long-tail keywords (specific, low-competition phrases)\n"
+            f"4. Related questions (People Also Ask)\n"
+            f"5. Search trends (trending up/down, seasonal patterns)\n"
+            f"6. Strategic recommendation for keyword targeting"
         )
 
-        # Call API with JSON mode enabled
-        result = self.generate(
+        # Call Gemini API with grounding enabled
+        result = self.gemini_agent.generate(
             prompt=user_prompt,
             system_prompt=system_prompt,
-            response_format={"type": "json_object"}
+            response_schema=response_schema,
+            enable_grounding=True  # Enable Google Search
         )
 
         # Parse JSON from content
         try:
             data = json.loads(result['content'])
         except json.JSONDecodeError as e:
-            raise AgentError(f"Invalid JSON from API: {e}") from e
+            raise GeminiAgentError(f"Invalid JSON from Gemini API: {e}") from e
+
+        # Log grounding metadata if available
+        if 'grounding_metadata' in result:
+            metadata = result['grounding_metadata']
+            logger.info(
+                f"Grounding used: {len(metadata.get('sources', []))} sources, "
+                f"{len(metadata.get('search_queries', []))} queries"
+            )
 
         # Validate and normalize data
         return self._normalize_keyword_data(data)

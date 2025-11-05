@@ -141,17 +141,10 @@ def collect_all_sources(config_path: str = "config/markets/proptech_de.yaml") ->
     logger.info("collect_all_sources_started", config_path=config_path)
 
     try:
-        # TODO: Implement in Week 2 when collectors are ready
-        # from src.agents.universal_topic_agent import UniversalTopicAgent
-        # agent = UniversalTopicAgent.load_config(config_path)
-        # stats = agent.collect_all_sources()
+        from src.agents.universal_topic_agent import UniversalTopicAgent
 
-        # For now, return mock stats
-        stats = {
-            "documents_collected": 0,
-            "sources_processed": 0,
-            "errors": 0
-        }
+        agent = UniversalTopicAgent.load_config(config_path)
+        stats = agent.collect_all_sources()
 
         logger.info("collect_all_sources_completed", **stats)
         return stats
@@ -211,16 +204,11 @@ def weekly_notion_sync():
     logger.info("weekly_notion_sync_triggered")
 
     try:
-        # TODO: Implement in Week 2 when Notion sync is ready
-        # from src.agents.universal_topic_agent import UniversalTopicAgent
-        # agent = UniversalTopicAgent.load_config('config/markets/proptech_de.yaml')
-        # result = agent.sync_to_notion()
+        from src.agents.universal_topic_agent import UniversalTopicAgent
+        import asyncio
 
-        # For now, return mock result
-        result = {
-            "topics_synced": 0,
-            "notion_pages_created": 0
-        }
+        agent = UniversalTopicAgent.load_config(DEFAULT_CONFIG)
+        result = asyncio.run(agent.sync_to_notion())
 
         logger.info("weekly_notion_sync_completed", result=result)
         return result

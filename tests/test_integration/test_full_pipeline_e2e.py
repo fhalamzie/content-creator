@@ -33,8 +33,12 @@ def content_pipeline():
     """Create ContentPipeline with all agents"""
     import os
 
-    # Get API key from environment or use test key
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("OPENROUTER_API_KEY") or "test-key"
+    # Get API key from environment - REQUIRED for Stage 1 & 2
+    # Stage 3 (Deep Research) uses OPENROUTER_API_KEY separately
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+
+    if not api_key:
+        pytest.skip("GEMINI_API_KEY or OPENROUTER_API_KEY required for E2E test")
 
     competitor_agent = CompetitorResearchAgent(api_key=api_key)
     keyword_agent = KeywordResearchAgent(api_key=api_key)
@@ -57,13 +61,12 @@ def test_topic():
         title="PropTech SaaS Solutions 2025",
         description="Emerging PropTech software solutions transforming real estate management in Germany",
         source=TopicSource.MANUAL,
-        keywords=["PropTech", "SaaS", "Real Estate", "Germany"],
         domain="SaaS",
         market="Germany",
         language="de",
         vertical="PropTech",
         discovered_at=datetime.now(),
-        url=None
+        source_url=None
     )
 
 
@@ -122,12 +125,12 @@ async def test_full_pipeline_e2e(content_pipeline, test_topic, test_config):
 
     # Stage 2: Keyword Research
     assert result.keywords is not None, "Stage 2: keywords should be populated"
-    assert len(result.keywords) > 0, "Stage 2: Should find at least 1 keyword"
-    # Validate keyword structure
-    if len(result.keywords) > 0:
-        first_keyword = result.keywords[0]
-        assert 'keyword' in first_keyword or isinstance(first_keyword, str), "Keyword should have 'keyword' field or be string"
-    print(f"✅ Stage 2: Found {len(result.keywords)} keywords")
+    assert isinstance(result.keywords, dict), "Stage 2: keywords should be a Dict"
+    assert len(result.keywords) > 0, "Stage 2: Should have at least 1 keyword field"
+    # Validate keyword structure (should have primary_keyword, secondary_keywords, etc.)
+    assert 'primary_keyword' in result.keywords or 'secondary_keywords' in result.keywords, \
+        "Keywords should have primary_keyword or secondary_keywords"
+    print(f"✅ Stage 2: Keywords dict with {len(result.keywords)} fields")
 
     # Stage 3: Deep Research (THE NEWLY ENABLED STAGE!)
     assert result.deep_research_report is not None, "Stage 3: deep_research_report should be populated"
@@ -152,15 +155,15 @@ async def test_full_pipeline_e2e(content_pipeline, test_topic, test_config):
     assert result.novelty_score is not None, "Stage 5: novelty_score should be set"
     assert result.priority_score is not None, "Stage 5: priority_score should be set"
 
-    # Validate score ranges
-    assert 0 <= result.demand_score <= 100, "demand_score should be 0-100"
-    assert 0 <= result.opportunity_score <= 100, "opportunity_score should be 0-100"
-    assert 0 <= result.fit_score <= 100, "fit_score should be 0-100"
-    assert 0 <= result.novelty_score <= 100, "novelty_score should be 0-100"
-    assert 0 <= result.priority_score <= 100, "priority_score should be 0-100"
+    # Validate score ranges (0.0-1.0 normalized scale)
+    assert 0.0 <= result.demand_score <= 1.0, "demand_score should be 0.0-1.0"
+    assert 0.0 <= result.opportunity_score <= 1.0, "opportunity_score should be 0.0-1.0"
+    assert 0.0 <= result.fit_score <= 1.0, "fit_score should be 0.0-1.0"
+    assert 0.0 <= result.novelty_score <= 1.0, "novelty_score should be 0.0-1.0"
+    assert 0.0 <= result.priority_score <= 1.0, "priority_score should be 0.0-1.0"
 
-    print(f"✅ Stage 5: Scores - Priority: {result.priority_score}, Demand: {result.demand_score}, "
-          f"Opportunity: {result.opportunity_score}, Fit: {result.fit_score}, Novelty: {result.novelty_score}")
+    print(f"✅ Stage 5: Scores - Priority: {result.priority_score:.3f}, Demand: {result.demand_score:.3f}, "
+          f"Opportunity: {result.opportunity_score:.3f}, Fit: {result.fit_score:.3f}, Novelty: {result.novelty_score:.3f}")
 
     # Overall validation
     print("\n" + "="*60)
@@ -169,10 +172,10 @@ async def test_full_pipeline_e2e(content_pipeline, test_topic, test_config):
     print(f"Topic: {result.title}")
     print(f"Competitors: {len(result.competitors)}")
     print(f"Content Gaps: {len(result.content_gaps)}")
-    print(f"Keywords: {len(result.keywords)}")
+    print(f"Keywords: {len(result.keywords)} fields (primary, secondary, long-tail)")
     print(f"Research Report: {len(result.deep_research_report)} chars")
     print(f"Research Sources: {len(result.research_sources)}")
-    print(f"Priority Score: {result.priority_score}/100")
+    print(f"Priority Score: {result.priority_score:.3f}/1.0")
     print("="*60)
 
 
@@ -223,7 +226,6 @@ async def test_pipeline_handles_stage_failures_gracefully(content_pipeline, test
         title="",  # Empty title
         description="",
         source=TopicSource.MANUAL,
-        keywords=[],
         domain=None,  # Missing domain
         market=None,  # Missing market
         language="de",

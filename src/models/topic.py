@@ -6,7 +6,7 @@ Pydantic models for topic discovery, research, and content generation.
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -76,6 +76,60 @@ class Topic(BaseModel):
     # Content metadata
     word_count: Optional[int] = None
     content_score: Optional[float] = None  # Surfer SEO pattern
+
+    # ContentPipeline Stage 1: Competitor Research
+    competitors: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description="Competitor analysis results"
+    )
+    content_gaps: List[str] = Field(
+        default_factory=list,
+        description="Content gaps identified vs competitors"
+    )
+
+    # ContentPipeline Stage 2: Keyword Research
+    keywords: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Keywords: primary, secondary, long_tail"
+    )
+    keyword_difficulty: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=100.0,
+        description="SEO difficulty score (0-100)"
+    )
+
+    # ContentPipeline Stage 5: Scoring & Ranking
+    demand_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Search volume + engagement (0-1)"
+    )
+    opportunity_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Low competition + content gaps (0-1)"
+    )
+    fit_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Domain/market/vertical alignment (0-1)"
+    )
+    novelty_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Trending + uniqueness (0-1)"
+    )
+    priority_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Weighted combination of all scores (0-1)"
+    )
 
     # Deduplication fingerprint
     minhash_signature: Optional[str] = None

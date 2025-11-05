@@ -353,10 +353,18 @@ class ContentPipeline:
         """
         logger.info("stage4_started", topic_title=topic.title)
 
+        # Store Stage 1 output: Competitors and content gaps
+        topic.competitors = competitor_data.get('competitors', [])
+        topic.content_gaps = competitor_data.get('content_gaps', [])
+
         # Create enhanced description from content gaps
         content_gaps = competitor_data.get('content_gaps', [])
         if content_gaps and not topic.description:
             topic.description = f"Content opportunities: {', '.join(content_gaps[:3])}"
+
+        # Store Stage 2 output: Keywords and difficulty
+        topic.keywords = keyword_data
+        topic.keyword_difficulty = keyword_data.get('difficulty_score')
 
         # Add research report and citations
         if research_data.get('report'):
@@ -364,8 +372,13 @@ class ContentPipeline:
             topic.word_count = research_data.get('word_count', 0)
 
             # Extract source URLs as citations
+            # Handle both string URLs and dict format with 'url' key
             sources = research_data.get('sources', [])
-            topic.citations = [s.get('url', '') for s in sources if s.get('url')]
+            topic.citations = [
+                s if isinstance(s, str) else s.get('url', '')
+                for s in sources
+                if s and (isinstance(s, str) or (isinstance(s, dict) and s.get('url')))
+            ]
 
         logger.info(
             "stage4_completed",
@@ -522,24 +535,21 @@ class ContentPipeline:
         """
         Apply scores to topic model
 
-        Note: Topic model doesn't have score fields yet (Phase 2 feature)
-        For now, just log the scores
-
         Args:
             topic: Topic to update
-            scores: Score dictionary
+            scores: Score dictionary from Stage 5
 
         Returns:
-            Topic with scores applied (when model supports it)
+            Topic with all score fields populated
         """
-        # TODO: Once Topic model has score fields, update them here
-        # topic.demand_score = scores['demand_score']
-        # topic.opportunity_score = scores['opportunity_score']
-        # topic.fit_score = scores['fit_score']
-        # topic.novelty_score = scores['novelty_score']
-        # topic.priority_score = scores['priority_score']
+        # Populate all Stage 5 score fields
+        topic.demand_score = scores['demand_score']
+        topic.opportunity_score = scores['opportunity_score']
+        topic.fit_score = scores['fit_score']
+        topic.novelty_score = scores['novelty_score']
+        topic.priority_score = scores['priority_score']
 
-        # For now, just set priority based on priority_score
+        # Also set priority (1-10 scale) based on priority_score
         priority_score = scores['priority_score']
         if priority_score >= 0.8:
             topic.priority = 10
