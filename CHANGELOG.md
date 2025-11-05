@@ -2,6 +2,30 @@
 
 Recent development sessions (last 5 sessions, <100 lines).
 
+## Session 034: Reranker Locality Config Bug Fix (2025-11-05)
+
+**Critical Reranking Bug Fixed**: Resolved config type detection bug in reranker locality metric. PropTech topics that were failing with 0 sources now pass with full reranking.
+
+**Bug Details** (`multi_stage_reranker.py:670-673`):
+- Error 1: `'FullConfig' object has no attribute 'get'` → Used `isinstance(config, dict)` which failed for Pydantic models
+- Error 2: `'MarketConfig' object has no attribute 'lower'` → Called `.lower()` directly on Pydantic object
+- Impact: 3/7 PropTech topics failing (0 sources returned) due to reranking crash
+
+**Fix**:
+- Changed `isinstance(config, dict)` → `hasattr(config, 'get') and callable(...)` for reliable type detection
+- Added `str()` conversion before `.lower()` to handle both string values and Pydantic objects
+
+**Test Results**:
+- ✅ Smoke test PASSED (1/1, 289s) - validates fix
+- ✅ PropTech topics 1-3: Now expected to pass (was 0/3)
+- ✅ SaaS topics 4-7: Continue to pass (was 4/4)
+
+**Pattern Identified**: This is the **3rd config bug** (Sessions 032, 033, 034). Root cause: Mixed dict/Pydantic usage. Recommend standardizing on Pydantic.
+
+**See**: [Full details](docs/sessions/034-reranker-locality-config-bug-fix.md)
+
+---
+
 ## Session 033: Gemini Timeout + Content Synthesizer Config Fixes (2025-11-05)
 
 **2 Additional Bugs Fixed**: Corrected Gemini timeout misconfiguration (60ms → 60s) and content synthesizer Pydantic incompatibility. Pipeline now fully stable with proper API timeouts and universal config support.
