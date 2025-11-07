@@ -147,7 +147,7 @@ class FeedDiscovery:
         try:
             # Expand keywords with Gemini
             keywords = self._expand_keywords_with_gemini(
-                self.config.seed_keywords
+                self.config.market.seed_keywords
             )
             stage2_feeds = self.run_stage2(keywords)
             all_feeds.extend(stage2_feeds)
@@ -284,7 +284,7 @@ class FeedDiscovery:
         for attempt in range(2):
             try:
                 # Prepare Gemini CLI prompt
-                prompt = f"""Expand these keywords with related terms for RSS feed discovery in {self.config.market} {self.config.domain} market:
+                prompt = f"""Expand these keywords with related terms for RSS feed discovery in {self.config.market.market} {self.config.market.domain} market:
 
 Keywords: {', '.join(keywords)}
 
@@ -362,8 +362,8 @@ Keep original keywords and add 2-3 related terms per keyword."""
             # Build SerpAPI request
             params = {
                 "q": keyword,
-                "hl": self.config.language,
-                "gl": self.config.market[:2].lower(),
+                "hl": self.config.market.language,
+                "gl": self.config.market.market[:2].lower(),
                 "num": 10,
                 "engine": "google"  # Use Google search engine
             }

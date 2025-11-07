@@ -76,7 +76,7 @@ class UniversalTopicAgent:
 
     def __init__(
         self,
-        config: MarketConfig,
+        config,  # FullConfig from config_loader
         db_manager: SQLiteManager,
         feed_discovery: FeedDiscovery,
         rss_collector: RSSCollector,
@@ -128,9 +128,9 @@ class UniversalTopicAgent:
 
         logger.info(
             "universal_topic_agent_initialized",
-            domain=config.domain,
-            market=config.market,
-            language=config.language
+            domain=config.market.domain,
+            market=config.market.market,
+            language=config.market.language
         )
 
     @classmethod
@@ -204,7 +204,7 @@ class UniversalTopicAgent:
                 logger.warning("notion_sync_disabled", reason=str(e))
 
             return cls(
-                config=config,
+                config=config,  # Pass FullConfig
                 db_manager=db,
                 feed_discovery=feed_discovery,
                 rss_collector=rss_collector,
@@ -239,7 +239,7 @@ class UniversalTopicAgent:
         Raises:
             UniversalTopicAgentError: If collection fails
         """
-        logger.info("collect_all_sources_started", domain=self.config.domain)
+        logger.info("collect_all_sources_started", domain=self.config.market.domain)
 
         try:
             all_documents = []
@@ -291,8 +291,8 @@ class UniversalTopicAgent:
             if self.trends_collector:
                 logger.info("stage_trends_collection")
                 try:
-                    keywords = self.config.seed_keywords
-                    trends_docs = self.trends_collector.collect(keywords=keywords)
+                    keywords = self.config.market.seed_keywords
+                    trends_docs = self.trends_collector.collect_related_queries(keywords=keywords)
                     all_documents.extend(trends_docs)
                     sources_processed += len(keywords)
                     logger.info("trends_collection_completed", documents=len(trends_docs), keywords=len(keywords))
@@ -303,7 +303,7 @@ class UniversalTopicAgent:
             # 5. Autocomplete Collection
             logger.info("stage_autocomplete_collection")
             try:
-                keywords = self.config.seed_keywords
+                keywords = self.config.market.seed_keywords
                 autocomplete_docs = self.autocomplete_collector.collect_suggestions(seed_keywords=keywords)
                 all_documents.extend(autocomplete_docs)
                 sources_processed += len(keywords)
@@ -378,7 +378,7 @@ class UniversalTopicAgent:
         try:
             # 1. Get documents from database
             documents = self.db.get_documents_by_language(
-                language=self.config.language,
+                language=self.config.market.language,
                 limit=limit * 10 if limit else None  # Get more docs for clustering
             )
 
@@ -443,9 +443,9 @@ class UniversalTopicAgent:
                     cluster_label=cluster.label if not using_fallback else None,
                     source=topic_source,
                     source_url=representative_doc.source_url,
-                    domain=self.config.domain,
-                    market=self.config.market,
-                    language=self.config.language,
+                    domain=self.config.market.domain,
+                    market=self.config.market.market,
+                    language=self.config.market.language,
                     engagement_score=cluster.size,  # Use cluster size as engagement proxy
                     trending_score=0.0,  # TODO: Calculate from document timestamps
                     status=TopicStatus.DISCOVERED

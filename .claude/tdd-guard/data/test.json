@@ -1,37 +1,17 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_integration/test_hybrid_orchestrator_e2e.py",
+      "moduleId": "tests/test_full_collection_pipeline_e2e.py",
       "tests": [
         {
-          "name": "test_full_pipeline_success",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestFullPipeline::test_full_pipeline_success",
-          "state": "passed"
-        },
-        {
-          "name": "test_manual_topic_research",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestManualTopicResearch::test_manual_topic_research",
-          "state": "passed"
-        },
-        {
-          "name": "test_stage2_fallback_in_pipeline",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestAutomaticFallback::test_stage2_fallback_in_pipeline",
-          "state": "passed"
-        },
-        {
-          "name": "test_pipeline_resilience_to_failures",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestAutomaticFallback::test_pipeline_resilience_to_failures",
-          "state": "passed"
-        },
-        {
-          "name": "test_free_tier_usage_priority",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestCostOptimization::test_free_tier_usage_priority",
-          "state": "passed"
-        },
-        {
-          "name": "test_topic_validation_reduces_research_costs",
-          "fullName": "tests/test_integration/test_hybrid_orchestrator_e2e.py::TestCostOptimization::test_topic_validation_reduces_research_costs",
-          "state": "passed"
+          "name": "test_collection_sources_breakdown",
+          "fullName": "tests/test_full_collection_pipeline_e2e.py::test_collection_sources_breakdown",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "tests/test_full_collection_pipeline_e2e.py:174: in test_collection_sources_breakdown\n    stats = agent.collect_all_sources()\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc/agents/universal_topic_agent.py:252: in collect_all_sources\n    discovered_feeds = self.feed_discovery.discover_feeds()\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc/collectors/feed_discovery.py:152: in discover_feeds\n    stage2_feeds = self.run_stage2(keywords)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc/collectors/feed_discovery.py:231: in run_stage2\n    domain_feeds = self._discover_feeds_from_domain(domain)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc/collectors/feed_discovery.py:458: in _discover_feeds_from_domain\n    feed_urls = future.result(timeout=15)  # 15 second total timeout per domain\n                ^^^^^^^^^^^^^^^^^^^^^^^^^\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/concurrent/futures/_base.py:451: in result\n    self._condition.wait(timeout)\n/home/fahim/.pyenv/versions/3.12.10/lib/python3.12/threading.py:359: in wait\n    gotit = waiter.acquire(True, timeout)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: Timeout (>300.0s) from pytest-timeout."
+            }
+          ]
         }
       ]
     }

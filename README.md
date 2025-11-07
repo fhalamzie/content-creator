@@ -50,46 +50,55 @@ Automated topic discovery and research system for SaaS companies. Finds trending
 - **60% Cost Optimization**: Topic validation prevents wasted research
 
 **Usage**:
+
+*Full Pipeline (Automated Discovery)*:
 ```python
 from src.orchestrator.hybrid_research_orchestrator import HybridResearchOrchestrator
+import asyncio
 
 orchestrator = HybridResearchOrchestrator(enable_tavily=True)
 
-# Full pipeline: Website → Article
+# Website → Topics → Articles
 result = await orchestrator.run_pipeline(
-    website_url="https://example.com",
+    website_url="https://proptech-company.com",
     customer_info={"market": "Germany", "vertical": "PropTech"},
     max_topics_to_research=10
 )
 
-# Manual mode: Research single topic
+print(f"Discovered {len(result['topics'])} topics")
+print(f"Researched {len(result['articles'])} articles")
+print(f"Total cost: ${result['cost_tracker'].total_cost:.3f}")
+```
+
+*Manual Mode (Direct Topic Research)*:
+```python
+# Research single topic with custom config
 article = await orchestrator.research_topic(
     topic="PropTech trends 2025",
-    config={"market": "Germany", "vertical": "PropTech"}
+    config={"market": "Germany", "vertical": "PropTech", "language": "de"}
 )
+
+print(f"Article: {article['title']}")
+print(f"Sources: {len(article['sources'])}")
+print(f"Cost: ${article['cost']:.3f}")
+```
+
+*Cost Tracking*:
+```python
+# Monitor free vs paid API usage
+stats = result['cost_tracker'].get_summary()
+print(f"Free API calls: {stats['total_free_calls']}")
+print(f"Paid API calls: {stats['total_paid_calls']}")
+print(f"Fallback rate: {stats['fallback_rate']:.1%}")
 ```
 
 ### 5-Stage ContentPipeline (Legacy)
 
-**Stage 1: Competitor Research** - Analyze 5 competitors, identify content gaps (FREE, Gemini CLI)
-
-**Stage 2: Keyword Research** - Find primary/secondary/long-tail keywords with difficulty scores (FREE, Gemini CLI)
-
-**Stage 3: Deep Research** - Generate 5-6 page reports with 10-20 citations ($0.02, qwen + Tavily API)
-
-**Stage 4: Content Optimization** - Combine gaps, keywords, research into enriched topics (FREE)
-
-**Stage 5: Scoring & Ranking** - Calculate demand/opportunity/fit/novelty scores (FREE, 1-10 priority)
+Traditional pipeline: Competitor Research (FREE) → Keyword Research (FREE) → Deep Research ($0.02) → Content Optimization (FREE) → Scoring & Ranking (FREE). See ARCHITECTURE.md for details.
 
 ### Processing & Storage
 
-**Deduplicator** - MinHash/LSH similarity detection (<5% duplicate rate)
-
-**Topic Clustering** - TF-IDF + HDBSCAN + LLM labeling (auto-determines K)
-
-**Entity Extractor** - LLM-based NER for tagging topics
-
-**Notion Topics Sync** - Rate-limited (2.5 req/sec) editorial review interface
+**Deduplicator** - MinHash/LSH (<5% duplicates) | **Topic Clustering** - TF-IDF + HDBSCAN + LLM | **Entity Extractor** - LLM-based NER | **Notion Sync** - Rate-limited (2.5 req/sec)
 
 ## Cost Structure (Updated Session 029)
 
@@ -118,19 +127,8 @@ article = await orchestrator.research_topic(
 
 ## Current Status (Session 036)
 
-**Content Pipeline**: ✅ PRODUCTION READY
-- ✅ **Phase 1-6** (Sessions 024-029): 5-source architecture, RRF fusion, MinHash dedup, 3-stage reranker
-- ✅ **Phase 7** (Session 030): Content synthesis with BM25→LLM passage extraction
-- ✅ **Phase 9** (Session 030): Production E2E testing infrastructure
-- **Cost**: $0.01/topic (50% under budget)
-- **Test Coverage**: 96 tests passing (64 unit + 19 integration + 13 E2E)
-
-**Hybrid Research Orchestrator**: ✅ PRODUCTION READY
-- ✅ **Stages 1-4** (Sessions 034): Website analysis → Competitor research → Consolidation → Topic discovery
-- ✅ **Stage 4.5** (Session 035): 5-metric topic validation (60% cost savings)
-- ✅ **Phase 4-5** (Session 036): Automatic fallback (Gemini → Tavily) + E2E testing
-- **Performance**: 95%+ uptime, $0.01/topic total, automatic Tavily fallback ($0.02)
-- **Test Coverage**: 48 orchestrator tests + 28 fallback/E2E tests = 76 tests (100% passing)
+**Content Pipeline**: ✅ PRODUCTION ($0.01/topic, 96 tests passing)
+**Hybrid Orchestrator**: ✅ PRODUCTION (95%+ uptime, $0.01/topic, 76 tests passing, automatic Gemini→Tavily fallback)
 
 ## Setup
 

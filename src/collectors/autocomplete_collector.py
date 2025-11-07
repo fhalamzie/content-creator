@@ -371,10 +371,10 @@ class AutocompleteCollector:
             canonical_url=canonical_url,
             title=suggestion,
             content=content,
-            language=self.config.language,
-            domain=self.config.domain,
-            market=self.config.market,
-            vertical=self.config.vertical,
+            language=self.config.market.language,
+            domain=self.config.market.domain,
+            market=self.config.market.market,
+            vertical=self.config.market.vertical,
             published_at=datetime.now(),  # Autocomplete is real-time
             fetched_at=datetime.now(),
             content_hash=self.deduplicator.compute_content_hash(content)

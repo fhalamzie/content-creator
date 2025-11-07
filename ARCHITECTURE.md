@@ -184,6 +184,10 @@ Final Score: 0.3*0.8 + 0.25*0.6 + 0.2*1.0 + 0.15*0.7 + 0.1*0.9 = 0.74 ✅ PASS
 
 **Implementation**: `src/orchestrator/topic_validator.py` (320 lines, 31 tests)
 
+**Performance**: <10ms validation per topic, zero API costs (CPU-only), enables 60% cost savings in production
+
+**Integration**: Called between Stage 4 (discover_topics) and Stage 5 (research_topic) in HybridResearchOrchestrator.run_pipeline()
+
 **Stage 5: Topic Research** (`research_topic()`)
 - DeepResearcher: 5-source search (Tavily, SearXNG, Gemini, RSS, TheNewsAPI)
 - RRF fusion + MinHash deduplication
