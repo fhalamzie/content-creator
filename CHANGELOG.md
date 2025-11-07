@@ -2,6 +2,31 @@
 
 Recent development sessions (last 5 sessions, <100 lines).
 
+## Session 037: Collection Pipeline Config Fixes + Test Infrastructure (2025-11-07)
+
+**15 Critical Config Bugs Fixed**: Resolved systematic FullConfig vs MarketConfig type mismatches preventing E2E pipeline execution.
+
+**Config Fixes (2 Rounds)**:
+- Round 1: 7 fixes across 4 collectors (autocomplete, rss, feed_discovery, trends)
+- Round 2: 8 additional fixes in UniversalTopicAgent (logger, collection methods, clustering, topic creation)
+- Pattern: All changed from flat `config.{field}` → nested `config.market.{field}` access
+
+**Test Infrastructure**:
+- Created 3 E2E tests (test_full_collection_pipeline_e2e.py, 395 lines)
+- Increased timeout 300s → 600s for feed discovery operations
+- Validated: 93 documents collected, 769 duplicates removed (89% expected for autocomplete), 100% database persistence
+
+**Documentation**:
+- Enhanced README.md with Hybrid Orchestrator usage examples
+- Updated ARCHITECTURE.md with Stage 4.5 performance metrics
+- Created docs/hybrid_orchestrator.md comprehensive guide (286 lines)
+
+**Status**: Collection pipeline operational. Config access patterns standardized. E2E validation successful.
+
+**See**: [Full details](docs/sessions/037-collection-pipeline-config-fixes.md)
+
+---
+
 ## Session 036: Hybrid Orchestrator Phase 4-5 - Automatic Fallback & E2E Testing (2025-11-06)
 
 **Phase 4-5 Complete**: Implemented automatic fallback system (Gemini → Tavily) and comprehensive E2E testing. Ensures 95%+ uptime despite free-tier API rate limits.

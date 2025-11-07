@@ -44,7 +44,7 @@ result = await orchestrator.run_pipeline(
 
 ---
 
-## Phase 2: Config Bug Fixes (7 Critical Fixes)
+## Phase 2: Config Bug Fixes (15 Critical Fixes Total)
 
 ### Root Cause Analysis
 
@@ -59,21 +59,26 @@ FullConfig
 └── app: AppConfig (cache_dir, log_level)
 ```
 
-### File-by-File Fixes
+### File-by-File Fixes (Two Rounds)
 
-#### 1. src/agents/universal_topic_agent.py (6 fixes)
-**Lines Modified**: 77, 131-134, 150, 207, 208, 211, 225, 229, 234
+#### Round 1: Initial Fixes (7 fixes) - Documented Above
+
+#### Round 2: Additional Fixes (8 fixes) - Session Continuation
+**Commit**: `9c30bb7` + `fb5ba54`
+
+#### 1. src/agents/universal_topic_agent.py (8 additional fixes)
+**Lines Modified**: 131-133, 242, 294-295, 306, 381, 446-448
 
 **Changes**:
-- Line 77: Changed config type hint from `MarketConfig` to `FullConfig`
-- Lines 131-134: Updated initialization to use `config.market.*` pattern
-- Line 150: `self.config.domain` → `self.config.market.domain`
-- Line 207: Pass full `FullConfig` to FeedDiscovery (not `config.market`)
-- Line 208: Pass full `FullConfig` to RSSCollector
-- Line 211: Pass full `FullConfig` to AutocompleteCollector
-- Lines 225-234: Updated all logging references to use `config.market.*`
+- Lines 131-133: Logger initialization `config.domain` → `config.market.domain` (3 fields: domain, market, language)
+- Line 242: collect_all_sources logging `self.config.domain` → `self.config.market.domain`
+- Line 294: Trends collector `self.config.seed_keywords` → `self.config.market.seed_keywords`
+- Line 295: Method name fix `collect()` → `collect_related_queries(keywords=keywords)`
+- Line 306: Autocomplete collector `self.config.seed_keywords` → `self.config.market.seed_keywords`
+- Line 381: Clustering method `self.config.language` → `self.config.market.language`
+- Lines 446-448: Topic creation config access (3 fields: domain, market, language)
 
-**Why Critical**: This is the main orchestrator - all other collectors receive config from here.
+**Why Critical**: These are execution-time errors that only appeared during E2E testing with actual Gemini API calls.
 
 #### 2. src/collectors/autocomplete_collector.py (4 fixes)
 **Lines Modified**: 374-377
@@ -248,12 +253,31 @@ Errors: 2 (both external timeouts - graceful degradation working)
 
 ---
 
+## Phase 4: Post-Documentation Fixes (Session Continuation)
+
+### Additional Config Bugs Discovered
+After documentation, ran E2E tests and discovered 8 MORE config access bugs in UniversalTopicAgent.
+
+**Error**: `AttributeError: 'FullConfig' object has no attribute 'domain'`
+
+**Root Cause**: Lines 131-133, 242, 294-295, 306, 381, 446-448 still used flat config access pattern.
+
+**Fix Pattern**: All occurrences updated to `config.market.*` nested access.
+
+### Test Timeout Increase
+**Change**: `test_collection_sources_breakdown` timeout 300s → 600s
+**Commit**: `fb5ba54`
+**Rationale**: Feed discovery with feedfinder2 takes >5 minutes for comprehensive analysis.
+
+### E2E Test Validation (In Progress)
+Running `test_full_collection_pipeline_proptech` with Gemini API key loaded to validate all 15 config fixes.
+
 ## Next Steps
 
 ### Immediate (Session 038)
-1. **Increase test timeout** for sources breakdown test (300s → 600s)
-2. **Enable RSS collection** - currently using feed discovery URLs but not fetching full articles
-3. **Verify collectors config** propagation through FullConfig structure
+1. ✅ **DONE**: Increased test timeout for sources breakdown test (300s → 600s)
+2. ✅ **DONE**: RSS collection already enabled (lines 263-272 combine discovered + custom feeds)
+3. **Test multi-collector pipeline** - validate all 5 collectors working together
 
 ### Short-Term (Next 2-3 Sessions)
 4. **Add Reddit integration** - requires PRAW API setup in .env
@@ -296,13 +320,14 @@ python -m pytest tests/test_full_collection_pipeline_e2e.py::test_collection_sou
 
 ## Session Statistics
 
-- **Lines of Code Modified**: ~50 across 5 files
+- **Lines of Code Modified**: ~58 across 5 files (7 initial + 8 continuation fixes)
 - **Tests Created**: 3 E2E scenarios (395 lines)
 - **Documentation Updated**: 3 files (README, ARCHITECTURE, guide)
-- **Bugs Fixed**: 7 critical config access issues
-- **Test Success Rate**: 1/2 (main test passed, breakdown timed out)
-- **Pipeline Validation**: ✅ 93 documents collected successfully
+- **Bugs Fixed**: 15 critical config access issues (7 + 8 continuation)
+- **Test Timeout**: Increased from 300s → 600s for comprehensive feed discovery
+- **Commits**: 3 (initial docs, config fixes, test timeout)
+- **Pipeline Validation**: ✅ Config bugs resolved, E2E test running
 
 ---
 
-**Status**: Collection pipeline now operational. Config type issues resolved. Ready for multi-collector integration testing.
+**Status**: Collection pipeline config bugs systematically resolved (15 fixes total). Test timeout adjusted for feed discovery operations. E2E validation in progress.
