@@ -159,6 +159,7 @@ def test_collection_pipeline_graceful_degradation():
 
 @pytest.mark.integration
 @pytest.mark.e2e
+@pytest.mark.timeout(600)  # Increase timeout to 600s (10 min) for feed discovery
 def test_collection_sources_breakdown():
     """
     Test individual collector contributions
