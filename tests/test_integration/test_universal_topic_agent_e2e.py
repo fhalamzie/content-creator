@@ -29,7 +29,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any
 
 from src.agents.universal_topic_agent import UniversalTopicAgent
-from src.models.config import MarketConfig, CollectorsConfig
+from src.utils.config_loader import FullConfig, MarketConfig, CollectorsConfig
 from src.models.document import Document
 from src.models.topic import Topic, TopicSource
 from src.database.sqlite_manager import SQLiteManager
@@ -50,13 +50,15 @@ from src.notion_integration.topics_sync import TopicsSync
 @pytest.fixture
 def test_config():
     """Create test market configuration for PropTech Germany"""
-    return MarketConfig(
-        domain='PropTech',
-        market='Germany',
-        language='de',
-        vertical='Real Estate Technology',
-        target_audience='Property managers, real estate companies, PropTech startups',
-        seed_keywords=['PropTech', 'Immobilien Software', 'Smart Building'],
+    return FullConfig(
+        market=MarketConfig(
+            domain='PropTech',
+            market='Germany',
+            language='de',
+            vertical='Real Estate Technology',
+            target_audience='Property managers, real estate companies, PropTech startups',
+            seed_keywords=['PropTech', 'Immobilien Software', 'Smart Building']
+        ),
         collectors=CollectorsConfig(
             custom_feeds=[
                 'https://www.heise.de/news/rss/news-atom.xml',  # Tech news

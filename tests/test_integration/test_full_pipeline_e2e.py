@@ -25,7 +25,7 @@ from src.agents.competitor_research_agent import CompetitorResearchAgent
 from src.agents.keyword_research_agent import KeywordResearchAgent
 from src.research.deep_researcher import DeepResearcher
 from src.models.topic import Topic, TopicSource
-from src.models.config import MarketConfig
+from src.utils.config_loader import FullConfig, MarketConfig, CollectorsConfig, SchedulingConfig
 
 
 @pytest.fixture
@@ -72,14 +72,18 @@ def test_topic():
 
 @pytest.fixture
 def test_config():
-    """Create test configuration"""
-    return MarketConfig(
-        domain='SaaS',
-        market='Germany',
-        language='de',
-        vertical='PropTech',
-        target_audience='Property managers, real estate companies',
-        seed_keywords=['PropTech', 'SaaS', 'Real Estate']
+    """Create test configuration (standardized to FullConfig)"""
+    return FullConfig(
+        market=MarketConfig(
+            domain='SaaS',
+            market='Germany',
+            language='de',
+            vertical='PropTech',
+            target_audience='Property managers, real estate companies',
+            seed_keywords=['PropTech', 'SaaS', 'Real Estate']
+        ),
+        collectors=CollectorsConfig(),
+        scheduling=SchedulingConfig()
     )
 
 

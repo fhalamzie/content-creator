@@ -31,7 +31,7 @@ from typing import Dict, Any, Optional, Callable
 from datetime import datetime
 
 from src.models.topic import Topic, TopicStatus
-from src.models.config import MarketConfig
+from src.utils.config_loader import FullConfig
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -117,7 +117,7 @@ class ContentPipeline:
     async def process_topic(
         self,
         topic: Topic,
-        config: MarketConfig,
+        config: FullConfig,
         progress_callback: Optional[Callable[[int, str], None]] = None
     ) -> Topic:
         """
@@ -125,7 +125,7 @@ class ContentPipeline:
 
         Args:
             topic: Topic to process
-            config: Market configuration
+            config: Full configuration (market, collectors, scheduling, app)
             progress_callback: Optional callback(stage, message)
 
         Returns:
@@ -138,8 +138,8 @@ class ContentPipeline:
             "pipeline_started",
             topic_id=topic.id,
             topic_title=topic.title,
-            domain=config.domain,
-            market=config.market
+            domain=config.market.domain,
+            market=config.market.market
         )
 
         try:
@@ -205,7 +205,7 @@ class ContentPipeline:
     async def _stage1_competitor_research(
         self,
         topic: Topic,
-        config: MarketConfig
+        config: FullConfig
     ) -> Dict[str, Any]:
         """
         Stage 1: Competitor Research
@@ -220,7 +220,7 @@ class ContentPipeline:
         try:
             result = self.competitor_agent.research_competitors(
                 topic=topic.title,
-                language=config.language,
+                language=config.market.language,
                 max_competitors=self.max_competitors,
                 include_content_analysis=True,
                 save_to_cache=False
@@ -241,7 +241,7 @@ class ContentPipeline:
     async def _stage2_keyword_research(
         self,
         topic: Topic,
-        config: MarketConfig
+        config: FullConfig
     ) -> Dict[str, Any]:
         """
         Stage 2: Keyword Research
@@ -257,8 +257,8 @@ class ContentPipeline:
         try:
             result = self.keyword_agent.research_keywords(
                 topic=topic.title,
-                language=config.language,
-                target_audience=getattr(config, 'target_audience', None),
+                language=config.market.language,
+                target_audience=getattr(config.market, 'target_audience', None),
                 keyword_count=self.max_keywords,
                 save_to_cache=False
             )
@@ -279,7 +279,7 @@ class ContentPipeline:
     async def _stage3_deep_research(
         self,
         topic: Topic,
-        config: MarketConfig,
+        config: FullConfig,
         competitor_data: Dict[str, Any],
         keyword_data: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -310,10 +310,10 @@ class ContentPipeline:
 
             # Convert config to dict
             config_dict = {
-                'domain': config.domain,
-                'market': config.market,
-                'language': config.language,
-                'vertical': getattr(config, 'vertical', None)
+                'domain': config.market.domain,
+                'market': config.market.market,
+                'language': config.market.language,
+                'vertical': getattr(config.market, 'vertical', None)
             }
 
             result = await self.deep_researcher.research_topic(

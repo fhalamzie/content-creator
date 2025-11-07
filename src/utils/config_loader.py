@@ -25,7 +25,7 @@ Example:
 from pathlib import Path
 from typing import List, Optional
 import yaml
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, HttpUrl
 
 
 class MarketConfig(BaseModel):
@@ -66,6 +66,38 @@ class MarketConfig(BaseModel):
         description="Target audience description (e.g., 'German SMBs')"
     )
 
+    # RSS Feeds
+    rss_feeds: List[HttpUrl] = Field(
+        default_factory=list,
+        description="Curated RSS feeds for this domain"
+    )
+    opml_file: Optional[str] = Field(
+        None,
+        description="Path to OPML file with feeds"
+    )
+
+    # Reddit
+    reddit_subreddits: List[str] = Field(
+        default_factory=list,
+        description="Target subreddits (without r/ prefix)"
+    )
+
+    # Filtering
+    excluded_keywords: List[str] = Field(
+        default_factory=list,
+        description="Keywords to filter out"
+    )
+
+    # Scheduling
+    discovery_schedule_cron: str = Field(
+        default="0 6 * * *",  # 6 AM daily
+        description="Cron expression for discovery runs"
+    )
+
+    # Research settings
+    research_max_sources: int = Field(default=8, ge=3, le=20)
+    research_depth: str = Field(default="balanced", pattern="^(quick|balanced|deep)$")
+
     @field_validator('seed_keywords')
     @classmethod
     def validate_seed_keywords_not_empty(cls, v):
@@ -92,9 +124,9 @@ class MarketConfig(BaseModel):
     )
 
 
-class CollectorConfig(BaseModel):
+class CollectorsConfig(BaseModel):
     """
-    Collector configuration
+    Collectors configuration
 
     Controls which collectors are enabled and their settings.
     """
@@ -173,6 +205,39 @@ class SchedulingConfig(BaseModel):
     )
 
 
+class LLMConfig(BaseModel):
+    """LLM provider configuration"""
+    provider: str = Field(default="google_genai", description="LLM provider")
+    model: str = Field(default="gemini-1.5-flash", description="Model name")
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    max_tokens: int = Field(default=4000, ge=100, le=100000)
+
+
+class SearchConfig(BaseModel):
+    """Search/retriever configuration"""
+    retriever: str = Field(default="duckduckgo", description="Search provider")
+    max_results: int = Field(default=10, ge=3, le=50)
+
+
+class DatabaseConfig(BaseModel):
+    """Database configuration"""
+    type: str = Field(default="sqlite", pattern="^(sqlite|postgres)$")
+    path: str = Field(default="data/topics.db")
+    # For postgres
+    host: Optional[str] = None
+    port: Optional[int] = None
+    database: Optional[str] = None
+    user: Optional[str] = None
+    password: Optional[str] = None
+
+
+class NotionConfig(BaseModel):
+    """Notion integration (Phase 3)"""
+    enabled: bool = False
+    api_token: Optional[str] = None
+    database_id: Optional[str] = None
+
+
 class FullConfig(BaseModel):
     """
     Complete configuration combining all sections
@@ -181,8 +246,12 @@ class FullConfig(BaseModel):
     """
 
     market: MarketConfig
-    collectors: CollectorConfig = Field(default_factory=CollectorConfig)
+    collectors: CollectorsConfig = Field(default_factory=CollectorsConfig)
     scheduling: SchedulingConfig = Field(default_factory=SchedulingConfig)
+    llm: LLMConfig = Field(default_factory=LLMConfig)
+    search: SearchConfig = Field(default_factory=SearchConfig)
+    database: DatabaseConfig = Field(default_factory=DatabaseConfig)
+    notion: NotionConfig = Field(default_factory=NotionConfig)
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -286,9 +355,9 @@ class ConfigLoader:
         market_config = MarketConfig(**market_data)
 
         # Collectors (optional section)
-        collectors_config = CollectorConfig()
+        collectors_config = CollectorsConfig()
         if 'collectors' in yaml_data:
-            collectors_config = CollectorConfig(**yaml_data['collectors'])
+            collectors_config = CollectorsConfig(**yaml_data['collectors'])
 
         # Scheduling (optional section)
         scheduling_config = SchedulingConfig()
@@ -340,9 +409,9 @@ def load_config(config_path: str) -> FullConfig:
     market_config = MarketConfig(**market_data)
 
     # Collectors (optional section)
-    collectors_config = CollectorConfig()
+    collectors_config = CollectorsConfig()
     if 'collectors' in yaml_data:
-        collectors_config = CollectorConfig(**yaml_data['collectors'])
+        collectors_config = CollectorsConfig(**yaml_data['collectors'])
 
     # Scheduling (optional section)
     scheduling_config = SchedulingConfig()

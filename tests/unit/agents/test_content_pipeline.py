@@ -14,19 +14,23 @@ from unittest.mock import Mock
 
 from src.agents.content_pipeline import ContentPipeline, ContentPipelineError
 from src.models.topic import Topic, TopicSource, TopicStatus
-from src.models.config import MarketConfig
+from src.utils.config_loader import FullConfig, MarketConfig, CollectorsConfig, SchedulingConfig
 
 
 # Test fixtures
 @pytest.fixture
 def sample_config():
-    """Sample market configuration"""
-    return MarketConfig(
-        domain="SaaS",
-        market="Germany",
-        language="de",
-        vertical="Proptech",
-        seed_keywords=["DSGVO", "Immobilien SaaS"]
+    """Sample full configuration (standardized to FullConfig)"""
+    return FullConfig(
+        market=MarketConfig(
+            domain="SaaS",
+            market="Germany",
+            language="de",
+            vertical="Proptech",
+            seed_keywords=["DSGVO", "Immobilien SaaS"]
+        ),
+        collectors=CollectorsConfig(),
+        scheduling=SchedulingConfig()
     )
 
 
@@ -195,7 +199,7 @@ class TestStage1CompetitorResearch:
         # Verify agent was called correctly
         mock_competitor_agent.research_competitors.assert_called_once_with(
             topic=sample_topic.title,
-            language=sample_config.language,
+            language=sample_config.market.language,
             max_competitors=5,  # default value
             include_content_analysis=True,
             save_to_cache=False
@@ -247,7 +251,7 @@ class TestStage2KeywordResearch:
         # Verify agent was called correctly
         mock_keyword_agent.research_keywords.assert_called_once_with(
             topic=sample_topic.title,
-            language=sample_config.language,
+            language=sample_config.market.language,
             target_audience=None,
             keyword_count=10,  # default value
             save_to_cache=False
@@ -259,7 +263,7 @@ class TestStage2KeywordResearch:
         mock_competitor_agent, mock_keyword_agent, mock_deep_researcher
     ):
         """Should pass target_audience to keyword agent"""
-        sample_config.target_audience = "German small businesses"
+        sample_config.market.target_audience = "German small businesses"
 
         pipeline = ContentPipeline(
             competitor_agent=mock_competitor_agent,

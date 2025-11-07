@@ -18,7 +18,7 @@ import os
 from pathlib import Path
 from datetime import datetime
 
-from src.models.config import MarketConfig
+from src.utils.config_loader import FullConfig, MarketConfig, CollectorsConfig, SchedulingConfig
 from src.models.topic import Topic, TopicSource
 from src.models.document import Document
 from src.database.sqlite_manager import SQLiteManager
@@ -54,14 +54,18 @@ def gemini_api_key():
 
 @pytest.fixture
 def test_config():
-    """Create test market configuration"""
-    return MarketConfig(
-        domain='PropTech',
-        market='Germany',
-        language='de',
-        vertical='Real Estate Technology',
-        target_audience='Property managers, real estate companies',
-        seed_keywords=['PropTech', 'Immobilien Software', 'Smart Building']
+    """Create test market configuration (standardized to FullConfig)"""
+    return FullConfig(
+        market=MarketConfig(
+            domain='PropTech',
+            market='Germany',
+            language='de',
+            vertical='Real Estate Technology',
+            target_audience='Property managers, real estate companies',
+            seed_keywords=['PropTech', 'Immobilien Software', 'Smart Building']
+        ),
+        collectors=CollectorsConfig(),
+        scheduling=SchedulingConfig()
     )
 
 

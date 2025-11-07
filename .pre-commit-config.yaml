@@ -1,0 +1,13 @@
+# Pre-commit hooks for code quality
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  - repo: local
+    hooks:
+      - id: no-marketconfig-params
+        name: Prevent MarketConfig as function parameter
+        entry: 'config:\s+MarketConfig'
+        language: pygrep
+        types: [python]
+        exclude: 'src/utils/config_loader.py|src/models/config.py'
+        description: 'Prevents using MarketConfig as parameter type - use FullConfig instead'

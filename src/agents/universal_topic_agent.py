@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
-from src.models.config import MarketConfig
+from src.utils.config_loader import FullConfig
 from src.models.document import Document
 from src.models.topic import Topic, TopicSource, TopicStatus
 from src.utils.config_loader import ConfigLoader
@@ -76,7 +76,7 @@ class UniversalTopicAgent:
 
     def __init__(
         self,
-        config,  # FullConfig from config_loader
+        config: FullConfig,
         db_manager: SQLiteManager,
         feed_discovery: FeedDiscovery,
         rss_collector: RSSCollector,
@@ -92,7 +92,7 @@ class UniversalTopicAgent:
         Initialize Universal Topic Agent
 
         Args:
-            config: Market configuration
+            config: Full configuration (FullConfig from config_loader)
             db_manager: SQLite database manager
             feed_discovery: Feed discovery pipeline
             rss_collector: RSS collector
