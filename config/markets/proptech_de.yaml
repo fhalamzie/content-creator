@@ -36,6 +36,12 @@ competitor_urls:
   - https://www.casavi.de
   - https://www.haufe.de/immobilien
 
+# Curated RSS feeds (HttpUrl format - auto-validated)
+# These are PropTech-specific industry feeds
+rss_feeds:
+  - https://www.immobilienmanager.de/rss/news.xml
+  - https://www.haufe.de/immobilien/rss.xml
+
 # === Collector Configuration ===
 collectors:
   # RSS Feed Collection

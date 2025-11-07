@@ -262,9 +262,14 @@ class UniversalTopicAgent:
                 # Add discovered feeds to RSS collector
                 feed_urls = [feed.url for feed in discovered_feeds]
 
-                # Also add custom feeds from config (convert HttpUrl to str)
-                custom_feeds = [str(url) for url in self.config.collectors.custom_feeds]
-                feed_urls.extend(custom_feeds)
+                # Add curated RSS feeds from market config (HttpUrl objects - need conversion)
+                if self.config.market.rss_feeds:
+                    market_feeds = [str(url) for url in self.config.market.rss_feeds]
+                    feed_urls.extend(market_feeds)
+
+                # Also add custom feeds from collectors config (already strings)
+                if self.config.collectors.custom_feeds:
+                    feed_urls.extend(self.config.collectors.custom_feeds)
 
                 rss_docs = self.rss_collector.collect_from_feeds(feed_urls=feed_urls)
                 all_documents.extend(rss_docs)

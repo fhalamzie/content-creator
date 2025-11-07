@@ -2,6 +2,27 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 039: RSS Collection Integration - Dual-Source Config Support (2025-11-07)
+
+**RSS Collection Integrated**: Fixed RSS feed collection in UniversalTopicAgent with dual-source configuration support. Supports feeds from `market.rss_feeds` (HttpUrl), `collectors.custom_feeds` (strings), and discovered feeds.
+
+**3 Key Fixes**:
+- Fixed type mismatch: `market.rss_feeds` (HttpUrl) → string conversion, `collectors.custom_feeds` (strings) used as-is
+- Added None checks: Both config sources can be optional without errors
+- Enhanced ConfigLoader: Now parses 7 missing MarketConfig fields (rss_feeds, opml_file, reddit_subreddits, excluded_keywords, research settings)
+
+**Configuration**:
+- Updated `proptech_de.yaml` with 2 PropTech-specific RSS feeds
+- Total feeds: 9 (2 market + 7 custom + discovered feeds)
+
+**Test Results**: ✅ 6/6 new RSS integration tests passing, ✅ 20/20 config loader tests passing (no regressions)
+
+**Architecture**: Three-source RSS system (discovered + market + custom) merges seamlessly, providing flexibility for industry-specific and general feeds.
+
+**See**: [Full details](docs/sessions/039-rss-collection-integration.md)
+
+---
+
 ## Session 038: FullConfig Standardization & Config System Consolidation (2025-11-07)
 
 **Config System Unified**: Consolidated dual config systems into single source of truth (`src/utils/config_loader.py`). Eliminated 2-system confusion, added type safety, and automated enforcement via pre-commit hooks.

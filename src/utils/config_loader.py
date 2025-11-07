@@ -350,6 +350,20 @@ class ConfigLoader:
             market_data['competitor_urls'] = yaml_data['competitor_urls']
         if 'target_audience' in yaml_data:
             market_data['target_audience'] = yaml_data['target_audience']
+        if 'rss_feeds' in yaml_data:
+            market_data['rss_feeds'] = yaml_data['rss_feeds']
+        if 'opml_file' in yaml_data:
+            market_data['opml_file'] = yaml_data['opml_file']
+        if 'reddit_subreddits' in yaml_data:
+            market_data['reddit_subreddits'] = yaml_data['reddit_subreddits']
+        if 'excluded_keywords' in yaml_data:
+            market_data['excluded_keywords'] = yaml_data['excluded_keywords']
+        if 'discovery_schedule_cron' in yaml_data:
+            market_data['discovery_schedule_cron'] = yaml_data['discovery_schedule_cron']
+        if 'research_max_sources' in yaml_data:
+            market_data['research_max_sources'] = yaml_data['research_max_sources']
+        if 'research_depth' in yaml_data:
+            market_data['research_depth'] = yaml_data['research_depth']
 
         # Let Pydantic validation handle missing required fields
         market_config = MarketConfig(**market_data)

@@ -50,7 +50,11 @@
 
 ### Next Steps:
 
-- [ ] RSS Collection integration (requires collectors config key)
+- [x] RSS Collection integration (requires collectors config key) ✅ **COMPLETE** (Session 039)
+  - ✅ Fixed dual-source config support (market.rss_feeds + collectors.custom_feeds)
+  - ✅ Added None checks and HttpUrl → string conversion
+  - ✅ Enhanced ConfigLoader to parse all MarketConfig fields
+  - ✅ 6/6 integration tests passing, 20/20 config tests passing
 - [ ] Reddit Collection integration (optional, requires PRAW setup)
 - [ ] Trends Collection integration (Gemini CLI working)
 - [ ] Full pipeline end-to-end with all collectors enabled
