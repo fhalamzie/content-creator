@@ -2,6 +2,26 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 041: Reddit/Trends Integration & Pipeline Testing (2025-11-08)
+
+**Integration Complete**: Reddit/Trends collection + topic clustering + content pipeline all working and tested.
+
+**2 Critical Bugs Fixed**:
+- Session 040 code uncommitted (discovered via git status - 12 modified files)
+- Reddit collector: Passing string to `is_duplicate()` instead of Document object
+
+**2 Commits**:
+- Commit 9ea6e0f: Session 040 fixes (autocomplete, feed discovery, trends CLI→API migration)
+- Commit 716f317: Reddit collector duplicate check bug + ConfigLoader API update
+
+**Test Results**: ✅ 41/41 unit tests passing (22 clustering + 19 content pipeline), ✅ 1/1 Reddit integration test, ✅ E2E Stage 1 (19.05% duplicate rate verified)
+
+**Integration Status**: Reddit (WORKING), Trends (WORKING, Gemini API), Clustering (WORKING), ContentPipeline (WORKING)
+
+**See**: [Full details](docs/sessions/041-reddit-trends-integration.md)
+
+---
+
 ## Session 040: Duplicate Rate Reduction - Autocomplete & Feed Filtering (2025-11-08)
 
 **73% Improvement**: Reduced duplicate rate from 75.63% → 20.63% by fixing autocomplete noise and Wikipedia feed filtering.

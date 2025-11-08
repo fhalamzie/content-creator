@@ -55,10 +55,19 @@
   - ✅ Added None checks and HttpUrl → string conversion
   - ✅ Enhanced ConfigLoader to parse all MarketConfig fields
   - ✅ 6/6 integration tests passing, 20/20 config tests passing
-- [ ] Reddit Collection integration (optional, requires PRAW setup)
-- [ ] Trends Collection integration (Gemini CLI working)
-- [ ] Full pipeline end-to-end with all collectors enabled
-- [ ] Topic clustering and content pipeline integration
+- [x] Reddit Collection integration (PRAW setup) ✅ **COMPLETE** (Session 041)
+  - ✅ Fixed duplicate check bug (string → Document object)
+  - ✅ Fixed ConfigLoader API (load_config → loader.load)
+  - ✅ 1/1 integration test passing with real r/de subreddit
+- [x] Trends Collection integration ✅ **COMPLETE** (Session 041)
+  - ✅ Migrated Gemini CLI → Gemini API (fixes 30s timeout issues)
+  - ✅ Structured JSON schemas + 60s timeout
+  - ✅ Unit tests passing
+- [x] Topic clustering and content pipeline integration ✅ **COMPLETE** (Session 041)
+  - ✅ 22/22 clustering unit tests passing
+  - ✅ 19/19 content pipeline unit tests passing
+  - ✅ Integration verified in UniversalTopicAgent.process_topics()
+- [ ] Full pipeline E2E with extended timeout (600s for ContentPipeline API calls)
 
 ---
 
