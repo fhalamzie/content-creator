@@ -64,6 +64,102 @@
 
 ---
 
+## High Priority - Content Creator Phase 4.5: Media Generation (Session 044)
+
+**Goal**: Automated 3-image generation (1 HD hero + 2 standard supporting) with tone-appropriate styling
+
+**Status**: ⏳ IN PROGRESS (18.5 hours estimated)
+
+**Key Discoveries**:
+- ✅ Tone analysis already exists in Stage 1 (`extract_website_keywords()`)
+- ✅ Notion schemas already have `Hero Image URL` and `Media URL` fields
+- ✅ No need to build tone analyzer from scratch!
+
+**Implementation Plan**: Session 044 (approved)
+
+### Control Hierarchy (3-Tier System)
+1. **Market Config Default**: `enable_image_generation: true` (default ON)
+2. **Python API Override**: `research_topic(generate_images=None)` (None = inherit)
+3. **Streamlit UI Checkbox**: Final override, respects market default
+
+### Phase 1: Config Enhancement (1.5 hours)
+- [ ] Add 4 fields to MarketConfig: `brand_tone`, `enable_image_generation`, `image_quality`, `image_style_preferences`
+- [ ] Update `proptech_de.yaml` with image settings
+- [ ] Write config loader tests (3 tests)
+
+### Phase 2: Tone Propagation (2 hours)
+- [ ] Store tone in `run_pipeline()` return dict
+- [ ] Update `research_topic()` signature: `brand_tone`, `generate_images` params
+- [ ] Update `synthesize()` signature: `brand_tone`, `generate_images` params
+- [ ] Write propagation tests (3 tests)
+
+### Phase 3: ImageGenerator Module (6 hours)
+- [ ] Create `src/media/image_generator.py` (~400 lines)
+- [ ] Implement 7-tone prompt mapping (Professional, Technical, Creative, etc.)
+- [ ] DALL-E 3 integration: `generate_hero_image()` (1792x1024 HD, $0.08)
+- [ ] DALL-E 3 integration: `generate_supporting_image()` (1024x1024 standard, $0.04)
+- [ ] Silent failure handling (3 retries, return None on error)
+- [ ] Cost tracking integration
+- [ ] Write 20 unit tests (tone mapping, API calls, errors, cost)
+
+### Phase 4: Synthesizer Integration (3 hours)
+- [ ] Integrate ImageGenerator into ContentSynthesizer
+- [ ] Add image generation step after article synthesis
+- [ ] Return structure: `hero_image_url`, `supporting_images`, `image_cost`
+- [ ] Write integration tests (5 tests: enabled, disabled, failure, cost)
+
+### Phase 5: Streamlit UI Integration (2 hours)
+- [ ] Add checkbox to Generate page: "Generate images (1 HD hero + 2 supporting)"
+- [ ] Respect market config default
+- [ ] Display generated images in results
+- [ ] Show image generation cost
+- [ ] Write UI tests (2 tests)
+
+### Phase 6: Notion Sync Enhancement (1 hour)
+- [ ] Map `hero_image_url` → `Hero Image URL` field (already exists!)
+- [ ] Add `Supporting Images` field to BLOG_POSTS_SCHEMA
+- [ ] Map supporting images → rich_text (URLs + alt text)
+- [ ] Write sync tests (3 tests)
+
+### Phase 7: E2E Testing (3 hours)
+- [ ] Test: Full pipeline with images (Website → Tone → Article → 3 Images → Notion)
+- [ ] Test: Images disabled (verify no images, no cost)
+- [ ] Test: Silent failure (mock DALL-E error, article completes)
+- [ ] Test: Config inheritance (None = use market default)
+
+### Cost Impact
+
+**Per Topic**:
+- Research + Synthesis: $0.01
+- Hero Image (HD 1792x1024): $0.08
+- 2 Supporting (Standard 1024x1024): $0.08
+- **Total: $0.17/topic** ⚠️ (Exceeds $0.10 budget by 70%)
+
+**Monthly (200 topics)**:
+- All with images: $34.00
+- 50% with images: $18.00
+- 10% with images: $4.40
+
+### Implementation Order (TDD)
+- **Day 1 (3.5h)**: Config + Tone Propagation
+- **Day 2 (6h)**: ImageGenerator Core + DALL-E
+- **Day 3 (5h)**: Synthesizer Integration + Streamlit UI
+- **Day 4 (4h)**: Notion Sync + E2E Tests
+
+**Total**: 18.5 hours
+
+### Success Criteria
+- ✅ Tone extracted from Stage 1 and propagated to synthesis
+- ✅ 3 images generated per topic (1 HD hero + 2 standard supporting)
+- ✅ Tone-appropriate prompts (no anime on business blogs)
+- ✅ Silent failure (research completes even if images fail)
+- ✅ 3-tier control: Config → API → UI
+- ✅ All images sync to Notion
+- ✅ Cost tracking accurate ($0.17/topic)
+- ✅ E2E test validates full flow
+
+---
+
 ## Backlog
 
 **Universal Topic Research Agent - Phase 2** (Week 3-4):
@@ -97,7 +193,6 @@
 - [ ] Scheduled posting (calendar integration)
 
 **Phase 6 - Enhancements**:
-- [ ] Media creator (DALL-E 3 hero images)
 - [ ] Analytics dashboard (performance tracking)
 - [ ] Plagiarism checker integration
 - [ ] Competitor tracking over time (detect strategy changes)
@@ -106,6 +201,7 @@
 - [ ] Export keyword research to Notion "Research Data" database
 - [ ] A/B testing for social posts
 - [ ] Multi-language support (add blog_en.md)
+- [ ] Video/audio media generation (future)
 
 ---
 
