@@ -128,7 +128,9 @@ class ContentSynthesizer:
         self,
         sources: List[SearchResult],
         query: str,
-        config: FullConfig
+        config: FullConfig,
+        brand_tone: Optional[List[str]] = None,
+        generate_images: bool = False
     ) -> Dict:
         """
         Synthesize article from research sources
@@ -137,11 +139,17 @@ class ContentSynthesizer:
             sources: Reranked search results (top 25 from 3-stage reranker)
             query: Original research query
             config: Market configuration (Pydantic FullConfig model)
+            brand_tone: Brand tone for image generation (e.g., ['Professional', 'Technical'])
+            generate_images: Whether to generate images (1 HD hero + 2 standard supporting)
 
         Returns:
             Dict with:
             - article: Generated article text with inline citations
             - citations: List of source metadata (id, url, title)
+            - hero_image_url: Optional[str] - Hero image URL (if images enabled)
+            - hero_image_alt: Optional[str] - Hero image alt text (if images enabled)
+            - supporting_images: List[Dict] - Supporting images (if images enabled)
+            - image_cost: float - Image generation cost
             - metadata: Synthesis metadata (strategy, timing, costs)
 
         Raises:
@@ -220,6 +228,20 @@ class ContentSynthesizer:
                 'synthesis_duration_ms': synthesis_duration,
                 'total_duration_ms': total_duration
             })
+
+            # Add image placeholders (actual generation in Phase 4)
+            result['hero_image_url'] = None
+            result['hero_image_alt'] = None
+            result['supporting_images'] = []
+            result['image_cost'] = 0.0
+
+            # TODO: Image generation will be implemented in Phase 4
+            # if generate_images and brand_tone:
+            #     image_result = await self.image_generator.generate_article_images(...)
+            #     result['hero_image_url'] = image_result.get('hero_url')
+            #     result['hero_image_alt'] = image_result.get('hero_alt')
+            #     result['supporting_images'] = image_result.get('supporting', [])
+            #     result['image_cost'] = image_result.get('total_cost', 0.0)
 
             logger.info(
                 "synthesis_completed",

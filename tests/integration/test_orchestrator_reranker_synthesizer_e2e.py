@@ -19,7 +19,7 @@ from src.research.synthesizer.content_synthesizer import (
     ContentSynthesizer,
     PassageExtractionStrategy
 )
-from src.utils.config_loader import FullConfig, MarketConfig, CollectorConfig, SchedulingConfig
+from src.utils.config_loader import FullConfig, MarketConfig, CollectorsConfig, SchedulingConfig
 
 
 # Skip if API keys not available
@@ -52,7 +52,7 @@ async def test_full_pipeline_orchestrator_reranker_synthesizer():
     )
     config = FullConfig(
         market=market,
-        collectors=CollectorConfig(),
+        collectors=CollectorsConfig(),
         scheduling=SchedulingConfig()
     )
 

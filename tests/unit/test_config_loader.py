@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from src.utils.config_loader import (
     ConfigLoader,
     MarketConfig,
-    CollectorConfig,
+    CollectorsConfig,
     SchedulingConfig
 )
 
@@ -74,13 +74,83 @@ class TestMarketConfig:
                 seed_keywords=[]  # Empty list
             )
 
+    def test_image_generation_defaults(self):
+        """Test image generation fields have correct defaults"""
+        config = MarketConfig(
+            domain="SaaS",
+            market="Germany",
+            language="de",
+            vertical="Proptech",
+            seed_keywords=["PropTech"]
+        )
 
-class TestCollectorConfig:
-    """Test CollectorConfig model"""
+        # Check defaults
+        assert config.enable_image_generation is True
+        assert config.image_quality == "hd"
+        assert config.brand_tone is None
+        assert config.image_style_preferences is None
+
+    def test_image_generation_custom_values(self):
+        """Test setting custom image generation values"""
+        config = MarketConfig(
+            domain="SaaS",
+            market="Germany",
+            language="de",
+            vertical="Proptech",
+            seed_keywords=["PropTech"],
+            brand_tone=["Professional", "Technical"],
+            enable_image_generation=False,
+            image_quality="standard",
+            image_style_preferences={"color_scheme": "blue", "style": "minimal"}
+        )
+
+        assert config.brand_tone == ["Professional", "Technical"]
+        assert config.enable_image_generation is False
+        assert config.image_quality == "standard"
+        assert config.image_style_preferences == {"color_scheme": "blue", "style": "minimal"}
+
+    def test_image_quality_validation(self):
+        """Test image_quality only accepts 'standard' or 'hd'"""
+        # Valid values should work
+        config_hd = MarketConfig(
+            domain="SaaS",
+            market="Germany",
+            language="de",
+            vertical="Proptech",
+            seed_keywords=["PropTech"],
+            image_quality="hd"
+        )
+        assert config_hd.image_quality == "hd"
+
+        config_std = MarketConfig(
+            domain="SaaS",
+            market="Germany",
+            language="de",
+            vertical="Proptech",
+            seed_keywords=["PropTech"],
+            image_quality="standard"
+        )
+        assert config_std.image_quality == "standard"
+
+        # Invalid value should raise error
+        with pytest.raises(ValidationError) as exc_info:
+            MarketConfig(
+                domain="SaaS",
+                market="Germany",
+                language="de",
+                vertical="Proptech",
+                seed_keywords=["PropTech"],
+                image_quality="ultra"  # Invalid
+            )
+        assert "image_quality" in str(exc_info.value).lower()
+
+
+class TestCollectorsConfig:
+    """Test CollectorsConfig model"""
 
     def test_create_collector_config_with_defaults(self):
-        """Test CollectorConfig with default values"""
-        config = CollectorConfig()
+        """Test CollectorsConfig with default values"""
+        config = CollectorsConfig()
 
         # All collectors enabled by default
         assert config.rss_enabled is True
@@ -89,8 +159,8 @@ class TestCollectorConfig:
         assert config.autocomplete_enabled is True
 
     def test_create_collector_config_with_custom_values(self):
-        """Test CollectorConfig with custom values"""
-        config = CollectorConfig(
+        """Test CollectorsConfig with custom values"""
+        config = CollectorsConfig(
             rss_enabled=True,
             reddit_enabled=False,
             trends_enabled=True,

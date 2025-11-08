@@ -68,7 +68,7 @@
 
 **Goal**: Automated 3-image generation (1 HD hero + 2 standard supporting) with tone-appropriate styling
 
-**Status**: ⏳ IN PROGRESS (18.5 hours estimated)
+**Status**: ⏳ IN PROGRESS (5/18.5 hours complete, 13.5 hours remaining)
 
 **Key Discoveries**:
 - ✅ Tone analysis already exists in Stage 1 (`extract_website_keywords()`)
@@ -82,25 +82,25 @@
 2. **Python API Override**: `research_topic(generate_images=None)` (None = inherit)
 3. **Streamlit UI Checkbox**: Final override, respects market default
 
-### Phase 1: Config Enhancement (1.5 hours)
-- [ ] Add 4 fields to MarketConfig: `brand_tone`, `enable_image_generation`, `image_quality`, `image_style_preferences`
-- [ ] Update `proptech_de.yaml` with image settings
-- [ ] Write config loader tests (3 tests)
+### Phase 1: Config Enhancement (1.5 hours) ✅ COMPLETE (Session 044)
+- [x] Add 4 fields to MarketConfig: `brand_tone`, `enable_image_generation`, `image_quality`, `image_style_preferences`
+- [x] Update `proptech_de.yaml` with image settings
+- [x] Write config loader tests (3 tests)
 
-### Phase 2: Tone Propagation (2 hours)
-- [ ] Store tone in `run_pipeline()` return dict
-- [ ] Update `research_topic()` signature: `brand_tone`, `generate_images` params
-- [ ] Update `synthesize()` signature: `brand_tone`, `generate_images` params
-- [ ] Write propagation tests (3 tests)
+### Phase 2: Tone Propagation (2 hours) ✅ COMPLETE (Session 044)
+- [x] Store tone in `run_pipeline()` return dict
+- [x] Update `research_topic()` signature: `brand_tone`, `generate_images` params
+- [x] Update `synthesize()` signature: `brand_tone`, `generate_images` params
+- [x] Write propagation tests (3 tests)
 
-### Phase 3: ImageGenerator Module (6 hours)
-- [ ] Create `src/media/image_generator.py` (~400 lines)
-- [ ] Implement 7-tone prompt mapping (Professional, Technical, Creative, etc.)
-- [ ] DALL-E 3 integration: `generate_hero_image()` (1792x1024 HD, $0.08)
-- [ ] DALL-E 3 integration: `generate_supporting_image()` (1024x1024 standard, $0.04)
-- [ ] Silent failure handling (3 retries, return None on error)
-- [ ] Cost tracking integration
-- [ ] Write 20 unit tests (tone mapping, API calls, errors, cost)
+### Phase 3: ImageGenerator Module (6 hours) ✅ COMPLETE (Session 045, 1.5h actual)
+- [x] Create `src/media/image_generator.py` (347 lines)
+- [x] Implement 7-tone prompt mapping (Professional, Technical, Creative, etc.)
+- [x] DALL-E 3 integration: `generate_hero_image()` (1792x1024 HD, $0.08)
+- [x] DALL-E 3 integration: `generate_supporting_image()` (1024x1024 standard, $0.04)
+- [x] Silent failure handling (3 retries, return None on error)
+- [x] Cost tracking integration
+- [x] Write 23 unit tests (tone mapping, API calls, errors, cost) - exceeded 20 goal
 
 ### Phase 4: Synthesizer Integration (3 hours)
 - [ ] Integrate ImageGenerator into ContentSynthesizer
@@ -141,12 +141,14 @@
 - 10% with images: $4.40
 
 ### Implementation Order (TDD)
-- **Day 1 (3.5h)**: Config + Tone Propagation
-- **Day 2 (6h)**: ImageGenerator Core + DALL-E
-- **Day 3 (5h)**: Synthesizer Integration + Streamlit UI
-- **Day 4 (4h)**: Notion Sync + E2E Tests
+- ✅ **Phase 1-2 (3.5h)**: Config + Tone Propagation (Session 044)
+- ✅ **Phase 3 (1.5h)**: ImageGenerator Core + DALL-E (Session 045)
+- ⏳ **Phase 4 (3h)**: Synthesizer Integration (NEXT)
+- ⏳ **Phase 5 (2h)**: Streamlit UI
+- ⏳ **Phase 6 (1h)**: Notion Sync
+- ⏳ **Phase 7 (3h)**: E2E Tests
 
-**Total**: 18.5 hours
+**Total**: 18.5 hours (5h complete, 13.5h remaining)
 
 ### Success Criteria
 - ✅ Tone extracted from Stage 1 and propagated to synthesis

@@ -118,3 +118,24 @@ scheduling:
 
   # How many days to look back for content
   lookback_days: 7
+
+# === Image Generation Configuration ===
+# Brand tone (extracted from website in Stage 1, or manually set)
+# Examples: Professional, Technical, Creative, Casual, Authoritative, Innovative, Friendly
+brand_tone: []  # Populated automatically from website analysis
+
+# Enable image generation (default ON)
+# Cost: $0.17/topic (1 HD hero $0.08 + 2 standard supporting $0.08)
+enable_image_generation: true
+
+# Image quality for hero image
+# - hd: High quality ($0.08) - Recommended for hero images
+# - standard: Normal quality ($0.04) - Cheaper but lower quality
+image_quality: hd
+
+# Custom image style preferences (optional, overrides tone defaults)
+# Examples:
+#   color_scheme: blue
+#   style: minimal
+#   mood: professional
+image_style_preferences: {}

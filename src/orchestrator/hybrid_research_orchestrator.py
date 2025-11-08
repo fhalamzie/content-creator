@@ -996,17 +996,21 @@ Return in strict JSON format matching the schema below."""
         self,
         topic: str,
         config: Dict,
+        brand_tone: Optional[List[str]] = None,
+        generate_images: Optional[bool] = None,
         max_results: int = 10
     ) -> Dict:
         """
         Stage 5: Research single topic through NEW pipeline.
 
         Flow: DeepResearcher → MultiStageReranker → ContentSynthesizer
-        Cost: ~$0.01/topic
+        Cost: ~$0.01/topic (+ $0.16 if images enabled)
 
         Args:
             topic: Topic to research
             config: Market configuration (dict or Pydantic)
+            brand_tone: Brand tone extracted from website (e.g., ['Professional', 'Technical'])
+            generate_images: Whether to generate images (None = inherit from config)
             max_results: Max sources to collect (default: 10)
 
         Returns:
@@ -1014,12 +1018,20 @@ Return in strict JSON format matching the schema below."""
                 - topic: str
                 - sources: List[Dict] - Reranked sources
                 - article: Optional[str] - Generated article
+                - hero_image_url: Optional[str] - Hero image URL (if images enabled)
+                - supporting_images: List[Dict] - Supporting images (if images enabled)
+                - image_cost: float - Image generation cost
                 - cost: float - Total cost
                 - duration_sec: float - Processing time
         """
         logger.info("stage5_topic_research", topic=topic)
         start_time = datetime.now()
         total_cost = 0.0
+
+        # Resolve image generation preference
+        if generate_images is None:
+            # Inherit from market config
+            generate_images = config.get("enable_image_generation", True)
 
         # Step 1: Research (multi-backend)
         sources = await self.researcher.search(topic, max_results=max_results)
@@ -1034,17 +1046,28 @@ Return in strict JSON format matching the schema below."""
             )
             logger.info("reranking_complete", sources_count=len(sources))
 
-        # Step 3: Synthesize (BM25→LLM)
+        # Step 3: Synthesize (BM25→LLM + optional image generation)
         article = None
+        hero_image_url = None
+        hero_image_alt = None
+        supporting_images = []
+        image_cost = 0.0
+
         if self.synthesizer and sources:
             synthesis_result = await self.synthesizer.synthesize(
                 query=topic,
                 sources=sources,
-                config=config
+                config=config,
+                brand_tone=brand_tone,
+                generate_images=generate_images
             )
             article = synthesis_result.get("article")
-            total_cost += synthesis_result.get("cost", 0.0)
-            logger.info("synthesis_complete", word_count=synthesis_result.get("word_count", 0))
+            hero_image_url = synthesis_result.get("hero_image_url")
+            hero_image_alt = synthesis_result.get("hero_image_alt")
+            supporting_images = synthesis_result.get("supporting_images", [])
+            image_cost = synthesis_result.get("image_cost", 0.0)
+            total_cost += synthesis_result.get("cost", 0.0) + image_cost
+            logger.info("synthesis_complete", word_count=synthesis_result.get("word_count", 0), image_cost=image_cost)
 
         duration = (datetime.now() - start_time).total_seconds()
 
@@ -1052,6 +1075,10 @@ Return in strict JSON format matching the schema below."""
             "topic": topic,
             "sources": sources,
             "article": article,
+            "hero_image_url": hero_image_url,
+            "hero_image_alt": hero_image_alt,
+            "supporting_images": supporting_images,
+            "image_cost": image_cost,
             "cost": total_cost,
             "duration_sec": duration
         }
@@ -1133,11 +1160,17 @@ Return in strict JSON format matching the schema below."""
 
         logger.info("stage5_batch_research", topics_count=len(validated_topics))
 
+        # Extract brand tone from website data
+        brand_tone = website_data.get("tone", [])
+        logger.info("brand_tone_extracted", tone=brand_tone)
+
         research_results = []
         for topic in validated_topics:
             result = await self.research_topic(
                 topic=topic,
                 config=customer_info,
+                brand_tone=brand_tone,
+                generate_images=None,  # Inherit from config
                 max_results=10
             )
             research_results.append(result)
@@ -1154,6 +1187,7 @@ Return in strict JSON format matching the schema below."""
 
         return {
             "website_data": website_data,
+            "brand_tone": brand_tone,
             "competitor_data": competitor_data,
             "consolidated_data": consolidated_data,
             "discovered_topics_data": discovered_topics_data,

@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 # Import will fail initially (TDD approach)
 try:
     from src.research.reranker.multi_stage_reranker import MultiStageReranker, RerankingError
-    from src.utils.config_loader import FullConfig, MarketConfig, CollectorConfig, SchedulingConfig
+    from src.utils.config_loader import FullConfig, MarketConfig, CollectorsConfig, SchedulingConfig
 except ImportError:
     pytest.skip("MultiStageReranker not implemented yet", allow_module_level=True)
 
@@ -80,7 +80,7 @@ def reranker_config():
     )
     return FullConfig(
         market=market,
-        collectors=CollectorConfig(),
+        collectors=CollectorsConfig(),
         scheduling=SchedulingConfig()
     )
 

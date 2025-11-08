@@ -23,7 +23,7 @@ Example:
 """
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 import yaml
 from pydantic import BaseModel, Field, ConfigDict, field_validator, HttpUrl
 
@@ -97,6 +97,25 @@ class MarketConfig(BaseModel):
     # Research settings
     research_max_sources: int = Field(default=8, ge=3, le=20)
     research_depth: str = Field(default="balanced", pattern="^(quick|balanced|deep)$")
+
+    # Image generation settings
+    brand_tone: Optional[List[str]] = Field(
+        None,
+        description="Brand communication tone extracted from website (e.g., ['Professional', 'Technical'])"
+    )
+    enable_image_generation: bool = Field(
+        True,
+        description="Enable DALL-E image generation for articles (1 HD hero + 2 standard supporting)"
+    )
+    image_quality: str = Field(
+        "hd",
+        description="DALL-E image quality for hero image: 'standard' ($0.04) or 'hd' ($0.08)",
+        pattern="^(standard|hd)$"
+    )
+    image_style_preferences: Optional[Dict[str, str]] = Field(
+        None,
+        description="Custom image style preferences (overrides tone defaults)"
+    )
 
     @field_validator('seed_keywords')
     @classmethod

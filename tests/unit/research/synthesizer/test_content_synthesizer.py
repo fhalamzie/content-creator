@@ -17,7 +17,7 @@ from src.research.synthesizer.content_synthesizer import (
     PassageExtractionStrategy
 )
 from src.research.backends.base import SearchResult
-from src.utils.config_loader import FullConfig, MarketConfig, CollectorConfig, SchedulingConfig
+from src.utils.config_loader import FullConfig, MarketConfig, CollectorsConfig, SchedulingConfig
 
 
 @pytest.fixture
@@ -72,7 +72,7 @@ def synthesizer_config():
     )
     return FullConfig(
         market=market,
-        collectors=CollectorConfig(),
+        collectors=CollectorsConfig(),
         scheduling=SchedulingConfig()
     )
 
