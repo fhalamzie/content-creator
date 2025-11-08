@@ -1,17 +1,17 @@
 """
-Trends Collector - Google Trends via Gemini CLI
+Trends Collector - Google Trends via Gemini API
 
-**BREAKING CHANGE (Nov 2025)**: Replaced pytrends with Gemini CLI
+**BREAKING CHANGE (Nov 2025)**: Replaced pytrends with Gemini API
 - pytrends is DEAD (archived April 2025, no maintenance)
 - Google 404/429 errors make pytrends unreliable
-- Gemini CLI provides FREE, UNLIMITED, RELIABLE trend data
+- Gemini API provides FREE, RELIABLE trend data with 60s timeout
 
 Features:
-- Gemini CLI for trend data (FREE, unlimited, official Google API)
-- Real-time trending topics via google_web_search tool
+- Gemini API for trend data (FREE, 1,500 grounded queries/day)
+- Real-time trending topics via Google Search grounding
 - Related queries and interest trends via web search
 - Intelligent caching (1h for trending, 24h for interest)
-- NO rate limiting (Gemini CLI, not scraping)
+- Built-in 60s timeout (no hanging)
 - Query health tracking with adaptive retry
 - Regional targeting (DE, US, FR, etc.)
 
@@ -19,11 +19,14 @@ Usage:
     from src.collectors.trends_collector import TrendsCollector
     from src.database.sqlite_manager import DatabaseManager
     from src.processors.deduplicator import Deduplicator
+    from src.agents.gemini_agent import GeminiAgent
 
+    gemini_agent = GeminiAgent(enable_grounding=True)
     collector = TrendsCollector(
         config=config,
         db_manager=db_manager,
         deduplicator=deduplicator,
+        gemini_agent=gemini_agent,
         region='DE'  # Germany
     )
 
@@ -39,7 +42,6 @@ Usage:
 
 import json
 import hashlib
-import subprocess
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Literal
@@ -48,6 +50,7 @@ from enum import Enum
 
 from src.utils.logger import get_logger
 from src.models.document import Document
+from src.agents.gemini_agent import GeminiAgent, GeminiAgentError
 
 logger = get_logger(__name__)
 
@@ -93,15 +96,16 @@ class QueryHealth:
 
 class TrendsCollector:
     """
-    Google Trends collector using Gemini CLI (FREE, unlimited, reliable)
+    Google Trends collector using Gemini API (FREE, reliable, 60s timeout)
 
     Features:
-    - Real-time trending topics via Gemini's google_web_search
+    - Real-time trending topics via Google Search grounding
     - Related queries via web search
     - Interest trends via web research
-    - NO rate limiting (official API, not scraping)
+    - Built-in 60s timeout (no hanging)
     - Smart caching (1h trending, 24h interest)
     - Query health tracking
+    - Free tier: 1,500 grounded queries/day
     """
 
     def __init__(
@@ -109,26 +113,22 @@ class TrendsCollector:
         config,
         db_manager,
         deduplicator,
+        gemini_agent: Optional[GeminiAgent] = None,
         cache_dir: str = "cache/trends",
         region: str = "US",
-        rate_limit: float = 0.5,  # Kept for API compatibility (unused with Gemini)
-        request_timeout: int = 30,  # Gemini CLI timeout
-        max_consecutive_failures: int = 5,
-        gemini_command: str = "gemini"  # Allow custom gemini binary path
+        max_consecutive_failures: int = 5
     ):
         """
-        Initialize Trends Collector (Gemini CLI version)
+        Initialize Trends Collector (Gemini API version)
 
         Args:
             config: Market configuration
             db_manager: Database manager for persistence
             deduplicator: Deduplicator for duplicate detection
+            gemini_agent: GeminiAgent instance (creates default if None)
             cache_dir: Directory for cache storage
             region: Default region for trends (ISO code: US, DE, FR, etc.)
-            rate_limit: DEPRECATED (kept for API compatibility, Gemini has no limits)
-            request_timeout: Gemini CLI timeout in seconds
             max_consecutive_failures: Max failures before marking query unhealthy
-            gemini_command: Gemini CLI command (default: 'gemini')
         """
         self.config = config
         self.db_manager = db_manager
@@ -136,16 +136,22 @@ class TrendsCollector:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
+        # Initialize or use provided GeminiAgent
+        if gemini_agent is None:
+            self.gemini_agent = GeminiAgent(
+                model="gemini-2.5-flash",
+                enable_grounding=True,
+                temperature=0.3
+            )
+        else:
+            self.gemini_agent = gemini_agent
+
         self.region = region
-        self.rate_limit = rate_limit  # Kept for compatibility, unused
-        self.request_timeout = request_timeout
         self.max_consecutive_failures = max_consecutive_failures
-        self.gemini_command = gemini_command
 
         # Internal state
         self._cache: Dict = {}  # In-memory cache
         self.query_health: Dict[str, QueryHealth] = {}
-        self.last_request_time: Optional[float] = None
 
         # Statistics
         self._stats = {
@@ -160,10 +166,10 @@ class TrendsCollector:
         self.load_cache()
 
         logger.info(
-            "TrendsCollector initialized (Gemini CLI)",
+            "TrendsCollector initialized (Gemini API)",
             region=region,
             cache_dir=str(self.cache_dir),
-            backend="gemini_cli"
+            backend="gemini_api"
         )
 
     def collect_trending_searches(
@@ -171,7 +177,7 @@ class TrendsCollector:
         pn: str = 'united_states'
     ) -> List[Document]:
         """
-        Collect trending searches for a region using Gemini CLI
+        Collect trending searches for a region using Gemini API
 
         Args:
             pn: Region name (e.g., 'germany', 'united_states', 'france')
@@ -216,18 +222,35 @@ class TrendsCollector:
 
 Include topics from: news, technology, business, entertainment, sports.
 
-Return as JSON array with this exact format:
-[{{"topic": "topic name", "category": "news|tech|business|entertainment|sports", "description": "brief description"}}]
+Search the web for current trending topics and return them as a structured list."""
 
-Only return the JSON array, no other text."""
+            # Define response schema
+            response_schema = {
+                "type": "object",
+                "properties": {
+                    "topics": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "topic": {"type": "string"},
+                                "category": {"type": "string"},
+                                "description": {"type": "string"}
+                            },
+                            "required": ["topic", "category", "description"]
+                        }
+                    }
+                },
+                "required": ["topics"]
+            }
 
-            logger.info("Fetching trending searches via Gemini CLI", pn=pn)
+            logger.info("Fetching trending searches via Gemini API", pn=pn)
 
-            # Call Gemini CLI
-            result = self._call_gemini_cli(prompt)
+            # Call Gemini API
+            result = self._call_gemini_api(prompt, response_schema)
 
-            # Parse JSON response
-            trends_data = self._parse_gemini_response(result)
+            # Extract topics array
+            trends_data = result if isinstance(result, list) else result.get('topics', [])
 
             if not trends_data:
                 logger.warning("No trending searches found", pn=pn)
@@ -287,7 +310,7 @@ Only return the JSON array, no other text."""
         timeframe: str = 'today 3-m'
     ) -> List[Document]:
         """
-        Collect related queries for keywords using Gemini CLI
+        Collect related queries for keywords using Gemini API
 
         Args:
             keywords: List of keywords to analyze
@@ -324,22 +347,39 @@ Only return the JSON array, no other text."""
 
 Find 15-20 related queries that people are searching for.
 
-Return as JSON array with this exact format:
-[{{"keyword": "parent keyword", "query": "related query", "relevance": 1-100}}]
+Search the web for current trending related queries."""
 
-Only return the JSON array, no other text."""
+            # Define response schema
+            response_schema = {
+                "type": "object",
+                "properties": {
+                    "queries": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "keyword": {"type": "string"},
+                                "query": {"type": "string"},
+                                "relevance": {"type": "number"}
+                            },
+                            "required": ["keyword", "query", "relevance"]
+                        }
+                    }
+                },
+                "required": ["queries"]
+            }
 
             logger.info(
-                "Fetching related queries via Gemini CLI",
+                "Fetching related queries via Gemini API",
                 keywords=keywords,
                 query_type=query_type
             )
 
-            # Call Gemini CLI
-            result = self._call_gemini_cli(prompt)
+            # Call Gemini API
+            result = self._call_gemini_api(prompt, response_schema)
 
-            # Parse JSON response
-            queries_data = self._parse_gemini_response(result)
+            # Extract queries array
+            queries_data = result if isinstance(result, list) else result.get('queries', [])
 
             if not queries_data:
                 logger.warning("No related queries found", keywords=keywords)
@@ -397,7 +437,7 @@ Only return the JSON array, no other text."""
         timeframe: str = 'today 3-m'
     ) -> List[Document]:
         """
-        Collect interest over time for keywords using Gemini CLI
+        Collect interest over time for keywords using Gemini API
 
         Args:
             keywords: List of keywords to analyze
@@ -434,22 +474,40 @@ Provide trend analysis including:
 - Relative interest level (high, medium, low)
 - Notable spikes or changes
 
-Return as JSON array with this exact format:
-[{{"keyword": "keyword name", "trend": "increasing|decreasing|stable", "interest_level": "high|medium|low", "analysis": "brief analysis"}}]
+Search the web for current trend data."""
 
-Only return the JSON array, no other text."""
+            # Define response schema
+            response_schema = {
+                "type": "object",
+                "properties": {
+                    "trends": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "keyword": {"type": "string"},
+                                "trend": {"type": "string"},
+                                "interest_level": {"type": "string"},
+                                "analysis": {"type": "string"}
+                            },
+                            "required": ["keyword", "trend", "interest_level", "analysis"]
+                        }
+                    }
+                },
+                "required": ["trends"]
+            }
 
             logger.info(
-                "Fetching interest over time via Gemini CLI",
+                "Fetching interest over time via Gemini API",
                 keywords=keywords,
                 timeframe=timeframe
             )
 
-            # Call Gemini CLI
-            result = self._call_gemini_cli(prompt)
+            # Call Gemini API
+            result = self._call_gemini_api(prompt, response_schema)
 
-            # Parse JSON response
-            interest_data = self._parse_gemini_response(result)
+            # Extract trends array
+            interest_data = result if isinstance(result, list) else result.get('trends', [])
 
             if not interest_data:
                 logger.warning("No interest data found", keywords=keywords)
@@ -490,88 +548,47 @@ Only return the JSON array, no other text."""
             )
             raise TrendsCollectorError(f"Failed to collect interest over time: {e}")
 
-    def _call_gemini_cli(self, prompt: str) -> str:
+    def _call_gemini_api(self, prompt: str, response_schema: Dict) -> List[Dict]:
         """
-        Call Gemini CLI with a prompt
+        Call Gemini API with a prompt and response schema
 
         Args:
             prompt: Prompt to send to Gemini
+            response_schema: JSON schema for structured output
 
         Returns:
-            Raw output from Gemini CLI
+            Parsed JSON response as list of dictionaries
 
         Raises:
-            TrendsCollectorError: If CLI call fails
+            TrendsCollectorError: If API call fails
         """
         try:
-            result = subprocess.run(
-                [self.gemini_command, prompt, '--output-format', 'json'],
-                capture_output=True,
-                text=True,
-                timeout=self.request_timeout
+            result = self.gemini_agent.generate(
+                prompt=prompt,
+                response_schema=response_schema,
+                enable_grounding=True
             )
 
-            if result.returncode != 0:
-                raise TrendsCollectorError(
-                    f"Gemini CLI failed with code {result.returncode}: {result.stderr}"
-                )
+            # Extract response content
+            if 'content' in result and isinstance(result['content'], list):
+                return result['content']
+            elif 'content' in result:
+                # Single object, wrap in list
+                return [result['content']]
+            else:
+                # Try to find array in response
+                for key in result:
+                    if isinstance(result[key], list):
+                        return result[key]
 
-            return result.stdout
+                raise TrendsCollectorError("No valid array found in Gemini response")
 
-        except subprocess.TimeoutExpired:
-            raise TrendsCollectorError(f"Gemini CLI timeout after {self.request_timeout}s")
-        except FileNotFoundError:
-            raise TrendsCollectorError(
-                "Gemini CLI not found. Install: npm install -g @google/generative-ai-cli"
-            )
+        except GeminiAgentError as e:
+            raise TrendsCollectorError(f"Gemini API error: {e}")
         except Exception as e:
-            raise TrendsCollectorError(f"Gemini CLI error: {e}")
+            logger.error("Failed to call Gemini API", error=str(e))
+            raise TrendsCollectorError(f"Gemini API call failed: {e}")
 
-    def _parse_gemini_response(self, output: str) -> List[Dict]:
-        """
-        Parse Gemini CLI JSON output
-
-        Args:
-            output: Raw output from Gemini CLI
-
-        Returns:
-            Parsed JSON data as list of dictionaries
-
-        Raises:
-            TrendsCollectorError: If parsing fails
-        """
-        try:
-            # Parse outer JSON structure
-            data = json.loads(output)
-
-            # Extract response field
-            if 'response' not in data:
-                raise TrendsCollectorError("No 'response' field in Gemini output")
-
-            response = data['response']
-
-            # Strip markdown code fences if present
-            if isinstance(response, str):
-                response = response.strip()
-                if response.startswith('```json'):
-                    response = response[7:]  # Remove ```json
-                if response.startswith('```'):
-                    response = response[3:]  # Remove ```
-                if response.endswith('```'):
-                    response = response[:-3]  # Remove closing ```
-                response = response.strip()
-
-                # Parse inner JSON array
-                return json.loads(response)
-
-            return []
-
-        except json.JSONDecodeError as e:
-            logger.error("Failed to parse Gemini response", error=str(e), output=output[:200])
-            raise TrendsCollectorError(f"Invalid JSON from Gemini: {e}")
-        except Exception as e:
-            logger.error("Failed to process Gemini response", error=str(e))
-            raise TrendsCollectorError(f"Failed to process Gemini response: {e}")
 
     def _parse_timeframe(self, timeframe: str) -> str:
         """Parse timeframe into human-readable description"""

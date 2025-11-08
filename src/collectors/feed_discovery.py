@@ -66,6 +66,15 @@ class FeedDiscovery:
     2. SerpAPI search + feedfinder2 auto-detection
     """
 
+    # Domain blacklist - skip these domains during feed discovery
+    # Reasons: noisy/irrelevant/general content not specific to verticals
+    BLACKLISTED_DOMAINS = {
+        'wikipedia.org',  # General encyclopedia, not vertical-specific
+        'en.wikipedia.org',  # English Wikipedia
+        'de.wikipedia.org',  # German Wikipedia
+        'wikipedia.com',  # Various Wikipedia variants
+    }
+
     def __init__(
         self,
         config,
@@ -427,6 +436,12 @@ Keep original keywords and add 2-3 related terms per keyword."""
         Returns:
             List of discovered feeds
         """
+        # Check if domain is blacklisted (skip noisy/irrelevant domains)
+        domain_clean = domain.replace('https://', '').replace('http://', '').split('/')[0]
+        if any(blacklisted in domain_clean for blacklisted in self.BLACKLISTED_DOMAINS):
+            logger.info("domain_blacklisted_skipped", domain=domain, reason="noisy/irrelevant content")
+            return []
+
         feeds: List[DiscoveredFeed] = []
 
         try:

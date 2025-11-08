@@ -408,7 +408,8 @@ def test_document_creation_with_all_fields(mock_httpx_get, autocomplete_collecto
     assert doc.canonical_url is not None
     assert doc.title == "proptech deutschland"
     assert doc.content is not None
-    assert "seed keyword: proptech" in doc.content.lower()
+    # Content is now just the suggestion itself (simplified from old template format)
+    assert doc.content.lower() == doc.title.lower()
     assert doc.language == "de"
     assert doc.domain == "SaaS"
     assert doc.market == "Germany"

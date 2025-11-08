@@ -1,33 +1,33 @@
 """
-E2E Integration Tests for Trends Collector (Gemini CLI Backend)
+E2E Integration Tests for Trends Collector (Gemini API Backend)
 
-**BREAKING CHANGE (Nov 2025)**: Updated for Gemini CLI backend
+**BREAKING CHANGE (Nov 2025)**: Updated for Gemini API backend
 
-Tests with real Gemini CLI to validate:
+Tests with real Gemini API to validate:
 - Trending searches for different regions (via Gemini web search)
 - Related queries (top/rising via Gemini)
 - Interest over time (via Gemini analysis)
 - Query health tracking
 - Cache persistence
 
-NOTE: These tests make real Gemini CLI calls and require Gemini CLI installed.
+NOTE: These tests make real Gemini API calls and require GEMINI_API_KEY.
 Run with: pytest tests/unit/collectors/test_trends_collector_e2e.py -v
 
 REQUIREMENTS:
-- Gemini CLI must be installed and configured
+- GEMINI_API_KEY environment variable must be set
 - Tests are marked with @pytest.mark.external_api (real API calls)
-- NO rate limiting (unlike pytrends) - tests should be reliable!
-
-Install Gemini CLI: npm install -g @google/generative-ai-cli
+- Uses GeminiAgent with 60s timeout (more reliable than 30s CLI timeout)
 """
 
 import pytest
+import os
 from pathlib import Path
 from datetime import datetime
 from unittest.mock import Mock
 
 from src.collectors.trends_collector import TrendsCollector, TrendsCollectorError
 from src.models.document import Document
+from src.agents.gemini_agent import GeminiAgent
 
 # Mark all tests in this module as external API tests (may fail due to rate limiting)
 pytestmark = pytest.mark.external_api
@@ -77,16 +77,31 @@ def mock_deduplicator():
 
 
 @pytest.fixture
-def trends_collector(mock_config, mock_db_manager, mock_deduplicator, temp_cache_dir):
+def gemini_agent():
+    """Create real GeminiAgent for E2E tests"""
+    # Check for API key
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        pytest.skip("GEMINI_API_KEY environment variable not set")
+
+    return GeminiAgent(
+        model="gemini-2.5-flash",
+        api_key=api_key,
+        enable_grounding=True,
+        temperature=0.3
+    )
+
+
+@pytest.fixture
+def trends_collector(mock_config, mock_db_manager, mock_deduplicator, gemini_agent, temp_cache_dir):
     """Create TrendsCollector instance for E2E tests"""
     return TrendsCollector(
         config=mock_config,
         db_manager=mock_db_manager,
         deduplicator=mock_deduplicator,
+        gemini_agent=gemini_agent,
         cache_dir=temp_cache_dir,
-        region="DE",  # Germany
-        rate_limit=0.5,  # 1 req per 2 seconds
-        request_timeout=30  # Longer timeout for real API
+        region="DE"  # Germany
     )
 
 
@@ -214,32 +229,27 @@ def test_e2e_interest_over_time_proptech(trends_collector):
 
 
 @pytest.mark.e2e
-def test_e2e_rate_limiting_multiple_requests(trends_collector):
+def test_e2e_multiple_requests_sequential(trends_collector):
     """
-    E2E: Verify rate limiting works with multiple real requests
+    E2E: Verify multiple sequential requests work correctly
 
-    Expected: Requests are throttled to respect rate limit
+    Expected: All requests complete successfully without rate limit issues
     """
-    import time
-
-    start_time = time.time()
-
-    # Make 3 requests (should take at least 4 seconds with 0.5 req/sec rate)
-    trends_collector.collect_trending_searches(pn='germany')
+    # Make 3 sequential requests
+    docs1 = trends_collector.collect_trending_searches(pn='germany')
     trends_collector._cache = {}  # Clear cache
-    trends_collector.collect_trending_searches(pn='united_states')
+    docs2 = trends_collector.collect_trending_searches(pn='united_states')
     trends_collector._cache = {}  # Clear cache
-    trends_collector.collect_trending_searches(pn='france')
+    docs3 = trends_collector.collect_trending_searches(pn='france')
 
-    elapsed = time.time() - start_time
-
-    # Should take at least 4 seconds (2 sec between each of 3 requests)
-    # Allow some margin for API latency
-    assert elapsed >= 3.0, f"Rate limiting not enforced (took {elapsed}s)"
+    # All requests should succeed (may return 0 results if no trends available)
+    assert isinstance(docs1, list)
+    assert isinstance(docs2, list)
+    assert isinstance(docs3, list)
 
 
 @pytest.mark.e2e
-def test_e2e_cache_persistence_across_instances(mock_config, mock_db_manager, mock_deduplicator, temp_cache_dir):
+def test_e2e_cache_persistence_across_instances(mock_config, mock_db_manager, mock_deduplicator, gemini_agent, temp_cache_dir):
     """
     E2E: Verify cache persists across collector instances
 
@@ -250,6 +260,7 @@ def test_e2e_cache_persistence_across_instances(mock_config, mock_db_manager, mo
         config=mock_config,
         db_manager=mock_db_manager,
         deduplicator=mock_deduplicator,
+        gemini_agent=gemini_agent,
         cache_dir=temp_cache_dir,
         region="DE"
     )
@@ -262,6 +273,7 @@ def test_e2e_cache_persistence_across_instances(mock_config, mock_db_manager, mo
         config=mock_config,
         db_manager=mock_db_manager,
         deduplicator=mock_deduplicator,
+        gemini_agent=gemini_agent,
         cache_dir=temp_cache_dir,
         region="DE"
     )
@@ -351,7 +363,7 @@ def test_e2e_statistics_tracking(trends_collector):
 # ==================== Integration Tests (Config-based) ====================
 
 @pytest.mark.integration
-def test_integration_with_proptech_config(mock_db_manager, mock_deduplicator, tmp_path):
+def test_integration_with_proptech_config(mock_db_manager, mock_deduplicator, gemini_agent, tmp_path):
     """
     Integration: Test Trends collector with PropTech German config
 
@@ -371,6 +383,7 @@ def test_integration_with_proptech_config(mock_db_manager, mock_deduplicator, tm
         config=config,
         db_manager=mock_db_manager,
         deduplicator=mock_deduplicator,
+        gemini_agent=gemini_agent,
         cache_dir=str(tmp_path / "trends_cache"),
         region="DE"
     )

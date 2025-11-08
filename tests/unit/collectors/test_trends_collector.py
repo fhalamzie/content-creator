@@ -72,60 +72,58 @@ def mock_deduplicator():
 
 
 @pytest.fixture
-def trends_collector(mock_config, mock_db_manager, mock_deduplicator, temp_cache_dir):
+def mock_gemini_agent():
+    """Mock GeminiAgent for tests"""
+    agent = Mock()
+    agent.generate = Mock()
+    return agent
+
+
+@pytest.fixture
+def trends_collector(mock_config, mock_db_manager, mock_deduplicator, mock_gemini_agent, temp_cache_dir):
     """Create TrendsCollector instance for tests"""
     return TrendsCollector(
         config=mock_config,
         db_manager=mock_db_manager,
         deduplicator=mock_deduplicator,
+        gemini_agent=mock_gemini_agent,
         cache_dir=temp_cache_dir,
-        region="DE",  # Germany
-        rate_limit=0.5,  # Kept for compatibility (unused in Gemini)
-        request_timeout=30
+        region="DE"  # Germany
     )
 
 
 @pytest.fixture
 def mock_gemini_trending_response():
-    """Mock Gemini CLI response for trending searches"""
-    return json.dumps({
-        "response": json.dumps([
+    """Mock GeminiAgent API response for trending searches"""
+    return {
+        "content": [
             {"topic": "PropTech Deutschland", "category": "tech", "description": "Property technology trends in Germany"},
             {"topic": "Smart Building IoT", "category": "tech", "description": "IoT solutions for smart buildings"},
             {"topic": "DSGVO Immobilien", "category": "news", "description": "GDPR compliance for real estate"}
-        ])
-    })
+        ]
+    }
 
 
 @pytest.fixture
 def mock_gemini_related_queries_response():
-    """Mock Gemini CLI response for related queries"""
-    return json.dumps({
-        "response": json.dumps([
+    """Mock GeminiAgent API response for related queries"""
+    return {
+        "content": [
             {"keyword": "PropTech", "query": "proptech startup", "relevance": 100},
             {"keyword": "PropTech", "query": "proptech immobilien", "relevance": 75},
             {"keyword": "PropTech", "query": "proptech software", "relevance": 50}
-        ])
-    })
+        ]
+    }
 
 
 @pytest.fixture
 def mock_gemini_interest_response():
-    """Mock Gemini CLI response for interest over time"""
-    return json.dumps({
-        "response": json.dumps([
+    """Mock GeminiAgent API response for interest over time"""
+    return {
+        "content": [
             {"keyword": "PropTech", "trend": "increasing", "interest_level": "high", "analysis": "Strong upward trend over past 3 months"}
-        ])
-    })
-
-
-def create_mock_subprocess_result(stdout: str, returncode: int = 0, stderr: str = ""):
-    """Helper to create mock subprocess.CompletedProcess"""
-    result = Mock(spec=subprocess.CompletedProcess)
-    result.stdout = stdout
-    result.returncode = returncode
-    result.stderr = stderr
-    return result
+        ]
+    }
 
 
 # ==================== Constructor Tests ====================
@@ -135,14 +133,13 @@ def test_trends_collector_initialization(trends_collector, temp_cache_dir):
     assert trends_collector.config is not None
     assert trends_collector.db_manager is not None
     assert trends_collector.deduplicator is not None
+    assert trends_collector.gemini_agent is not None
     assert trends_collector.cache_dir == Path(temp_cache_dir)
     assert trends_collector.region == "DE"
-    assert trends_collector.rate_limit == 0.5
     assert trends_collector.query_health == {}
-    assert trends_collector.last_request_time is None
 
 
-def test_trends_collector_creates_cache_dir(mock_config, mock_db_manager, mock_deduplicator, tmp_path):
+def test_trends_collector_creates_cache_dir(mock_config, mock_db_manager, mock_deduplicator, mock_gemini_agent, tmp_path):
     """Test TrendsCollector creates cache directory if missing"""
     cache_dir = tmp_path / "new_trends_cache"
     assert not cache_dir.exists()
@@ -151,6 +148,7 @@ def test_trends_collector_creates_cache_dir(mock_config, mock_db_manager, mock_d
         config=mock_config,
         db_manager=mock_db_manager,
         deduplicator=mock_deduplicator,
+        gemini_agent=mock_gemini_agent,
         cache_dir=str(cache_dir)
     )
 
@@ -159,20 +157,14 @@ def test_trends_collector_creates_cache_dir(mock_config, mock_db_manager, mock_d
 
 # ==================== Trending Searches Tests ====================
 
-@patch('subprocess.run')
-def test_collect_trending_searches_success(mock_subprocess, trends_collector, mock_gemini_trending_response):
-    """Test collecting trending searches successfully via Gemini CLI"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+def test_collect_trending_searches_success(trends_collector, mock_gemini_trending_response):
+    """Test collecting trending searches successfully via Gemini API"""
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     documents = trends_collector.collect_trending_searches(pn='germany')
 
-    # Verify subprocess called
-    assert mock_subprocess.called
-    call_args = mock_subprocess.call_args[0][0]
-    assert call_args[0] == 'gemini'
-    assert isinstance(call_args[1], str)  # Prompt
-    assert call_args[2] == '--output-format'
-    assert call_args[3] == 'json'
+    # Verify gemini_agent was called
+    assert trends_collector.gemini_agent.generate.called
 
     # Verify documents created
     assert len(documents) == 3
@@ -182,37 +174,35 @@ def test_collect_trending_searches_success(mock_subprocess, trends_collector, mo
     assert "tech" in documents[0].content
 
 
-@patch('subprocess.run')
-def test_collect_trending_searches_empty(mock_subprocess, trends_collector):
+def test_collect_trending_searches_empty(trends_collector):
     """Test handling of empty trending searches"""
     # Gemini returns empty array
-    mock_subprocess.return_value = create_mock_subprocess_result(json.dumps({"response": "[]"}))
+    trends_collector.gemini_agent.generate.return_value = {"content": []}
 
     documents = trends_collector.collect_trending_searches(pn='germany')
 
     assert len(documents) == 0
 
 
-@patch('subprocess.run')
-def test_collect_trending_searches_error(mock_subprocess, trends_collector):
-    """Test error handling when Gemini CLI fails"""
-    mock_subprocess.return_value = create_mock_subprocess_result("", returncode=1, stderr="Gemini CLI error")
+def test_collect_trending_searches_error(trends_collector):
+    """Test error handling when Gemini API fails"""
+    from src.agents.gemini_agent import GeminiAgentError
+    trends_collector.gemini_agent.generate.side_effect = GeminiAgentError("API error")
 
-    with pytest.raises(TrendsCollectorError, match="Gemini CLI failed"):
+    with pytest.raises(TrendsCollectorError, match="Gemini API"):
         trends_collector.collect_trending_searches(pn='germany')
 
 
 # ==================== Related Queries Tests ====================
 
-@patch('subprocess.run')
-def test_collect_related_queries_top(mock_subprocess, trends_collector, mock_gemini_related_queries_response):
-    """Test collecting top related queries via Gemini CLI"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_related_queries_response)
+def test_collect_related_queries_top(trends_collector, mock_gemini_related_queries_response):
+    """Test collecting top related queries via Gemini API"""
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_related_queries_response
 
     documents = trends_collector.collect_related_queries(keywords=['PropTech'], query_type='top')
 
-    # Verify subprocess called
-    assert mock_subprocess.called
+    # Verify gemini_agent was called
+    assert trends_collector.gemini_agent.generate.called
 
     # Verify documents created
     assert len(documents) == 3
@@ -221,10 +211,9 @@ def test_collect_related_queries_top(mock_subprocess, trends_collector, mock_gem
     assert "proptech startup" in documents[0].title
 
 
-@patch('subprocess.run')
-def test_collect_related_queries_rising(mock_subprocess, trends_collector, mock_gemini_related_queries_response):
-    """Test collecting rising related queries via Gemini CLI"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_related_queries_response)
+def test_collect_related_queries_rising(trends_collector, mock_gemini_related_queries_response):
+    """Test collecting rising related queries via Gemini API"""
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_related_queries_response
 
     documents = trends_collector.collect_related_queries(keywords=['PropTech'], query_type='rising')
 
@@ -232,16 +221,15 @@ def test_collect_related_queries_rising(mock_subprocess, trends_collector, mock_
     assert "Rising query:" in documents[0].title
 
 
-@patch('subprocess.run')
-def test_collect_related_queries_multiple_keywords(mock_subprocess, trends_collector):
+def test_collect_related_queries_multiple_keywords(trends_collector):
     """Test collecting related queries for multiple keywords"""
-    response = json.dumps({
-        "response": json.dumps([
+    response = {
+        "content": [
             {"keyword": "PropTech", "query": "proptech startup", "relevance": 100},
             {"keyword": "Smart Building", "query": "smart building automation", "relevance": 90}
-        ])
-    })
-    mock_subprocess.return_value = create_mock_subprocess_result(response)
+        ]
+    }
+    trends_collector.gemini_agent.generate.return_value = response
 
     documents = trends_collector.collect_related_queries(keywords=['PropTech', 'Smart Building'])
 
@@ -254,15 +242,14 @@ def test_collect_related_queries_multiple_keywords(mock_subprocess, trends_colle
 
 # ==================== Interest Over Time Tests ====================
 
-@patch('subprocess.run')
-def test_collect_interest_over_time_success(mock_subprocess, trends_collector, mock_gemini_interest_response):
-    """Test collecting interest over time via Gemini CLI"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_interest_response)
+def test_collect_interest_over_time_success(trends_collector, mock_gemini_interest_response):
+    """Test collecting interest over time via Gemini API"""
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_interest_response
 
     documents = trends_collector.collect_interest_over_time(keywords=['PropTech'])
 
-    # Verify subprocess called
-    assert mock_subprocess.called
+    # Verify gemini_agent was called
+    assert trends_collector.gemini_agent.generate.called
 
     # Verify documents created
     assert len(documents) == 1
@@ -272,10 +259,9 @@ def test_collect_interest_over_time_success(mock_subprocess, trends_collector, m
     assert "high" in documents[0].content
 
 
-@patch('subprocess.run')
-def test_collect_interest_over_time_custom_timeframe(mock_subprocess, trends_collector, mock_gemini_interest_response):
+def test_collect_interest_over_time_custom_timeframe(trends_collector, mock_gemini_interest_response):
     """Test interest over time with custom timeframe"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_interest_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_interest_response
 
     documents = trends_collector.collect_interest_over_time(
         keywords=['PropTech'],
@@ -283,26 +269,24 @@ def test_collect_interest_over_time_custom_timeframe(mock_subprocess, trends_col
     )
 
     assert len(documents) == 1
-    # Verify timeframe was parsed (prompt should mention "past 12 months")
-    call_args = mock_subprocess.call_args[0][0]
-    assert 'past 12 months' in call_args[1] or 'past year' in call_args[1]
+    # Verify gemini_agent was called
+    assert trends_collector.gemini_agent.generate.called
 
 
 # ==================== Caching Tests ====================
 
-@patch('subprocess.run')
-def test_trending_searches_caching(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_trending_searches_caching(trends_collector, mock_gemini_trending_response):
     """Test trending searches are cached (1 hour TTL)"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
-    # First call - should hit Gemini CLI
+    # First call - should hit Gemini API
     docs1 = trends_collector.collect_trending_searches(pn='germany')
-    assert mock_subprocess.call_count == 1
+    assert trends_collector.gemini_agent.generate.call_count == 1
     assert trends_collector._stats['cache_misses'] == 1
 
     # Second call - should use cache
     docs2 = trends_collector.collect_trending_searches(pn='germany')
-    assert mock_subprocess.call_count == 1  # No additional call
+    assert trends_collector.gemini_agent.generate.call_count == 1  # No additional call
     assert trends_collector._stats['cache_hits'] == 1
 
     # Results should be identical
@@ -310,44 +294,41 @@ def test_trending_searches_caching(mock_subprocess, trends_collector, mock_gemin
     assert docs1[0].title == docs2[0].title
 
 
-@patch('subprocess.run')
-def test_trending_searches_cache_expiry(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_trending_searches_cache_expiry(trends_collector, mock_gemini_trending_response):
     """Test cache expires after TTL"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     # First call
     trends_collector.collect_trending_searches(pn='germany')
-    assert mock_subprocess.call_count == 1
+    assert trends_collector.gemini_agent.generate.call_count == 1
 
     # Expire cache manually
     cache_key = "trending_searches_germany"
     trends_collector._cache[cache_key]['timestamp'] = datetime.now() - timedelta(hours=2)
 
-    # Second call - cache expired, should hit Gemini CLI again
+    # Second call - cache expired, should hit Gemini API again
     trends_collector.collect_trending_searches(pn='germany')
-    assert mock_subprocess.call_count == 2
+    assert trends_collector.gemini_agent.generate.call_count == 2
 
 
-@patch('subprocess.run')
-def test_interest_over_time_caching(mock_subprocess, trends_collector, mock_gemini_interest_response):
+def test_interest_over_time_caching(trends_collector, mock_gemini_interest_response):
     """Test interest data is cached (24 hour TTL)"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_interest_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_interest_response
 
     # First call
     trends_collector.collect_interest_over_time(keywords=['PropTech'])
-    assert mock_subprocess.call_count == 1
+    assert trends_collector.gemini_agent.generate.call_count == 1
 
     # Second call - should use cache
     trends_collector.collect_interest_over_time(keywords=['PropTech'])
-    assert mock_subprocess.call_count == 1  # No additional call
+    assert trends_collector.gemini_agent.generate.call_count == 1  # No additional call
 
 
 # ==================== Query Health Tests ====================
 
-@patch('subprocess.run')
-def test_query_health_initialization(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_query_health_initialization(trends_collector, mock_gemini_trending_response):
     """Test query health is initialized on first query"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     query_id = "trending_searches_germany"
     assert query_id not in trends_collector.query_health
@@ -358,10 +339,9 @@ def test_query_health_initialization(mock_subprocess, trends_collector, mock_gem
     assert trends_collector.query_health[query_id].success_count == 1
 
 
-@patch('subprocess.run')
-def test_query_health_success_tracking(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_query_health_success_tracking(trends_collector, mock_gemini_trending_response):
     """Test query health tracks successful queries"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     query_id = "trending_searches_germany"
 
@@ -376,10 +356,10 @@ def test_query_health_success_tracking(mock_subprocess, trends_collector, mock_g
     assert health.consecutive_failures == 0
 
 
-@patch('subprocess.run')
-def test_query_health_failure_tracking(mock_subprocess, trends_collector):
+def test_query_health_failure_tracking(trends_collector):
     """Test query health tracks failures"""
-    mock_subprocess.return_value = create_mock_subprocess_result("", returncode=1, stderr="Error")
+    from src.agents.gemini_agent import GeminiAgentError
+    trends_collector.gemini_agent.generate.side_effect = GeminiAgentError("API error")
 
     query_id = "trending_searches_germany"
 
@@ -392,11 +372,10 @@ def test_query_health_failure_tracking(mock_subprocess, trends_collector):
     assert health.consecutive_failures == 1
 
 
-@patch('subprocess.run')
-def test_should_skip_unhealthy_query(mock_subprocess, trends_collector):
+def test_should_skip_unhealthy_query(trends_collector):
     """Test unhealthy queries are skipped"""
-    mock_subprocess.return_value = create_mock_subprocess_result("", returncode=1, stderr="Error")
-
+    from src.agents.gemini_agent import GeminiAgentError
+    trends_collector.gemini_agent.generate.side_effect = GeminiAgentError("API error")
 
     # Trigger 5 consecutive failures
     for _ in range(5):
@@ -410,10 +389,9 @@ def test_should_skip_unhealthy_query(mock_subprocess, trends_collector):
 
 # ==================== Document Creation Tests ====================
 
-@patch('subprocess.run')
-def test_document_creation_with_all_fields(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_document_creation_with_all_fields(trends_collector, mock_gemini_trending_response):
     """Test Document model is created with all required fields"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     documents = trends_collector.collect_trending_searches(pn='germany')
     doc = documents[0]
@@ -434,10 +412,9 @@ def test_document_creation_with_all_fields(mock_subprocess, trends_collector, mo
     assert doc.content_hash is not None
 
 
-@patch('subprocess.run')
-def test_document_id_generation(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_document_id_generation(trends_collector, mock_gemini_trending_response):
     """Test document ID generation is consistent"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     # Collect twice (second from cache)
     docs1 = trends_collector.collect_trending_searches(pn='germany')
@@ -451,10 +428,9 @@ def test_document_id_generation(mock_subprocess, trends_collector, mock_gemini_t
     assert docs1[0].id != docs1[1].id
 
 
-@patch('subprocess.run')
-def test_skip_duplicate_documents(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_skip_duplicate_documents(trends_collector, mock_gemini_trending_response):
     """Test duplicate documents are skipped"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     # Mark first document as duplicate
     trends_collector.deduplicator.is_duplicate = Mock(side_effect=[True, False, False])
@@ -467,10 +443,9 @@ def test_skip_duplicate_documents(mock_subprocess, trends_collector, mock_gemini
 
 # ==================== Statistics Tests ====================
 
-@patch('subprocess.run')
-def test_collection_statistics(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_collection_statistics(trends_collector, mock_gemini_trending_response):
     """Test collection statistics are tracked"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     # Initial stats
     stats = trends_collector.get_statistics()
@@ -488,50 +463,47 @@ def test_collection_statistics(mock_subprocess, trends_collector, mock_gemini_tr
 
 # ==================== Error Handling Tests ====================
 
-@patch('subprocess.run')
-def test_network_error_handling(mock_subprocess, trends_collector):
-    """Test handling of subprocess timeout"""
-    mock_subprocess.side_effect = subprocess.TimeoutExpired(cmd=['gemini'], timeout=30)
+def test_network_error_handling(trends_collector):
+    """Test handling of API timeout"""
+    from src.agents.gemini_agent import GeminiAgentError
+    trends_collector.gemini_agent.generate.side_effect = GeminiAgentError("Request timeout")
 
-    with pytest.raises(TrendsCollectorError, match="timeout"):
+    with pytest.raises(TrendsCollectorError, match="Gemini API"):
         trends_collector.collect_trending_searches(pn='germany')
 
 
-@patch('subprocess.run')
-def test_invalid_region_handling(mock_subprocess, trends_collector):
+def test_invalid_region_handling(trends_collector):
     """Test handling of invalid region (Gemini still works)"""
-    response = json.dumps({"response": "[]"})
-    mock_subprocess.return_value = create_mock_subprocess_result(response)
+    trends_collector.gemini_agent.generate.return_value = {"content": []}
 
     # Invalid region - Gemini should handle gracefully
     documents = trends_collector.collect_trending_searches(pn='invalid_region')
     assert len(documents) == 0  # Empty but no error
 
 
-@patch('subprocess.run')
-def test_gemini_cli_not_found(mock_subprocess, trends_collector):
-    """Test handling when Gemini CLI not installed"""
-    mock_subprocess.side_effect = FileNotFoundError("gemini command not found")
+def test_gemini_api_error(trends_collector):
+    """Test handling when Gemini API error occurs"""
+    from src.agents.gemini_agent import GeminiAgentError
+    trends_collector.gemini_agent.generate.side_effect = GeminiAgentError("API unavailable")
 
-    with pytest.raises(TrendsCollectorError, match="Gemini CLI not found"):
+    with pytest.raises(TrendsCollectorError, match="Gemini API"):
         trends_collector.collect_trending_searches(pn='germany')
 
 
-@patch('subprocess.run')
-def test_invalid_json_response(mock_subprocess, trends_collector):
-    """Test handling of invalid JSON from Gemini"""
-    mock_subprocess.return_value = create_mock_subprocess_result("invalid json")
+def test_invalid_response_handling(trends_collector):
+    """Test handling of invalid response from Gemini"""
+    trends_collector.gemini_agent.generate.return_value = {}
 
-    with pytest.raises(TrendsCollectorError, match="Invalid JSON"):
+    # Empty response should handle gracefully
+    with pytest.raises(TrendsCollectorError, match="No valid array"):
         trends_collector.collect_trending_searches(pn='germany')
 
 
 # ==================== Cache Persistence Tests ====================
 
-@patch('subprocess.run')
-def test_save_and_load_query_cache(mock_subprocess, trends_collector, mock_gemini_trending_response):
+def test_save_and_load_query_cache(trends_collector, mock_gemini_trending_response, mock_config, mock_db_manager, mock_deduplicator, mock_gemini_agent):
     """Test cache persistence to disk"""
-    mock_subprocess.return_value = create_mock_subprocess_result(mock_gemini_trending_response)
+    trends_collector.gemini_agent.generate.return_value = mock_gemini_trending_response
 
     # Collect and cache
     docs1 = trends_collector.collect_trending_searches(pn='germany')
@@ -540,18 +512,20 @@ def test_save_and_load_query_cache(mock_subprocess, trends_collector, mock_gemin
     trends_collector.save_cache()
 
     # Create new collector (loads cache from disk)
+    # Should load from cache, no API call needed
     new_collector = TrendsCollector(
-        config=trends_collector.config,
-        db_manager=trends_collector.db_manager,
-        deduplicator=trends_collector.deduplicator,
+        config=mock_config,
+        db_manager=mock_db_manager,
+        deduplicator=mock_deduplicator,
+        gemini_agent=mock_gemini_agent,
         cache_dir=str(trends_collector.cache_dir),
         region="DE"
     )
 
-    # Should load from cache (no subprocess call)
+    # Should load from cache (no additional API call)
     docs2 = new_collector.collect_trending_searches(pn='germany')
 
     assert len(docs2) == len(docs1)
     assert docs2[0].title == docs1[0].title
-    # Subprocess should only be called once (first collector)
-    assert mock_subprocess.call_count == 1
+    # Gemini API should only be called once (first collector)
+    assert trends_collector.gemini_agent.generate.call_count == 1

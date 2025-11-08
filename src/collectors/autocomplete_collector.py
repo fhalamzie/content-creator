@@ -3,9 +3,9 @@ Autocomplete Collector - Google Autocomplete Suggestions
 
 Features:
 - Google autocomplete API for keyword expansion
-- Alphabet expansion (a-z patterns)
-- Question prefix expansion (what, how, why, when, where, who)
-- Preposition expansion (for, with, without, near, vs, versus)
+- Question prefix expansion (what, how, why, when, where, who) - DEFAULT
+- Alphabet expansion (a-z patterns) - optional, high volume
+- Preposition expansion (for, with, without, near, vs, versus) - optional
 - Smart caching (30-day TTL for suggestions)
 - Rate limiting (10 req/sec - Google autocomplete is lenient)
 - Language support (de, en, fr, etc.)
@@ -23,10 +23,15 @@ Usage:
         language='de'  # German
     )
 
-    # Collect with alphabet + question expansion
+    # Collect with default (questions only - low noise, high value)
     docs = collector.collect_suggestions(
-        seed_keywords=['PropTech', 'Smart Building'],
-        expansion_types=[ExpansionType.ALPHABET, ExpansionType.QUESTIONS]
+        seed_keywords=['PropTech', 'Smart Building']
+    )
+
+    # Or specify custom expansion types if needed
+    docs = collector.collect_suggestions(
+        seed_keywords=['PropTech'],
+        expansion_types=[ExpansionType.ALPHABET, ExpansionType.QUESTIONS]  # High volume
     )
 """
 
@@ -147,7 +152,7 @@ class AutocompleteCollector:
 
         Args:
             seed_keywords: List of seed keywords to expand
-            expansion_types: Types of expansion to use (default: all)
+            expansion_types: Types of expansion to use (default: QUESTIONS only)
             max_per_keyword: Max expansions per keyword (useful for limiting alphabet)
 
         Returns:
@@ -157,7 +162,10 @@ class AutocompleteCollector:
             AutocompleteCollectorError: If collection fails
         """
         if expansion_types is None:
-            expansion_types = [ExpansionType.ALPHABET, ExpansionType.QUESTIONS, ExpansionType.PREPOSITIONS]
+            # Default to QUESTIONS only - reduces noise from alphabet/preposition patterns
+            # ALPHABET generates 26 queries per keyword (a-z), PREPOSITIONS generates 6
+            # QUESTIONS generates 6 high-value queries (what, how, why, when, where, who)
+            expansion_types = [ExpansionType.QUESTIONS]
 
         all_documents = []
         seen_suggestions = set()  # Dedup across all expansions
@@ -361,8 +369,10 @@ class AutocompleteCollector:
         source_url = f"{self.AUTOCOMPLETE_URL}?q={suggestion.replace(' ', '+')}&client=firefox&hl={self.language}"
         canonical_url = self.deduplicator.get_canonical_url(source_url)
 
-        # Create content with metadata
-        content = f"Autocomplete suggestion: {suggestion}\nSeed keyword: {seed_keyword}\nExpansion type: {expansion_type.value}"
+        # Create content using just the suggestion (avoid template duplication)
+        # Old format created 90% identical content across suggestions, causing false duplicates
+        # New format: use suggestion as-is for unique content
+        content = suggestion
 
         return Document(
             id=doc_id,
