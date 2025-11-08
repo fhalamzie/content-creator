@@ -47,12 +47,14 @@ def temp_dirs(tmp_path):
 @pytest.fixture
 def integration_config(temp_dirs):
     """Load real config for integration tests"""
-    config_path = "config/markets/proptech_de.yaml"
+    config_name = "proptech_de"
 
-    if not Path(config_path).exists():
-        pytest.skip(f"Config file not found: {config_path}")
+    loader = ConfigLoader()
+    try:
+        config = loader.load(config_name)
+    except FileNotFoundError:
+        pytest.skip(f"Config file not found: {config_name}.yaml")
 
-    config = ConfigLoader.load_config(config_path)
     return config
 
 

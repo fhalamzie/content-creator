@@ -372,11 +372,8 @@ class RedditCollector:
         # Build Reddit URL
         post_url = f"https://reddit.com{submission.permalink}"
 
-        # Check for duplicates
+        # Get canonical URL
         canonical_url = self.deduplicator.get_canonical_url(post_url)
-        if self.deduplicator.is_duplicate(canonical_url):
-            self._stats["total_skipped_duplicates"] += 1
-            return None
 
         # Extract content
         content = submission.selftext if submission.is_self else ""
@@ -423,6 +420,11 @@ class RedditCollector:
             author=author,
             status="new"
         )
+
+        # Check for duplicates (after Document creation)
+        if self.deduplicator.is_duplicate(document):
+            self._stats["total_skipped_duplicates"] += 1
+            return None
 
         return document
 
