@@ -2,6 +2,27 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 040: Duplicate Rate Reduction - Autocomplete & Feed Filtering (2025-11-08)
+
+**73% Improvement**: Reduced duplicate rate from 75.63% → 20.63% by fixing autocomplete noise and Wikipedia feed filtering.
+
+**Root Causes Fixed**:
+- Autocomplete noise: 304 low-value queries (alphabet a-z patterns) + template-based content (90% identical → false duplicates)
+- Wikipedia feeds: 80 noisy docs from general encyclopedia (not PropTech-specific)
+
+**3 Key Fixes**:
+- Autocomplete default: ALL expansion types → QUESTIONS only (304 → 18 queries, 94% reduction)
+- Autocomplete content: Template format → plain suggestion (prevents MinHash false positives)
+- Feed discovery: Added Wikipedia domain blacklist (skips 4 noisy feeds)
+
+**Results**: 143 → 63 total docs (56% reduction), 108 → 13 duplicates (88% reduction), 35 → 50 unique docs (43% increase)
+
+**Test Results**: ✅ E2E test passing (20.63% < 30% target), ✅ 23/23 autocomplete unit tests passing
+
+**See**: [Full details](docs/sessions/040-duplicate-rate-reduction.md)
+
+---
+
 ## Session 039: RSS Collection Integration - Dual-Source Config Support (2025-11-07)
 
 **RSS Collection Integrated**: Fixed RSS feed collection in UniversalTopicAgent with dual-source configuration support. Supports feeds from `market.rss_feeds` (HttpUrl), `collectors.custom_feeds` (strings), and discovered feeds.
@@ -42,55 +63,6 @@ Recent development sessions (last 3 sessions, <100 lines).
 **Test Results**: ✅ 169/169 config-related unit tests passing (5 unrelated external API failures)
 
 **See**: [Full details](docs/sessions/038-fullconfig-standardization-consolidation.md)
-
----
-
-## Session 037: Collection Pipeline Config Fixes + Test Infrastructure (2025-11-07)
-
-**15 Critical Config Bugs Fixed**: Resolved systematic FullConfig vs MarketConfig type mismatches preventing E2E pipeline execution.
-
-**Config Fixes (2 Rounds)**:
-- Round 1: 7 fixes across 4 collectors (autocomplete, rss, feed_discovery, trends)
-- Round 2: 8 additional fixes in UniversalTopicAgent (logger, collection methods, clustering, topic creation)
-- Pattern: All changed from flat `config.{field}` → nested `config.market.{field}` access
-
-**Test Infrastructure**:
-- Created 3 E2E tests (test_full_collection_pipeline_e2e.py, 395 lines)
-- Increased timeout 300s → 600s for feed discovery operations
-- Validated: 93 documents collected, 769 duplicates removed (89% expected for autocomplete), 100% database persistence
-
-**Documentation**:
-- Enhanced README.md with Hybrid Orchestrator usage examples
-- Updated ARCHITECTURE.md with Stage 4.5 performance metrics
-- Created docs/hybrid_orchestrator.md comprehensive guide (286 lines)
-
-**Status**: Collection pipeline operational. Config access patterns standardized. E2E validation successful.
-
-**See**: [Full details](docs/sessions/037-collection-pipeline-config-fixes.md)
-
----
-
-## Session 036: Hybrid Orchestrator Phase 4-5 - Automatic Fallback & E2E Testing (2025-11-06)
-
-**Phase 4-5 Complete**: Implemented automatic fallback system (Gemini → Tavily) and comprehensive E2E testing. Ensures 95%+ uptime despite free-tier API rate limits.
-
-**Phase 4 - Automatic Fallback**:
-- CostTracker class tracks free vs paid API calls per stage (177 lines, 15 tests)
-- Stage 2 fallback: Gemini rate limit → Tavily API ($0.02)
-- Rate limit detection: 429, "rate", "quota", "limit" keywords
-- Tavily fallback method extracts competitors from search results
-- Cost tracking integrated across all API transitions
-
-**Phase 5 - E2E Testing**:
-- 28 new tests (15 CostTracker + 7 fallback + 6 E2E) - **100% passing**
-- Full pipeline test: Website → Competitor → Topics → Validation
-- Automatic fallback test: Rate limit triggers Tavily in full pipeline
-- Pipeline resilience test: Graceful degradation with failures
-- Cost optimization tests: Free-tier priority, 60% savings via validation
-
-**Performance**: 95%+ uptime (was 0% after rate limit), $0.02 fallback cost, 60% cost reduction via Stage 4.5
-
-**See**: [Full details](docs/sessions/036-hybrid-orchestrator-phase4-5-fallback-testing.md)
 
 ---
 
