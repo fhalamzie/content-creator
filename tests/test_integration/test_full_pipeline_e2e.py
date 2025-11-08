@@ -137,15 +137,15 @@ async def test_full_pipeline_e2e(content_pipeline, test_topic, test_config):
     print(f"✅ Stage 2: Keywords dict with {len(result.keywords)} fields")
 
     # Stage 3: Deep Research (THE NEWLY ENABLED STAGE!)
-    assert result.deep_research_report is not None, "Stage 3: deep_research_report should be populated"
-    assert len(result.deep_research_report) > 0, "Stage 3: Report should not be empty"
-    assert result.research_sources is not None, "Stage 3: research_sources should be populated"
+    assert result.research_report is not None, "Stage 3: research_report should be populated"
+    assert len(result.research_report) > 0, "Stage 3: Report should not be empty"
+    assert result.citations is not None, "Stage 3: citations should be populated"
 
     # Validate report quality
-    assert len(result.deep_research_report) > 500, f"Stage 3: Report should be substantial (got {len(result.deep_research_report)} chars)"
-    assert len(result.research_sources) >= 0, "Stage 3: Should have sources (or 0 if using non-Tavily backend)"
+    assert len(result.research_report) > 500, f"Stage 3: Report should be substantial (got {len(result.research_report)} chars)"
+    assert len(result.citations) >= 0, "Stage 3: Should have sources (or 0 if using non-Tavily backend)"
 
-    print(f"✅ Stage 3: Generated {len(result.deep_research_report)} char report with {len(result.research_sources)} sources")
+    print(f"✅ Stage 3: Generated {len(result.research_report)} char report with {len(result.citations)} sources")
 
     # Stage 4: Content Optimization
     # Check that insights were applied (keywords and gaps integrated)
@@ -177,8 +177,8 @@ async def test_full_pipeline_e2e(content_pipeline, test_topic, test_config):
     print(f"Competitors: {len(result.competitors)}")
     print(f"Content Gaps: {len(result.content_gaps)}")
     print(f"Keywords: {len(result.keywords)} fields (primary, secondary, long-tail)")
-    print(f"Research Report: {len(result.deep_research_report)} chars")
-    print(f"Research Sources: {len(result.research_sources)}")
+    print(f"Research Report: {len(result.research_report)} chars")
+    print(f"Research Sources: {len(result.citations)}")
     print(f"Priority Score: {result.priority_score:.3f}/1.0")
     print("="*60)
 
@@ -198,7 +198,7 @@ async def test_stage3_deep_research_produces_quality_report(content_pipeline, te
         config=test_config
     )
 
-    report = result.deep_research_report
+    report = result.research_report
 
     # Quality checks
     assert len(report) > 1000, f"Report should be substantial (>1000 chars), got {len(report)}"

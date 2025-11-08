@@ -246,7 +246,7 @@ async def test_simplified_full_pipeline_proptech(test_config, db_manager, conten
     # Validate Stage 3: Deep Research
     if processed_topic.research_report:
         report_length = len(processed_topic.research_report)
-        sources_count = len(processed_topic.research_sources) if processed_topic.research_sources else 0
+        sources_count = len(processed_topic.citations) if processed_topic.citations else 0
 
         print(f"✅ Stage 3 (Deep Research):")
         print(f"   Report length: {report_length} chars")
@@ -297,8 +297,8 @@ async def test_simplified_full_pipeline_proptech(test_config, db_manager, conten
 
     if processed_topic.research_report:
         print(f"Research report: {len(processed_topic.research_report)} chars")
-    if processed_topic.research_sources:
-        print(f"Sources: {len(processed_topic.research_sources)}")
+    if processed_topic.citations:
+        print(f"Sources: {len(processed_topic.citations)}")
     if processed_topic.priority_score is not None:
         print(f"Priority score: {processed_topic.priority_score:.3f}/1.0")
 

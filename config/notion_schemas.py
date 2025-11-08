@@ -296,6 +296,117 @@ COMPETITORS_SCHEMA = {
     }
 }
 
+# ==================== 6. Topics Database ====================
+
+TOPICS_SCHEMA = {
+    "title": "Topics",
+    "properties": {
+        "Title": {
+            "title": {}  # Topic title
+        },
+        "Status": {
+            "select": {
+                "options": [
+                    {"name": "discovered", "color": "gray"},
+                    {"name": "validated", "color": "yellow"},
+                    {"name": "researched", "color": "blue"},
+                    {"name": "drafted", "color": "purple"},
+                    {"name": "published", "color": "green"},
+                    {"name": "archived", "color": "red"}
+                ]
+            }
+        },
+        "Priority": {
+            "number": {
+                "format": "number"
+            }
+        },
+        "Domain": {
+            "select": {
+                "options": []  # Dynamically added (e.g., "proptech", "fashion")
+            }
+        },
+        "Market": {
+            "select": {
+                "options": []  # Dynamically added (e.g., "de", "fr", "us")
+            }
+        },
+        "Language": {
+            "select": {
+                "options": [
+                    {"name": "de", "color": "blue"},
+                    {"name": "en", "color": "green"},
+                    {"name": "fr", "color": "purple"},
+                    {"name": "es", "color": "yellow"}
+                ]
+            }
+        },
+        "Source": {
+            "select": {
+                "options": [
+                    {"name": "rss", "color": "blue"},
+                    {"name": "reddit", "color": "orange"},
+                    {"name": "trends", "color": "red"},
+                    {"name": "autocomplete", "color": "green"},
+                    {"name": "competitor", "color": "purple"},
+                    {"name": "manual", "color": "gray"}
+                ]
+            }
+        },
+        "Description": {
+            "rich_text": {}
+        },
+        "Source URL": {
+            "url": {}
+        },
+        "Intent": {
+            "select": {
+                "options": [
+                    {"name": "informational", "color": "blue"},
+                    {"name": "commercial", "color": "yellow"},
+                    {"name": "transactional", "color": "green"},
+                    {"name": "navigational", "color": "purple"}
+                ]
+            }
+        },
+        "Engagement Score": {
+            "number": {
+                "format": "number"
+            }
+        },
+        "Trending Score": {
+            "number": {
+                "format": "number"
+            }
+        },
+        "Research Report": {
+            "rich_text": {}  # Truncated to 2000 chars
+        },
+        "Word Count": {
+            "number": {
+                "format": "number"
+            }
+        },
+        "Content Score": {
+            "number": {
+                "format": "number"
+            }
+        },
+        "Discovered At": {
+            "date": {}
+        },
+        "Updated At": {
+            "date": {}
+        },
+        "Published At": {
+            "date": {}
+        },
+        "Created": {
+            "date": {}
+        }
+    }
+}
+
 # ==================== Schema Registry ====================
 
 ALL_SCHEMAS = {
@@ -303,7 +414,8 @@ ALL_SCHEMAS = {
     "blog_posts": BLOG_POSTS_SCHEMA,
     "social_posts": SOCIAL_POSTS_SCHEMA,
     "research_data": RESEARCH_DATA_SCHEMA,
-    "competitors": COMPETITORS_SCHEMA
+    "competitors": COMPETITORS_SCHEMA,
+    "topics": TOPICS_SCHEMA
 }
 
 
@@ -312,7 +424,7 @@ def get_schema(database_name: str) -> dict:
     Get schema for a specific database.
 
     Args:
-        database_name: Database name (projects, blog_posts, social_posts, research_data, competitors)
+        database_name: Database name (projects, blog_posts, social_posts, research_data, competitors, topics)
 
     Returns:
         Schema dict with 'title' and 'properties'

@@ -192,23 +192,26 @@ def daily_collection():
 
 
 @huey.periodic_task(crontab(day_of_week='1', hour=9, minute=0))
-def weekly_notion_sync():
+def weekly_notion_sync(config_path: str = "config/markets/proptech_de.yaml"):
     """
     Scheduled task: Weekly Notion sync on Monday at 9 AM
 
     Syncs top topics from database to Notion for review.
     Runs weekly to avoid API rate limits.
 
+    Args:
+        config_path: Path to market configuration file
+
     Schedule: Every Monday at 9:00 AM server time
     """
-    logger.info("weekly_notion_sync_triggered")
+    logger.info("weekly_notion_sync_triggered", config_path=config_path)
 
     try:
         from src.agents.universal_topic_agent import UniversalTopicAgent
         import asyncio
 
-        agent = UniversalTopicAgent.load_config(DEFAULT_CONFIG)
-        result = asyncio.run(agent.sync_to_notion())
+        agent = UniversalTopicAgent.load_config(config_path)
+        result = asyncio.run(agent.sync_to_notion(limit=10))
 
         logger.info("weekly_notion_sync_completed", result=result)
         return result

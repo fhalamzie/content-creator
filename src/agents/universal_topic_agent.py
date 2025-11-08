@@ -198,8 +198,17 @@ class UniversalTopicAgent:
             # Initialize Notion sync (optional)
             notion_sync = None
             try:
-                notion_sync = TopicsSync()
-                logger.info("notion_sync_initialized")
+                notion_token = os.getenv('NOTION_TOKEN')
+                notion_topics_db_id = os.getenv('NOTION_TOPICS_DATABASE_ID')
+
+                if notion_token:
+                    notion_sync = TopicsSync(
+                        notion_token=notion_token,
+                        database_id=notion_topics_db_id
+                    )
+                    logger.info("notion_sync_initialized", database_id=notion_topics_db_id)
+                else:
+                    logger.warning("notion_sync_disabled", reason="NOTION_TOKEN not found")
             except Exception as e:
                 logger.warning("notion_sync_disabled", reason=str(e))
 
@@ -499,7 +508,7 @@ class UniversalTopicAgent:
             limit: Number of top topics to sync (default: 10)
 
         Returns:
-            Result dict with topics_synced, notion_pages_created
+            Result dict with topics_synced, notion_pages_created, actions
 
         Raises:
             UniversalTopicAgentError: If Notion sync fails or is not configured
@@ -510,21 +519,39 @@ class UniversalTopicAgent:
             raise UniversalTopicAgentError("Notion sync not configured")
 
         try:
-            # Get top topics from database
-            # TODO: Add get_top_topics() method to SQLiteManager
-            # For now, use mock data
-            topics = []
+            # Get top topics from database (ordered by priority descending)
+            topics = self.db.get_topics_by_priority(limit=limit)
 
             if not topics:
                 logger.warning("no_topics_to_sync")
-                return {'topics_synced': 0, 'notion_pages_created': 0}
+                return {
+                    'topics_synced': 0,
+                    'notion_pages_created': 0,
+                    'notion_pages_updated': 0,
+                    'actions': []
+                }
 
-            # Sync to Notion
-            result = await self.notion_sync.sync_topics(topics[:limit])
+            logger.info("topics_retrieved_from_db", count=len(topics))
 
-            self.stats['topics_synced'] = result.get('topics_synced', 0)
+            # Sync to Notion (skip_errors=True to continue on failures)
+            results = self.notion_sync.sync_batch(topics, update_existing=True, skip_errors=True)
 
-            logger.info("sync_to_notion_completed", **result)
+            # Count actions
+            created_count = sum(1 for r in results if r.get('action') == 'created')
+            updated_count = sum(1 for r in results if r.get('action') == 'updated')
+            synced_count = created_count + updated_count
+
+            # Update statistics
+            self.stats['topics_synced'] = synced_count
+
+            result = {
+                'topics_synced': synced_count,
+                'notion_pages_created': created_count,
+                'notion_pages_updated': updated_count,
+                'actions': results
+            }
+
+            logger.info("sync_to_notion_completed", **{k: v for k, v in result.items() if k != 'actions'})
             return result
 
         except Exception as e:
