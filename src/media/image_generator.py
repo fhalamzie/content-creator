@@ -1,28 +1,28 @@
 """
-Image Generator - DALL-E 3 integration with tone-aware prompt mapping
+Image Generator - Flux 1.1 Pro Ultra (RAW MODE) for photorealistic images
 
 Generates hero and supporting images for blog articles with:
-- 7-tone prompt mapping (Professional, Technical, Creative, etc.)
-- DALL-E 3 integration (HD hero 1792x1024, Standard supporting 1024x1024)
-- Silent failure handling (3 retries, return None on error)
-- Cost tracking ($0.08 HD, $0.04 Standard)
+- Flux 1.1 Pro Ultra with RAW MODE (true photorealism, not 3D art!)
+- Simple German prompts expanded with Qwen
+- 2048x2048 high resolution images
+- Cost: $0.04 per image (same as DALL-E standard, but MUCH better quality)
+- 8-10 second generation time
+
+RAW MODE delivers:
+- Authentic, candid photographic feel
+- Natural textures and imperfections
+- Real-world realism (not polished 3D renders)
+- Professional photography aesthetic
 
 Example:
     from src.media.image_generator import ImageGenerator
 
-    generator = ImageGenerator(api_key="your_key")
+    generator = ImageGenerator()  # Uses Replicate API
 
     # Generate hero image
     hero = await generator.generate_hero_image(
-        topic="PropTech AI trends",
-        brand_tone=["Professional", "Technical"]
-    )
-
-    # Generate supporting images
-    support1 = await generator.generate_supporting_image(
-        topic="PropTech AI trends",
-        brand_tone=["Professional"],
-        aspect="implementation"
+        topic="Versicherungsschäden",
+        brand_tone=["Professional"]
     )
 """
 
@@ -30,6 +30,7 @@ import os
 import asyncio
 from typing import List, Optional, Dict
 from openai import AsyncOpenAI
+import replicate
 
 from src.utils.logger import get_logger
 
@@ -43,67 +44,72 @@ class ImageGenerationError(Exception):
 
 class ImageGenerator:
     """
-    Image generator for blog articles using DALL-E 3
+    Image generator using Flux 1.1 Pro Ultra with RAW MODE
 
     Features:
-    - 7-tone prompt mapping (Professional, Technical, Creative, Casual,
-      Authoritative, Innovative, Friendly)
-    - Hero image: 1792x1024 HD ($0.08)
-    - Supporting image: 1024x1024 Standard ($0.04)
-    - Silent failure: Returns None after 3 retries
-    - Cost tracking per image
+    - Flux 1.1 Pro Ultra with RAW MODE for true photorealism
+    - Prompt expansion with Qwen (German prompts → detailed descriptions)
+    - High resolution: 2048x2048 (4x better than standard)
+    - Fast generation: 8-10 seconds
+    - Authentic photography: natural textures, imperfections, realism
+    - Cost: $0.04 per image (all images, any aspect ratio)
     """
 
-    # DALL-E 3 costs (per image)
-    COST_HD = 0.08      # 1792x1024 HD
-    COST_STANDARD = 0.04  # 1024x1024 Standard
+    # Flux 1.1 Pro Ultra costs
+    COST_PER_IMAGE = 0.04  # Same cost for all images
 
     # Retry configuration
     MAX_RETRIES = 3
     RETRY_DELAY = 2  # seconds
-
-    # Tone to style mapping
-    TONE_STYLES = {
-        "professional": "professional, corporate, business-oriented, clean design",
-        "technical": "technical, diagram-style, blueprint aesthetic, precise",
-        "creative": "creative, artistic, vibrant colors, imaginative",
-        "casual": "casual, friendly, approachable, warm colors",
-        "authoritative": "authoritative, expert-level, confident, premium quality",
-        "innovative": "innovative, futuristic, cutting-edge, modern",
-        "friendly": "friendly, welcoming, approachable, soft colors"
-    }
 
     def __init__(self, api_key: Optional[str] = None):
         """
         Initialize image generator
 
         Args:
-            api_key: OpenAI API key (auto-loads from /home/envs/openai.env if not provided)
+            api_key: Replicate API key (auto-loads from /home/envs/replicate.env if not provided)
 
         Raises:
             ValueError: If API key not found
         """
-        # Load API key
-        self.api_key = api_key or self._load_api_key()
-        if not self.api_key:
+        # Load Replicate API key for Flux
+        self.replicate_key = api_key or self._load_replicate_key()
+        if not self.replicate_key:
             raise ValueError(
-                "OPENAI_API_KEY not found in environment or /home/envs/openai.env"
+                "REPLICATE_API_TOKEN not found in environment or /home/envs/replicate.env"
             )
 
-        # Initialize OpenAI client
-        self.client = AsyncOpenAI(api_key=self.api_key)
+        # Initialize Replicate client
+        self.client = replicate.Client(api_token=self.replicate_key)
 
-        logger.info("image_generator_initialized", api_key_set=bool(self.api_key))
+        # Load OpenRouter API key for Qwen (prompt expansion)
+        self.openrouter_key = self._load_openrouter_key()
+        if not self.openrouter_key:
+            logger.warning("OPENROUTER_API_KEY not found, prompt expansion will be limited")
+            self.openrouter_client = None
+        else:
+            # Initialize OpenRouter client (OpenAI-compatible)
+            self.openrouter_client = AsyncOpenAI(
+                api_key=self.openrouter_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
 
-    def _load_api_key(self) -> Optional[str]:
-        """Load OpenAI API key from environment"""
+        logger.info(
+            "image_generator_initialized",
+            provider="flux-1.1-pro-ultra-raw",
+            has_replicate_key=bool(self.replicate_key),
+            has_openrouter_key=bool(self.openrouter_key)
+        )
+
+    def _load_replicate_key(self) -> Optional[str]:
+        """Load Replicate API key from environment"""
         # Check environment variable
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = os.getenv("REPLICATE_API_TOKEN")
         if api_key:
             return api_key
 
-        # Check /home/envs/openai.env
-        env_file = "/home/envs/openai.env"
+        # Check /home/envs/replicate.env
+        env_file = "/home/envs/replicate.env"
         if os.path.exists(env_file):
             try:
                 with open(env_file, 'r') as f:
@@ -111,61 +117,141 @@ class ImageGenerator:
                         line = line.strip()
                         if line and not line.startswith('#') and '=' in line:
                             key, value = line.split('=', 1)
-                            if key.strip() == 'OPENAI_API_KEY':
-                                logger.info("openai_key_loaded_from_file", file=env_file)
+                            if key.strip() == 'REPLICATE_API_TOKEN':
+                                logger.info("replicate_key_loaded_from_file", file=env_file)
                                 return value.strip()
             except Exception as e:
-                logger.warning("failed_to_load_openai_key", error=str(e))
+                logger.warning("failed_to_load_replicate_key", error=str(e))
 
         return None
+
+    def _load_openrouter_key(self) -> Optional[str]:
+        """Load OpenRouter API key from environment"""
+        # Check environment variable
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if api_key:
+            return api_key
+
+        # Check /home/envs/openrouter.env
+        env_file = "/home/envs/openrouter.env"
+        if os.path.exists(env_file):
+            try:
+                with open(env_file, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            if key.strip() == 'OPENROUTER_API_KEY':
+                                logger.info("openrouter_key_loaded_from_file", file=env_file)
+                                return value.strip()
+            except Exception as e:
+                logger.warning("failed_to_load_openrouter_key", error=str(e))
+
+        return None
+
+    async def _expand_prompt_with_llm(self, simple_prompt: str, topic: str) -> str:
+        """
+        Expand simple prompt into detailed DALL-E 3 prompt using Qwen via OpenRouter.
+
+        This mimics what ChatGPT does - it expands short prompts into detailed,
+        descriptive prompts that produce photorealistic results.
+
+        Args:
+            simple_prompt: Simple prompt like "Ein Bild über Versicherungsschäden"
+            topic: Original topic
+
+        Returns:
+            Expanded, detailed prompt in German
+        """
+        # If OpenRouter not available, return simple prompt
+        if not self.openrouter_client:
+            logger.warning("OpenRouter not configured, using simple prompt")
+            return simple_prompt
+
+        expansion_prompt = f"""Du bist ein Experte für DALL-E 3 Prompt-Engineering.
+
+Expandiere diesen einfachen Prompt in einen detaillierten, beschreibenden Prompt für DALL-E 3:
+
+"{simple_prompt}"
+
+Thema: {topic}
+
+Erstelle einen detaillierten deutschen Prompt mit:
+- Spezifische Szene/Situation beschreiben (z.B. konkretes Zimmer, Situation)
+- Licht und Atmosphäre (z.B. "weiches natürliches Licht durch Fenster")
+- Kamera-Details (z.B. "mit DSLR-Kamera aufgenommen")
+- Professionelle, realistische Ästhetik betonen
+- 2-3 Sätze, sehr beschreibend
+
+Wichtig: Der Prompt muss auf Deutsch sein und PHOTOREALISTISCH betonen.
+
+Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
+
+        try:
+            # Use Qwen via OpenRouter for prompt expansion (cheap and fast)
+            response = await self.openrouter_client.chat.completions.create(
+                model="qwen/qwen-2.5-72b-instruct",  # Fast and cheap via OpenRouter
+                messages=[
+                    {"role": "user", "content": expansion_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=200,
+                extra_headers={
+                    "HTTP-Referer": "https://github.com/content-creator",
+                    "X-Title": "Content Creator - Image Prompt Expansion"
+                }
+            )
+
+            expanded = response.choices[0].message.content.strip()
+
+            # Remove quotes if LLM wrapped it
+            if expanded.startswith('"') and expanded.endswith('"'):
+                expanded = expanded[1:-1]
+
+            logger.info(
+                "prompt_expanded_with_qwen",
+                original_length=len(simple_prompt),
+                expanded_length=len(expanded),
+                topic=topic
+            )
+
+            return expanded
+
+        except Exception as e:
+            logger.warning(f"Prompt expansion failed: {e}, using simple prompt")
+            return simple_prompt
 
     def _map_tone_to_prompt(
         self,
         brand_tone: List[str],
         topic: str,
-        is_hero: bool
+        is_hero: bool,
+        domain: Optional[str] = None,
+        keywords: Optional[List[str]] = None,
+        themes: Optional[List[str]] = None,
+        article_excerpt: Optional[str] = None
     ) -> str:
         """
-        Map brand tone to DALL-E prompt style
+        Generate simple German prompt (will be expanded later with LLM)
 
         Args:
-            brand_tone: List of tone descriptors (e.g., ['Professional', 'Technical'])
+            brand_tone: List of tone descriptors (not used - kept for compatibility)
             topic: Article topic
             is_hero: True for hero image, False for supporting
+            domain: Domain/vertical (not used - kept for compatibility)
+            keywords: Key concepts (not used - kept for compatibility)
+            themes: Main themes (not used - kept for compatibility)
+            article_excerpt: Article excerpt (not used)
 
         Returns:
-            DALL-E prompt with tone-appropriate styling
+            Simple prompt in German (will be expanded by _expand_prompt_with_llm)
         """
-        # Default to Professional if no tone specified
-        if not brand_tone:
-            brand_tone = ["Professional"]
-
-        # Get style descriptors for each tone (case-insensitive)
-        styles = []
-        for tone in brand_tone:
-            tone_lower = tone.lower()
-            if tone_lower in self.TONE_STYLES:
-                styles.append(self.TONE_STYLES[tone_lower])
-            else:
-                # Unknown tone defaults to professional
-                logger.warning("unknown_tone_defaulting_to_professional", tone=tone)
-                styles.append(self.TONE_STYLES["professional"])
-
-        # Combine styles
-        combined_style = ", ".join(styles) if len(styles) > 1 else styles[0]
-
-        # Build prompt
-        image_type = "hero banner image" if is_hero else "supporting illustration"
-        prompt = (
-            f"Create a {image_type} for an article about '{topic}'. "
-            f"Style: {combined_style}. "
-            f"No text or typography in the image. "
-            f"High quality, professional composition."
-        )
+        # Simple base prompt - will be expanded with LLM to match ChatGPT's approach
+        prompt = f"Ein Bild über {topic}. Photorealistisch, passend für einen Blog-Artikel."
 
         logger.info(
-            "tone_mapped_to_prompt",
-            tones=brand_tone,
+            "simple_german_prompt_created",
+            topic=topic,
             is_hero=is_hero,
             prompt_length=len(prompt)
         )
@@ -175,48 +261,60 @@ class ImageGenerator:
     async def _generate_with_retry(
         self,
         prompt: str,
-        size: str,
-        quality: str
+        aspect_ratio: str,
+        topic: str
     ) -> Optional[str]:
         """
-        Generate image with retry logic
+        Generate image with retry logic using Flux 1.1 Pro Ultra (RAW MODE)
 
         Args:
-            prompt: DALL-E prompt
-            size: Image size (1792x1024 or 1024x1024)
-            quality: Image quality (hd or standard)
+            prompt: Simple base prompt
+            aspect_ratio: Image aspect ratio (16:9 for hero, 1:1 for supporting)
+            topic: Topic for prompt expansion
 
         Returns:
             Image URL or None if all retries failed
         """
+        # CRITICAL: Expand prompt with Qwen (like ChatGPT does!)
+        expanded_prompt = await self._expand_prompt_with_llm(prompt, topic)
+
         for attempt in range(1, self.MAX_RETRIES + 1):
             try:
                 logger.info(
-                    "image_generation_attempt",
+                    "flux_generation_attempt",
                     attempt=attempt,
-                    size=size,
-                    quality=quality
+                    aspect_ratio=aspect_ratio,
+                    model="flux-1.1-pro-ultra-raw",
+                    prompt_preview=expanded_prompt[:100]
                 )
 
-                response = await self.client.images.generate(
-                    model="dall-e-3",
-                    prompt=prompt,
-                    size=size,
-                    quality=quality,
-                    n=1
+                # Run Flux 1.1 Pro Ultra with RAW MODE (synchronously)
+                output = await asyncio.to_thread(
+                    self.client.run,
+                    "black-forest-labs/flux-1.1-pro-ultra",
+                    input={
+                        "prompt": expanded_prompt,
+                        "aspect_ratio": aspect_ratio,
+                        "output_format": "png",  # Flux supports jpg/png only
+                        "safety_tolerance": 2,
+                        "raw": True  # RAW MODE = photorealistic, authentic photography!
+                    }
                 )
 
-                url = response.data[0].url
+                # Flux returns a FileOutput object with .url attribute
+                url = output.url if hasattr(output, 'url') else str(output)
+
                 logger.info(
-                    "image_generation_success",
+                    "flux_generation_success",
                     attempt=attempt,
-                    url_length=len(url)
+                    url_length=len(url),
+                    raw_mode=True
                 )
                 return url
 
             except Exception as e:
                 logger.warning(
-                    "image_generation_attempt_failed",
+                    "flux_generation_attempt_failed",
                     attempt=attempt,
                     error=str(e),
                     error_type=type(e).__name__
@@ -226,7 +324,7 @@ class ImageGenerator:
                     await asyncio.sleep(self.RETRY_DELAY)
                 else:
                     logger.error(
-                        "image_generation_failed",
+                        "flux_generation_failed",
                         max_retries=self.MAX_RETRIES,
                         error=str(e)
                     )
@@ -237,75 +335,107 @@ class ImageGenerator:
     async def generate_hero_image(
         self,
         topic: str,
-        brand_tone: List[str]
+        brand_tone: List[str],
+        domain: Optional[str] = None,
+        keywords: Optional[List[str]] = None,
+        themes: Optional[List[str]] = None,
+        article_excerpt: Optional[str] = None
     ) -> Optional[Dict]:
         """
-        Generate hero image (1792x1024 HD, $0.08)
+        Generate hero image with Flux 1.1 Pro Ultra RAW MODE (16:9, 2048x2048, $0.04)
 
         Args:
             topic: Article topic
-            brand_tone: Brand tone descriptors (e.g., ['Professional', 'Technical'])
+            brand_tone: Brand tone descriptors (not used currently)
+            domain: Domain/vertical (not used currently)
+            keywords: Key concepts (not used currently)
+            themes: Main themes (not used currently)
+            article_excerpt: Article excerpt (not used currently)
 
         Returns:
-            Dict with url, size, quality, cost or None if failed
+            Dict with url, alt_text, aspect_ratio, cost, success or None if failed
         """
-        logger.info("generating_hero_image", topic=topic, tones=brand_tone)
+        logger.info("generating_flux_hero_image", topic=topic, raw_mode=True)
 
-        # Map tone to prompt
-        prompt = self._map_tone_to_prompt(brand_tone, topic, is_hero=True)
+        # Generate simple German prompt (will be expanded by Qwen)
+        prompt = self._map_tone_to_prompt(
+            brand_tone=brand_tone,
+            topic=topic,
+            is_hero=True,
+            domain=domain,
+            keywords=keywords,
+            themes=themes,
+            article_excerpt=article_excerpt
+        )
 
-        # Generate with retry
+        # Generate with retry (includes Qwen prompt expansion + Flux RAW MODE)
         url = await self._generate_with_retry(
             prompt=prompt,
-            size="1792x1024",
-            quality="hd"
+            aspect_ratio="16:9",
+            topic=topic
         )
 
         if url is None:
-            return None
+            return {"success": False, "cost": 0.0}
 
         return {
+            "success": True,
             "url": url,
-            "size": "1792x1024",
-            "quality": "hd",
-            "cost": self.COST_HD
+            "alt_text": f"Hero image for {topic}",
+            "aspect_ratio": "16:9",
+            "resolution": "2048x2048",
+            "raw_mode": True,
+            "cost": self.COST_PER_IMAGE
         }
 
     async def generate_supporting_image(
         self,
         topic: str,
         brand_tone: List[str],
-        aspect: str
+        aspect: str,
+        domain: Optional[str] = None,
+        keywords: Optional[str] = None,
+        themes: Optional[List[str]] = None
     ) -> Optional[Dict]:
         """
-        Generate supporting image (1024x1024 Standard, $0.04)
+        Generate supporting image with Flux 1.1 Pro Ultra RAW MODE (1:1, 2048x2048, $0.04)
 
         Args:
             topic: Article topic
-            brand_tone: Brand tone descriptors
+            brand_tone: Brand tone descriptors (not used currently)
             aspect: Aspect to illustrate (e.g., 'implementation', 'benefits', 'overview')
+            domain: Domain/vertical (not used currently)
+            keywords: Key concepts (not used currently)
+            themes: Main themes (not used currently)
 
         Returns:
-            Dict with url, size, quality, cost or None if failed
+            Dict with url, alt_text, aspect_ratio, cost or None if failed
         """
         logger.info(
-            "generating_supporting_image",
+            "generating_flux_supporting_image",
             topic=topic,
             aspect=aspect,
-            tones=brand_tone
+            raw_mode=True
         )
 
         # Add aspect to topic for more specific prompt
         topic_with_aspect = f"{topic} - {aspect}"
 
-        # Map tone to prompt
-        prompt = self._map_tone_to_prompt(brand_tone, topic_with_aspect, is_hero=False)
+        # Generate simple German prompt (will be expanded by Qwen)
+        prompt = self._map_tone_to_prompt(
+            brand_tone=brand_tone,
+            topic=topic_with_aspect,
+            is_hero=False,
+            domain=domain,
+            keywords=keywords,
+            themes=themes
+        )
 
-        # Generate with retry
+        # Generate with retry (includes Qwen prompt expansion + Flux RAW MODE)
         url = await self._generate_with_retry(
             prompt=prompt,
-            size="1024x1024",
-            quality="standard"
+            aspect_ratio="1:1",
+            topic=topic_with_aspect
         )
 
         if url is None:
@@ -313,9 +443,141 @@ class ImageGenerator:
 
         return {
             "url": url,
-            "size": "1024x1024",
-            "quality": "standard",
-            "cost": self.COST_STANDARD
+            "alt_text": f"Supporting image for {topic} - {aspect}",
+            "aspect_ratio": "1:1",
+            "resolution": "2048x2048",
+            "raw_mode": True,
+            "cost": self.COST_PER_IMAGE
+        }
+
+    async def generate_supporting_images(
+        self,
+        article_content: str,
+        num_images: int = 2,
+        brand_tone: List[str] = None,
+        domain: Optional[str] = None,
+        keywords: Optional[List[str]] = None,
+        themes: Optional[List[str]] = None,
+        topic: Optional[str] = None
+    ) -> Dict:
+        """
+        Generate multiple supporting images for an article
+
+        Args:
+            article_content: Full article content
+            num_images: Number of supporting images to generate (default: 2)
+            brand_tone: Brand tone descriptors (not used with simple prompts)
+            domain: Domain/vertical (not used with simple prompts)
+            keywords: Key concepts (not used with simple prompts)
+            themes: Main themes (not used with simple prompts)
+            topic: Optional topic override (recommended to avoid markdown parsing issues)
+
+        Returns:
+            Dict with:
+            - success: bool
+            - images: List[Dict] with url, alt_text, size, quality
+            - cost: float - Total cost
+        """
+        if brand_tone is None:
+            brand_tone = ["Professional"]
+
+        # Use provided topic or extract from article
+        if not topic:
+            # Extract topic from article, skipping markdown fences and blank lines
+            for line in article_content.split('\n'):
+                clean_line = line.strip()
+                # Skip markdown code fences, blank lines, and comments
+                if clean_line and not clean_line.startswith('```') and not clean_line.startswith('#'):
+                    topic = clean_line[:100]
+                    break
+            if not topic:
+                topic = "Article"
+
+        # Extract actual section headings from article content
+        aspects = []
+
+        # Step 1: Try H2 headings (##)
+        for line in article_content.split('\n'):
+            clean_line = line.strip()
+            if clean_line.startswith('## ') and not clean_line.startswith('###'):
+                heading = clean_line[3:].strip()
+                if heading and len(heading) < 150 and not heading.startswith('```'):
+                    aspects.append(heading)
+
+        # Step 2: If not enough H2, try H3 headings (###)
+        if len(aspects) < num_images:
+            for line in article_content.split('\n'):
+                clean_line = line.strip()
+                if clean_line.startswith('### ') and not clean_line.startswith('####'):
+                    heading = clean_line[4:].strip()
+                    if heading and len(heading) < 150 and not heading.startswith('```'):
+                        if heading not in aspects:  # Avoid duplicates
+                            aspects.append(heading)
+
+        # Step 3: If still not enough, extract first sentences from paragraphs
+        if len(aspects) < num_images:
+            for line in article_content.split('\n'):
+                clean_line = line.strip()
+                # Skip headings, code fences, and short lines
+                if (clean_line and
+                    not clean_line.startswith('#') and
+                    not clean_line.startswith('```') and
+                    not clean_line.startswith('-') and
+                    not clean_line.startswith('*') and
+                    len(clean_line) > 50):
+                    # Take first sentence
+                    first_sentence = clean_line.split('.')[0].strip()
+                    if len(first_sentence) > 30 and len(first_sentence) < 150:
+                        if first_sentence not in aspects:
+                            aspects.append(first_sentence)
+
+        # Step 4: Last resort - use topic with different descriptive contexts
+        if len(aspects) < num_images:
+            contexts = [
+                "Überblick",
+                "Praktische Anwendung",
+                "Detailansicht",
+                "Kontext"
+            ]
+            for i in range(len(aspects), num_images):
+                if i < len(contexts):
+                    aspects.append(f"{topic} - {contexts[i]}")
+                else:
+                    aspects.append(topic)
+
+        # Take only the number of images requested
+        aspects = aspects[:num_images]
+
+        logger.info(
+            "extracted_aspects_for_supporting_images",
+            num_aspects=len(aspects),
+            aspects=aspects[:5],  # Log first 5 for brevity
+            topic=topic[:50]
+        )
+
+        # Generate images in parallel
+        tasks = [
+            self.generate_supporting_image(
+                topic=topic,
+                brand_tone=brand_tone,
+                aspect=aspect,
+                domain=domain,
+                keywords=keywords,
+                themes=themes
+            )
+            for aspect in aspects
+        ]
+
+        results = await asyncio.gather(*tasks)
+
+        # Filter successful results
+        images = [r for r in results if r is not None]
+        total_cost = sum(img.get("cost", 0) for img in images)
+
+        return {
+            "success": len(images) > 0,
+            "images": images,
+            "cost": total_cost
         }
 
 

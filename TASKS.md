@@ -64,11 +64,11 @@
 
 ---
 
-## High Priority - Content Creator Phase 4.5: Media Generation (Sessions 044-046)
+## High Priority - Content Creator Phase 4.5: Media Generation (Sessions 044-047)
 
 **Goal**: Automated 3-image generation (1 HD hero + 2 standard supporting) with tone-appropriate styling
 
-**Status**: ✅ COMPLETE (7.3/18.5 hours - 61% faster than estimated) - Production Ready
+**Status**: ✅ COMPLETE + QUALITY FIXES (9.3/18.5 hours - 50% faster than estimated) - Production Ready
 
 **Key Discoveries**:
 - ✅ Tone analysis already exists in Stage 1 (`extract_website_keywords()`)
@@ -102,6 +102,14 @@
 - [x] Cost tracking integration
 - [x] Write 23 unit tests (tone mapping, API calls, errors, cost) - exceeded 20 goal
 
+### Phase 8: Quality Improvements (2 hours) ✅ COMPLETE (Session 047)
+- [x] **Migration**: DALL-E 3 → Flux 1.1 Pro Ultra with RAW MODE (authentic photorealism)
+- [x] **Fix**: Writing agent empty responses (qwen3-235b-a22b → qwen3-235b-a22b-2507)
+- [x] **Fix**: Supporting image topic extraction (markdown parsing issues)
+- [x] **Enhancement**: 4-tier section-based aspect extraction (H2 → H3 → paragraphs → topic+context)
+- [x] **Process**: Established Streamlit restart discipline (critical for code changes)
+- [x] **Result**: User feedback "much better!!", supporting images now article-specific
+
 ### Phase 4: Synthesizer Integration (0.5 hours) ✅ COMPLETE (Session 046)
 - [x] Integrate ImageGenerator into ContentSynthesizer
 - [x] Add image generation step after article synthesis (`_generate_article_images()`)
@@ -129,16 +137,18 @@
 
 ### Cost Impact
 
-**Per Topic**:
+**Per Topic** (Updated Session 047 - Flux Migration):
 - Research + Synthesis: $0.01
-- Hero Image (HD 1792x1024): $0.08
-- 2 Supporting (Standard 1024x1024): $0.08
-- **Total: $0.17/topic** ⚠️ (Exceeds $0.10 budget by 70%)
+- Hero Image (Flux 16:9, 2048x2048): $0.04
+- 2 Supporting (Flux 1:1, 2048x2048): $0.08
+- **Total: $0.13/topic** ⚠️ (Exceeds $0.10 budget by 30%, but improved from $0.17 with DALL-E 3)
 
 **Monthly (200 topics)**:
-- All with images: $34.00
-- 50% with images: $18.00
-- 10% with images: $4.40
+- All with images: $26.00 (was $34.00 with DALL-E 3)
+- 50% with images: $14.00 (was $18.00)
+- 10% with images: $3.40 (was $4.40)
+
+**Quality**: Flux RAW MODE delivers photorealistic images (user: "much better!!") vs DALL-E 3's "3D comic-style"
 
 ### Implementation Order (TDD)
 - ✅ **Phase 1-2 (3.5h)**: Config + Tone Propagation (Session 044)
@@ -147,8 +157,9 @@
 - ✅ **Phase 5 (0.5h)**: Streamlit UI (Session 046)
 - ✅ **Phase 6 (0.5h)**: Notion Sync (Session 046)
 - ✅ **Phase 7 (0.8h)**: E2E Tests (Session 046)
+- ✅ **Phase 8 (2.0h)**: Quality Improvements - Flux Migration (Session 047)
 
-**Total**: 18.5 hours estimated → 7.3 hours actual (61% faster) ✅ ALL PHASES COMPLETE
+**Total**: 18.5 hours estimated → 9.3 hours actual (50% faster) ✅ ALL PHASES COMPLETE + QUALITY FIXES
 
 ### Success Criteria
 - ✅ Tone extracted from Stage 1 and propagated to synthesis
@@ -157,8 +168,10 @@
 - ✅ Silent failure (research completes even if images fail)
 - ✅ 3-tier control: Config → API → UI
 - ✅ All images sync to Notion
-- ✅ Cost tracking accurate ($0.17/topic)
+- ✅ Cost tracking accurate ($0.13/topic with Flux)
 - ✅ E2E test validates full flow
+- ✅ **NEW (Session 047)**: Photorealistic quality (Flux RAW MODE)
+- ✅ **NEW (Session 047)**: Supporting images use actual article sections (not generic aspects)
 
 ---
 

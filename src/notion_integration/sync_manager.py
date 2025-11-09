@@ -141,6 +141,9 @@ class SyncManager:
                 properties = self._build_blog_properties(blog_data)
                 children = self._markdown_to_blocks(blog_data.get('content', ''))
 
+                # Insert images into content blocks
+                children = self._insert_images_into_blocks(children, blog_data.get('metadata', {}))
+
                 page = self.notion_client.create_page(
                     parent_database_id=self.notion_client.database_ids['blog_posts'],
                     properties=properties,
@@ -625,3 +628,130 @@ class SyncManager:
                 ]
             }
         }
+
+    def _insert_images_into_blocks(
+        self,
+        blocks: List[Dict[str, Any]],
+        metadata: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Insert hero and supporting images into Notion blocks.
+
+        Args:
+            blocks: List of Notion block objects
+            metadata: Blog post metadata containing image URLs
+
+        Returns:
+            Updated list of blocks with images inserted
+
+        Strategy:
+            - Hero image: Insert after first heading (or at beginning if no heading)
+            - Supporting images: Distribute evenly throughout content
+        """
+        images = metadata.get('images', {})
+        hero_url = images.get('hero_url')
+        supporting = images.get('supporting', [])
+
+        # If no images, return original blocks
+        if not hero_url and not supporting:
+            return blocks
+
+        result_blocks = []
+        hero_inserted = False
+
+        # Find first heading index
+        first_heading_idx = -1
+        for idx, block in enumerate(blocks):
+            block_type = block.get('type', '')
+            if block_type.startswith('heading_'):
+                first_heading_idx = idx
+                break
+
+        # Calculate supporting image insertion points
+        # Insert supporting images every N blocks (excluding headings)
+        supporting_interval = max(3, len(blocks) // max(len(supporting), 1)) if supporting else 0
+        next_supporting_idx = 0
+        supporting_insert_counter = 0
+
+        for idx, block in enumerate(blocks):
+            # Add current block
+            result_blocks.append(block)
+
+            # Insert hero image after first heading
+            if not hero_inserted and hero_url:
+                if first_heading_idx >= 0 and idx == first_heading_idx:
+                    # Insert after first heading
+                    result_blocks.append(self._create_image_block(hero_url))
+                    hero_inserted = True
+                elif first_heading_idx < 0 and idx == 0:
+                    # No heading found, insert at beginning (after first block)
+                    result_blocks.append(self._create_image_block(hero_url))
+                    hero_inserted = True
+
+            # Insert supporting images at intervals
+            if supporting and next_supporting_idx < len(supporting):
+                supporting_insert_counter += 1
+                if supporting_insert_counter >= supporting_interval:
+                    supporting_img = supporting[next_supporting_idx]
+                    result_blocks.append(self._create_image_block(
+                        supporting_img.get('url'),
+                        supporting_img.get('alt')
+                    ))
+                    next_supporting_idx += 1
+                    supporting_insert_counter = 0
+
+        # If hero image wasn't inserted yet, add it at the beginning
+        if not hero_inserted and hero_url:
+            result_blocks.insert(0, self._create_image_block(hero_url))
+
+        # Add any remaining supporting images at the end
+        while next_supporting_idx < len(supporting):
+            supporting_img = supporting[next_supporting_idx]
+            result_blocks.append(self._create_image_block(
+                supporting_img.get('url'),
+                supporting_img.get('alt')
+            ))
+            next_supporting_idx += 1
+
+        logger.info(
+            f"Images inserted: hero={bool(hero_url)}, "
+            f"supporting={len(supporting)}, "
+            f"total_blocks={len(result_blocks)}"
+        )
+
+        return result_blocks
+
+    def _create_image_block(self, url: str, caption: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Create a Notion image block.
+
+        Args:
+            url: Image URL
+            caption: Optional image caption
+
+        Returns:
+            Notion image block object
+        """
+        block = {
+            'object': 'block',
+            'type': 'image',
+            'image': {
+                'type': 'external',
+                'external': {
+                    'url': url
+                }
+            }
+        }
+
+        # Add caption if provided
+        if caption:
+            block['image']['caption'] = [
+                {
+                    'type': 'text',
+                    'text': {
+                        'content': caption[:2000]  # Notion limit
+                    }
+                }
+            ]
+
+        return block

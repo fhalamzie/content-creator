@@ -35,7 +35,9 @@ def load_project_config():
     return None
 
 
-def generate_content(topic: str, project_config: dict, progress_placeholder, status_placeholder):
+def generate_content(topic: str, project_config: dict, progress_placeholder, status_placeholder,
+                    generate_images: bool = False, enable_competitor_research: bool = True,
+                    enable_keyword_research: bool = True, content_language: str = 'de'):
     """Generate content with progress tracking.
 
     Args:
@@ -43,15 +45,23 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
         project_config: Project configuration
         progress_placeholder: Streamlit placeholder for progress bar
         status_placeholder: Streamlit placeholder for status messages
+        generate_images: Whether to generate AI images
+        enable_competitor_research: Whether to run competitor research (requires Gemini)
+        enable_keyword_research: Whether to run keyword research (requires Gemini)
+        content_language: Content language code (de, en, fr, es, it)
 
     Returns:
         dict: Generation results with blog post data
     """
     try:
         # Get API keys from environment
-        api_key = os.getenv("OPENROUTER_API_KEY")
-        if not api_key:
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        if not openrouter_key:
             return {"success": False, "error": "OPENROUTER_API_KEY not found in environment"}
+
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if not gemini_key:
+            return {"success": False, "error": "GEMINI_API_KEY not found in environment"}
 
         notion_token = os.getenv("NOTION_TOKEN")
         if not notion_token:
@@ -59,10 +69,10 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
 
         # Initialize components
         cache_manager = CacheManager()
-        competitor_agent = CompetitorResearchAgent(api_key=api_key, cache_dir=str(cache_manager.cache_dir))
-        keyword_agent = KeywordResearchAgent(api_key=api_key, cache_dir=str(cache_manager.cache_dir))
-        research_agent = ResearchAgent(api_key=api_key)
-        writing_agent = WritingAgent(api_key=api_key)
+        competitor_agent = CompetitorResearchAgent(api_key=gemini_key, cache_dir=str(cache_manager.cache_dir))
+        keyword_agent = KeywordResearchAgent(api_key=gemini_key, cache_dir=str(cache_manager.cache_dir))
+        research_agent = ResearchAgent(api_key=openrouter_key)
+        writing_agent = WritingAgent(api_key=openrouter_key)
 
         # Initialize Notion client and sync manager
         from src.notion_integration.notion_client import NotionClient
@@ -70,38 +80,69 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
         notion_client = NotionClient(token=notion_token)
         sync_manager = SyncManager(cache_manager=cache_manager, notion_client=notion_client)
 
-        # Stage 0: Competitor Research (10%)
-        status_placeholder.info("🔎 Analyzing competitors...")
-        progress_placeholder.progress(0.1)
+        # Stage 0: Competitor Research (10%) - Optional
+        if enable_competitor_research:
+            status_placeholder.info("🔎 Analyzing competitors...")
+            progress_placeholder.progress(0.1)
 
-        competitor_data = competitor_agent.research_competitors(
-            topic=topic,
-            language="de",
-            max_competitors=5,
-            include_content_analysis=True,
-            save_to_cache=True
-        )
+            competitor_data = competitor_agent.research_competitors(
+                topic=topic,
+                language=content_language,
+                max_competitors=5,
+                include_content_analysis=True,
+                save_to_cache=True
+            )
+        else:
+            status_placeholder.info("⏩ Skipping competitor research...")
+            progress_placeholder.progress(0.1)
+            competitor_data = {
+                'competitors': [],
+                'content_gaps': [f"Create comprehensive content about {topic}"],
+                'trending_topics': [topic],
+                'recommendation': f"Focus on creating detailed content about {topic}"
+            }
 
-        # Stage 1: Keyword Research (20%)
-        status_placeholder.info("🎯 Researching keywords...")
-        progress_placeholder.progress(0.2)
+        # Stage 1: Keyword Research (20%) - Optional
+        if enable_keyword_research:
+            status_placeholder.info("🎯 Researching keywords...")
+            progress_placeholder.progress(0.2)
 
-        keyword_data = keyword_agent.research_keywords(
-            topic=topic,
-            language="de",
-            target_audience=project_config.get("target_audience", "Business professionals"),
-            keyword_count=10,
-            save_to_cache=True
-        )
+            keyword_data = keyword_agent.research_keywords(
+                topic=topic,
+                language=content_language,
+                target_audience=project_config.get("target_audience", "Business professionals"),
+                keyword_count=10,
+                save_to_cache=True
+            )
+        else:
+            status_placeholder.info("⏩ Skipping keyword research...")
+            progress_placeholder.progress(0.2)
+            # Create minimal keyword data
+            keyword_data = {
+                'primary_keyword': {'keyword': topic, 'difficulty': 'medium', 'search_volume': 1000},
+                'secondary_keywords': [
+                    {'keyword': f"{topic} Trends", 'difficulty': 'medium', 'search_volume': 500}
+                ],
+                'long_tail_keywords': [
+                    {'keyword': f"{topic} beste Praktiken", 'difficulty': 'low', 'search_volume': 100}
+                ],
+                'related_questions': [
+                    f"Was ist {topic}?",
+                    f"Wie funktioniert {topic}?",
+                    f"Warum ist {topic} wichtig?"
+                ]
+            }
 
         # Stage 2: Topic Research (30%)
         status_placeholder.info("🔍 Researching topic...")
         progress_placeholder.progress(0.3)
 
-        research_data = research_agent.research(topic=topic, language="de")
+        research_data = research_agent.research(topic=topic, language=content_language)
 
         # Stage 3: Writing (50%)
-        status_placeholder.info("✍️ Writing German blog post...")
+        language_names = {'de': 'German', 'en': 'English', 'fr': 'French', 'es': 'Spanish', 'it': 'Italian'}
+        language_name = language_names.get(content_language, content_language.upper())
+        status_placeholder.info(f"✍️ Writing {language_name} blog post...")
         progress_placeholder.progress(0.5)
 
         # Use keywords from keyword research (primary source)
@@ -133,6 +174,63 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
             save_to_cache=False  # We'll handle caching separately
         )
 
+        # Stage 2.4: Image Generation (65%) - OPTIONAL
+        hero_image_url = None
+        hero_image_alt = None
+        supporting_images = []
+        image_cost = 0.0
+
+        if generate_images:
+            status_placeholder.info("🖼️ Generating AI images...")
+            progress_placeholder.progress(0.65)
+
+            try:
+                import asyncio
+                from src.media.image_generator import ImageGenerator
+
+                image_generator = ImageGenerator()
+
+                # Get domain from project config (default to General)
+                domain = project_config.get("domain", "General")
+
+                # Generate images asynchronously
+                async def generate_all_images():
+                    nonlocal hero_image_url, hero_image_alt, supporting_images, image_cost
+
+                    # Generate hero image
+                    hero_result = await image_generator.generate_hero_image(
+                        topic=topic,
+                        article_excerpt=blog_result.get("content", "")[:500],
+                        brand_tone=[project_config.get("brand_voice", "Professional")],
+                        domain=domain
+                    )
+
+                    if hero_result.get("success"):
+                        hero_image_url = hero_result["url"]
+                        hero_image_alt = hero_result["alt_text"]
+                        image_cost += hero_result["cost"]
+
+                    # Generate supporting images
+                    supporting_result = await image_generator.generate_supporting_images(
+                        article_content=blog_result.get("content", ""),
+                        num_images=2,
+                        brand_tone=[project_config.get("brand_voice", "Professional")],
+                        domain=domain,
+                        topic=topic  # Pass topic directly to avoid markdown parsing issues
+                    )
+
+                    if supporting_result.get("success"):
+                        supporting_images = supporting_result["images"]
+                        image_cost += supporting_result["cost"]
+
+                # Run async generation
+                asyncio.run(generate_all_images())
+
+                status_placeholder.success(f"✅ Generated {1 if hero_image_url else 0} hero + {len(supporting_images)} supporting images (${image_cost:.2f})")
+
+            except Exception as e:
+                status_placeholder.warning(f"⚠️ Image generation failed: {e}")
+
         # Stage 2.5: Fact-Checking (70%) - NEW!
         fact_check_enabled = os.getenv("ENABLE_FACT_CHECK", "true").lower() == "true"
         thoroughness = os.getenv("FACT_CHECK_THOROUGHNESS", "medium")
@@ -141,7 +239,7 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
             status_placeholder.info("🔍 Fact-checking content...")
             progress_placeholder.progress(0.7)
 
-            fact_checker = FactCheckerAgent(api_key=api_key)
+            fact_checker = FactCheckerAgent(api_key=openrouter_key)
             fact_check_result = fact_checker.verify_content(
                 content=blog_result.get("content", ""),
                 thoroughness=thoroughness
@@ -192,7 +290,7 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
         metadata = {
             **blog_result.get("metadata", {}),
             "seo": blog_result.get("seo", {}),
-            "cost": blog_result.get("cost", 0),
+            "cost": blog_result.get("cost", 0) + image_cost,
             "sources": research_data.get("sources", []),
             "competitor_analysis": {
                 "competitors": len(competitor_data['competitors']),
@@ -205,6 +303,12 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
                 "secondary_keywords": [kw['keyword'] for kw in keyword_data['secondary_keywords'][:5]],
                 "long_tail_keywords": [kw['keyword'] for kw in keyword_data['long_tail_keywords'][:3]],
                 "related_questions": keyword_data['related_questions'][:3]
+            },
+            "images": {
+                "hero_url": hero_image_url,
+                "hero_alt": hero_image_alt,
+                "supporting": supporting_images,
+                "cost": image_cost
             }
         }
 
@@ -259,7 +363,14 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
                 "keywords_found": len(keyword_data['secondary_keywords']) + 1,  # +1 for primary
                 "primary_keyword": keyword_data['primary_keyword']['keyword'],
                 "content_gaps": len(competitor_data['content_gaps']),
-                "cost": blog_result.get("cost", 0.98)
+                "cost": blog_result.get("cost", 0.98) + image_cost,
+                "image_cost": image_cost,
+                "images_generated": (1 if hero_image_url else 0) + len(supporting_images)
+            },
+            "images": {
+                "hero_url": hero_image_url,
+                "hero_alt": hero_image_alt,
+                "supporting": supporting_images
             }
         }
 
@@ -297,11 +408,20 @@ def render():
     # Topic input
     st.subheader("📝 Enter Topic")
 
-    topic = st.text_input(
-        "Blog Post Topic (in German or English)",
-        placeholder="e.g., Die Vorteile von Cloud-Computing für kleine Unternehmen",
-        help="Enter the topic you want to write about. The AI will generate a German blog post."
-    )
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        topic = st.text_input(
+            "Blog Post Topic",
+            placeholder="e.g., Die Vorteile von Cloud-Computing für kleine Unternehmen",
+            help="Enter the topic you want to write about"
+        )
+    with col2:
+        content_language = st.selectbox(
+            "Language",
+            options=["de", "en", "fr", "es", "it"],
+            index=0,
+            help="Content language"
+        )
 
     # Additional options
     with st.expander("🎛️ Advanced Options", expanded=False):
@@ -316,11 +436,42 @@ def render():
                 help="Target word count for the blog post"
             )
         with col2:
+            generate_images = st.checkbox(
+                "🖼️ Generate Images",
+                value=False,
+                help="Generate AI images for the article (1 hero + 2 supporting = $0.12)"
+            )
+
+        col3, col4 = st.columns(2)
+        with col3:
+            enable_competitor_research = st.checkbox(
+                "🔎 Competitor Research",
+                value=True,
+                help="Analyze competitor content (requires Gemini API)"
+            )
+        with col4:
+            enable_keyword_research = st.checkbox(
+                "🎯 Keyword Research",
+                value=True,
+                help="Research SEO keywords (requires Gemini API)"
+            )
+
+        col5, col6 = st.columns(2)
+        with col5:
             st.checkbox(
                 "Generate Social Posts",
                 value=True,
                 help="Generate social media variants (LinkedIn, Facebook, etc.)"
             )
+        with col6:
+            if generate_images:
+                st.info("💰 Image cost: $0.12 (DALL-E 3)")
+
+    # Store in session state
+    st.session_state.generate_images = generate_images
+    st.session_state.enable_competitor_research = enable_competitor_research
+    st.session_state.enable_keyword_research = enable_keyword_research
+    st.session_state.content_language = content_language
 
     # Generate button
     if st.button("🚀 Generate Content", type="primary", use_container_width=True, disabled=not topic):
@@ -341,7 +492,11 @@ def render():
                 topic=topic,
                 project_config=project_config,
                 progress_placeholder=progress_placeholder,
-                status_placeholder=status_placeholder
+                status_placeholder=status_placeholder,
+                generate_images=st.session_state.get('generate_images', False),
+                enable_competitor_research=st.session_state.get('enable_competitor_research', True),
+                enable_keyword_research=st.session_state.get('enable_keyword_research', True),
+                content_language=st.session_state.get('content_language', 'de')
             )
 
         elapsed_time = time.time() - start_time
@@ -384,6 +539,24 @@ def render():
                         type="primary",
                         use_container_width=True
                     )
+
+                # Show images if generated
+                if result.get("images", {}).get("hero_url"):
+                    st.divider()
+                    st.subheader("🖼️ Generated Images")
+
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.caption("**Hero Image**")
+                        st.image(result["images"]["hero_url"], caption=result["images"]["hero_alt"])
+
+                    with col2:
+                        supporting = result["images"].get("supporting", [])
+                        if supporting:
+                            st.caption(f"**Supporting Images ({len(supporting)})**")
+                            for idx, img in enumerate(supporting, 1):
+                                st.image(img["url"], caption=img.get("alt_text", f"Supporting image {idx}"))
 
                 # Show preview
                 with st.expander("👀 Preview", expanded=True):

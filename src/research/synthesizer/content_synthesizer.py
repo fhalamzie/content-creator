@@ -131,7 +131,9 @@ class ContentSynthesizer:
         query: str,
         config: FullConfig,
         brand_tone: Optional[List[str]] = None,
-        generate_images: bool = False
+        generate_images: bool = False,
+        keywords: Optional[List[str]] = None,
+        themes: Optional[List[str]] = None
     ) -> Dict:
         """
         Synthesize article from research sources
@@ -142,6 +144,8 @@ class ContentSynthesizer:
             config: Market configuration (Pydantic FullConfig model)
             brand_tone: Brand tone for image generation (e.g., ['Professional', 'Technical'])
             generate_images: Whether to generate images (1 HD hero + 2 standard supporting)
+            keywords: Key concepts from website analysis (for image context)
+            themes: Main themes from website analysis (for image context)
 
         Returns:
             Dict with:
@@ -232,12 +236,17 @@ class ContentSynthesizer:
 
             # Step 4: Generate images (if enabled)
             if generate_images:
-                logger.info("generating_images", query=query, brand_tone=brand_tone)
+                logger.info("generating_images", query=query, brand_tone=brand_tone,
+                           has_keywords=bool(keywords), has_themes=bool(themes))
                 image_gen_start = datetime.now()
 
                 image_result = await self._generate_article_images(
                     query=query,
-                    brand_tone=brand_tone or ["Professional"]
+                    brand_tone=brand_tone or ["Professional"],
+                    config=config,
+                    article=article,
+                    keywords=keywords,
+                    themes=themes
                 )
 
                 image_gen_duration = (datetime.now() - image_gen_start).total_seconds() * 1000
@@ -588,9 +597,15 @@ The indices must be from the passages above (0 to {len(paragraphs) - 1}).
             citations = self._extract_citations(passages_with_sources)
 
             # Build synthesis prompt
-            # Extract domain and language from Pydantic FullConfig
-            domain = str(config.market.domain)
-            language = str(config.market.language)
+            # Extract domain and language (handle both FullConfig and dict)
+            if isinstance(config, dict):
+                # Plain dict format
+                domain = str(config.get('domain', 'General'))
+                language = str(config.get('language', 'en'))
+            else:
+                # FullConfig Pydantic model
+                domain = str(config.market.domain)
+                language = str(config.market.language)
 
             prompt = f"""You are a professional content writer creating an SEO-optimized article.
 
@@ -711,7 +726,11 @@ Generate the article now:
     async def _generate_article_images(
         self,
         query: str,
-        brand_tone: List[str]
+        brand_tone: List[str],
+        config: Dict,
+        article: Optional[str] = None,
+        keywords: Optional[List[str]] = None,
+        themes: Optional[List[str]] = None
     ) -> Dict:
         """
         Generate 3 images for article: 1 HD hero + 2 standard supporting
@@ -719,6 +738,10 @@ Generate the article now:
         Args:
             query: Article topic
             brand_tone: Brand tone descriptors (e.g., ['Professional', 'Technical'])
+            config: Market configuration (for domain extraction)
+            article: Generated article text (for excerpt)
+            keywords: Key concepts from website analysis
+            themes: Main themes from website analysis
 
         Returns:
             Dict with:
@@ -733,21 +756,35 @@ Generate the article now:
             # Initialize ImageGenerator
             image_generator = ImageGenerator()
 
-            # Generate hero image (1792x1024 HD, $0.08)
-            logger.info("generating_hero_image", topic=query)
+            # Extract domain from config
+            if isinstance(config, dict):
+                domain = str(config.get('domain', 'General'))
+            else:
+                domain = str(config.market.domain)
+
+            # Generate hero image (1792x1024 HD, $0.08 - DALL-E 3)
+            logger.info("generating_hero_image", topic=query, domain=domain,
+                       has_keywords=bool(keywords), has_themes=bool(themes))
             hero_result = await image_generator.generate_hero_image(
                 topic=query,
-                brand_tone=brand_tone
+                brand_tone=brand_tone,
+                domain=domain,
+                keywords=keywords,
+                themes=themes,
+                article_excerpt=article[:200] if article else None
             )
 
-            # Generate 2 supporting images (1024x1024 Standard, $0.04 each)
-            logger.info("generating_supporting_images", topic=query)
+            # Generate 2 supporting images (1024x1024 Standard, $0.04 each - DALL-E 3)
+            logger.info("generating_supporting_images", topic=query, domain=domain)
             supporting_aspects = ["key benefits", "implementation overview"]
             supporting_tasks = [
                 image_generator.generate_supporting_image(
                     topic=query,
                     brand_tone=brand_tone,
-                    aspect=aspect
+                    aspect=aspect,
+                    domain=domain,
+                    keywords=keywords,
+                    themes=themes
                 )
                 for aspect in supporting_aspects
             ]

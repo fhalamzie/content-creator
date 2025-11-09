@@ -2,6 +2,27 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 047: Flux Migration & Image Quality Improvements (2025-11-10)
+
+**CRITICAL FIX (2 hours)** - Migrated from DALL-E 3 to Flux 1.1 Pro Ultra RAW MODE, fixed image quality + supporting image relevance
+
+**Problem**: DALL-E 3 producing "3D comic-style" images despite optimization attempts (style="natural", German prompts, Qwen expansion), supporting images using generic aspects instead of article sections, writing agent failing with empty responses.
+
+**Solutions**:
+- ✅ **Flux Migration**: Switched to Flux 1.1 Pro Ultra with RAW MODE via Replicate API for authentic photorealism ($0.04/image, same cost)
+- ✅ **Writing Agent Fix**: Changed model from `qwen3-235b-a22b` → `qwen3-235b-a22b-2507` (non-reasoning variant, no empty responses)
+- ✅ **Topic Extraction Fix**: Added `topic` parameter to `generate_supporting_images()`, passed directly from UI to avoid markdown parsing errors
+- ✅ **Section-Based Aspects**: 4-tier extraction (H2 → H3 → paragraphs → topic+context), supporting images now use actual article headings instead of "key benefits"
+- ✅ **Streamlit Restart Discipline**: Established restart workflow (critical - cached code was preventing improvements from taking effect)
+
+**Quality Impact**: User feedback progression: "still total shit" → "much better!!" (Flux), supporting images now article-specific.
+
+**Technical Details**: Replicate client, 2048x2048 resolution (up from 1792x1024), PNG output, 8-10s generation, RAW MODE for authentic photography aesthetic.
+
+**See**: [Full details](docs/sessions/047-flux-migration-image-quality-improvements.md)
+
+---
+
 ## Session 046: Media Generation - Phases 4-7 (Integration & E2E Testing) (2025-11-08)
 
 **Feature COMPLETE (2.3/10.5 hours)** - 78% faster than estimated, production ready with 100% E2E coverage
