@@ -77,6 +77,13 @@ class Topic(BaseModel):
     word_count: Optional[int] = None
     content_score: Optional[float] = None  # Surfer SEO pattern
 
+    # Image generation (DALL-E 3)
+    hero_image_url: Optional[str] = None  # Hero image URL (1792x1024 HD)
+    supporting_images: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description="Supporting images [{url, alt, size, quality}]"
+    )
+
     # ContentPipeline Stage 1: Competitor Research
     competitors: List[Dict[str, str]] = Field(
         default_factory=list,

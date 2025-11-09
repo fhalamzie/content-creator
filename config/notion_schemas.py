@@ -392,6 +392,12 @@ TOPICS_SCHEMA = {
                 "format": "number"
             }
         },
+        "Hero Image URL": {
+            "url": {}  # Generated hero image (1792x1024 HD)
+        },
+        "Supporting Images": {
+            "rich_text": {}  # JSON array of supporting images [{url, alt, size, quality}]
+        },
         "Discovered At": {
             "date": {}
         },

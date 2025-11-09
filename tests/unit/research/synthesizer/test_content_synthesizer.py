@@ -382,3 +382,271 @@ class TestFullPipeline:
 
             with pytest.raises(SynthesisError, match="No sources provided"):
                 await synthesizer.synthesize(sources=[], query="test", config=synthesizer_config)
+
+
+class TestImageGenerationIntegration:
+    """Test image generation integration into ContentSynthesizer"""
+
+    @pytest.mark.asyncio
+    async def test_synthesize_with_images_enabled(
+        self, sample_sources, synthesizer_config
+    ):
+        """Test synthesis with image generation enabled"""
+        with patch('src.research.synthesizer.content_synthesizer.genai') as mock_genai, \
+             patch('src.research.synthesizer.content_synthesizer.fetch_url') as mock_fetch, \
+             patch('src.research.synthesizer.content_synthesizer.extract') as mock_extract, \
+             patch('src.research.synthesizer.content_synthesizer.ImageGenerator') as mock_img_gen:
+
+            # Mock content extraction
+            mock_fetch.return_value = "<html>content</html>"
+            mock_extract.return_value = "Article content here.\n\nAnother paragraph."
+
+            # Mock Gemini responses
+            mock_response = MagicMock()
+            mock_response.text = "Generated article with [Source 1] citation"
+            mock_genai.Client.return_value.models.generate_content = Mock(return_value=mock_response)
+
+            # Mock ImageGenerator
+            mock_generator = Mock()
+            mock_generator.generate_hero_image = AsyncMock(return_value={
+                "url": "https://images.example.com/hero.png",
+                "size": "1792x1024",
+                "quality": "hd",
+                "cost": 0.08
+            })
+            mock_generator.generate_supporting_image = AsyncMock(return_value={
+                "url": "https://images.example.com/support1.png",
+                "size": "1024x1024",
+                "quality": "standard",
+                "cost": 0.04
+            })
+            mock_img_gen.return_value = mock_generator
+
+            synthesizer = ContentSynthesizer(gemini_api_key="test_key")
+
+            # Call with image generation enabled
+            result = await synthesizer.synthesize(
+                sources=sample_sources,
+                query="PropTech AI",
+                config=synthesizer_config,
+                brand_tone=["Professional", "Technical"],
+                generate_images=True
+            )
+
+            # Verify article generated
+            assert 'article' in result
+            assert 'citations' in result
+
+            # Verify images generated
+            assert result['hero_image_url'] == "https://images.example.com/hero.png"
+            assert result['hero_image_alt'] is not None
+            assert len(result['supporting_images']) == 2
+            assert result['supporting_images'][0]['url'] == "https://images.example.com/support1.png"
+            assert result['supporting_images'][1]['url'] == "https://images.example.com/support1.png"
+
+            # Verify cost tracking
+            assert result['image_cost'] == 0.16  # 1 hero ($0.08) + 2 supporting ($0.08)
+
+            # Verify ImageGenerator called correctly
+            mock_generator.generate_hero_image.assert_called_once_with(
+                topic="PropTech AI",
+                brand_tone=["Professional", "Technical"]
+            )
+            assert mock_generator.generate_supporting_image.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_synthesize_with_images_disabled(
+        self, sample_sources, synthesizer_config
+    ):
+        """Test synthesis with image generation disabled"""
+        with patch('src.research.synthesizer.content_synthesizer.genai') as mock_genai, \
+             patch('src.research.synthesizer.content_synthesizer.fetch_url') as mock_fetch, \
+             patch('src.research.synthesizer.content_synthesizer.extract') as mock_extract, \
+             patch('src.research.synthesizer.content_synthesizer.ImageGenerator') as mock_img_gen:
+
+            # Mock content extraction
+            mock_fetch.return_value = "<html>content</html>"
+            mock_extract.return_value = "Article content here.\n\nAnother paragraph."
+
+            # Mock Gemini responses
+            mock_response = MagicMock()
+            mock_response.text = "Generated article with [Source 1] citation"
+            mock_genai.Client.return_value.models.generate_content = Mock(return_value=mock_response)
+
+            synthesizer = ContentSynthesizer(gemini_api_key="test_key")
+
+            # Call with image generation disabled
+            result = await synthesizer.synthesize(
+                sources=sample_sources,
+                query="PropTech AI",
+                config=synthesizer_config,
+                brand_tone=["Professional"],
+                generate_images=False
+            )
+
+            # Verify article generated
+            assert 'article' in result
+            assert 'citations' in result
+
+            # Verify no images generated
+            assert result['hero_image_url'] is None
+            assert result['hero_image_alt'] is None
+            assert result['supporting_images'] == []
+            assert result['image_cost'] == 0.0
+
+            # Verify ImageGenerator not instantiated
+            mock_img_gen.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_synthesize_image_generation_failure_silent(
+        self, sample_sources, synthesizer_config
+    ):
+        """Test synthesis continues when image generation fails (silent failure)"""
+        with patch('src.research.synthesizer.content_synthesizer.genai') as mock_genai, \
+             patch('src.research.synthesizer.content_synthesizer.fetch_url') as mock_fetch, \
+             patch('src.research.synthesizer.content_synthesizer.extract') as mock_extract, \
+             patch('src.research.synthesizer.content_synthesizer.ImageGenerator') as mock_img_gen:
+
+            # Mock content extraction
+            mock_fetch.return_value = "<html>content</html>"
+            mock_extract.return_value = "Article content here.\n\nAnother paragraph."
+
+            # Mock Gemini responses
+            mock_response = MagicMock()
+            mock_response.text = "Generated article with [Source 1] citation"
+            mock_genai.Client.return_value.models.generate_content = Mock(return_value=mock_response)
+
+            # Mock ImageGenerator - hero fails, supporting partial success
+            mock_generator = Mock()
+            mock_generator.generate_hero_image = AsyncMock(return_value=None)  # Failed
+            mock_generator.generate_supporting_image = AsyncMock(side_effect=[
+                {"url": "https://images.example.com/support1.png", "size": "1024x1024", "quality": "standard", "cost": 0.04},
+                None  # Second supporting image failed
+            ])
+            mock_img_gen.return_value = mock_generator
+
+            synthesizer = ContentSynthesizer(gemini_api_key="test_key")
+
+            # Call with image generation enabled
+            result = await synthesizer.synthesize(
+                sources=sample_sources,
+                query="PropTech AI",
+                config=synthesizer_config,
+                brand_tone=["Professional"],
+                generate_images=True
+            )
+
+            # Verify article still generated (silent failure)
+            assert 'article' in result
+            assert 'citations' in result
+
+            # Verify partial image results
+            assert result['hero_image_url'] is None  # Failed
+            assert result['hero_image_alt'] is None
+            assert len(result['supporting_images']) == 1  # Only 1 succeeded
+            assert result['supporting_images'][0]['url'] == "https://images.example.com/support1.png"
+            assert result['image_cost'] == 0.04  # Only 1 supporting image cost
+
+    @pytest.mark.asyncio
+    async def test_synthesize_no_brand_tone_defaults_to_professional(
+        self, sample_sources, synthesizer_config
+    ):
+        """Test synthesis with no brand tone defaults to Professional"""
+        with patch('src.research.synthesizer.content_synthesizer.genai') as mock_genai, \
+             patch('src.research.synthesizer.content_synthesizer.fetch_url') as mock_fetch, \
+             patch('src.research.synthesizer.content_synthesizer.extract') as mock_extract, \
+             patch('src.research.synthesizer.content_synthesizer.ImageGenerator') as mock_img_gen:
+
+            # Mock content extraction
+            mock_fetch.return_value = "<html>content</html>"
+            mock_extract.return_value = "Article content here.\n\nAnother paragraph."
+
+            # Mock Gemini responses
+            mock_response = MagicMock()
+            mock_response.text = "Generated article"
+            mock_genai.Client.return_value.models.generate_content = Mock(return_value=mock_response)
+
+            # Mock ImageGenerator
+            mock_generator = Mock()
+            mock_generator.generate_hero_image = AsyncMock(return_value={
+                "url": "https://images.example.com/hero.png",
+                "cost": 0.08
+            })
+            mock_generator.generate_supporting_image = AsyncMock(return_value={
+                "url": "https://images.example.com/support.png",
+                "cost": 0.04
+            })
+            mock_img_gen.return_value = mock_generator
+
+            synthesizer = ContentSynthesizer(gemini_api_key="test_key")
+
+            # Call with no brand_tone (None)
+            result = await synthesizer.synthesize(
+                sources=sample_sources,
+                query="PropTech AI",
+                config=synthesizer_config,
+                brand_tone=None,  # No tone specified
+                generate_images=True
+            )
+
+            # Verify ImageGenerator called with default ["Professional"]
+            mock_generator.generate_hero_image.assert_called_once_with(
+                topic="PropTech AI",
+                brand_tone=["Professional"]
+            )
+
+    @pytest.mark.asyncio
+    async def test_synthesize_image_cost_tracking_accurate(
+        self, sample_sources, synthesizer_config
+    ):
+        """Test image cost tracking is accurate across all scenarios"""
+        with patch('src.research.synthesizer.content_synthesizer.genai') as mock_genai, \
+             patch('src.research.synthesizer.content_synthesizer.fetch_url') as mock_fetch, \
+             patch('src.research.synthesizer.content_synthesizer.extract') as mock_extract, \
+             patch('src.research.synthesizer.content_synthesizer.ImageGenerator') as mock_img_gen:
+
+            # Mock content extraction
+            mock_fetch.return_value = "<html>content</html>"
+            mock_extract.return_value = "Article content here.\n\nAnother paragraph."
+
+            # Mock Gemini responses
+            mock_response = MagicMock()
+            mock_response.text = "Generated article"
+            mock_genai.Client.return_value.models.generate_content = Mock(return_value=mock_response)
+
+            # Mock ImageGenerator
+            mock_generator = Mock()
+            mock_generator.generate_hero_image = AsyncMock(return_value={
+                "url": "https://images.example.com/hero.png",
+                "cost": 0.08
+            })
+            mock_generator.generate_supporting_image = AsyncMock(return_value={
+                "url": "https://images.example.com/support.png",
+                "cost": 0.04
+            })
+            mock_img_gen.return_value = mock_generator
+
+            synthesizer = ContentSynthesizer(gemini_api_key="test_key")
+
+            # Scenario 1: All images succeed
+            result = await synthesizer.synthesize(
+                sources=sample_sources,
+                query="PropTech AI",
+                config=synthesizer_config,
+                brand_tone=["Professional"],
+                generate_images=True
+            )
+
+            # Verify total cost: 1 HD hero + 2 standard supporting
+            assert result['image_cost'] == 0.16  # $0.08 + $0.04 + $0.04
+
+            # Scenario 2: Images disabled
+            result = await synthesizer.synthesize(
+                sources=sample_sources,
+                query="PropTech AI",
+                config=synthesizer_config,
+                brand_tone=["Professional"],
+                generate_images=False
+            )
+
+            assert result['image_cost'] == 0.0

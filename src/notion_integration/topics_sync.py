@@ -309,6 +309,26 @@ class TopicsSync:
                 'number': topic.content_score
             }
 
+        # Image generation
+        if topic.hero_image_url:
+            properties['Hero Image URL'] = {
+                'url': topic.hero_image_url
+            }
+
+        if topic.supporting_images:
+            # Serialize supporting images to JSON string
+            import json
+            images_json = json.dumps(topic.supporting_images)
+            properties['Supporting Images'] = {
+                'rich_text': [
+                    {
+                        'text': {
+                            'content': images_json[:2000]  # Notion limit
+                        }
+                    }
+                ]
+            }
+
         # Dates
         properties['Discovered At'] = {
             'date': {

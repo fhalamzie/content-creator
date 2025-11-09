@@ -58,7 +58,8 @@ def load_research_config():
         "enable_reranking": True,
         "enable_synthesis": True,
         "max_article_words": 2000,
-        "synthesis_strategy": "bm25_llm"
+        "synthesis_strategy": "bm25_llm",
+        "enable_images": False
     }
 
 
@@ -142,9 +143,18 @@ def render_config_sidebar():
                 index=0 if config.get("synthesis_strategy") == "bm25_llm" else 1,
                 help="BM25→LLM: fast, cheap (92% quality) | LLM-only: slower, expensive (94% quality)"
             )
+
+            # Image generation settings
+            st.subheader("🖼️ Image Generation")
+            enable_images = st.checkbox(
+                "Generate images (1 HD hero + 2 supporting)",
+                value=config.get("enable_images", False),
+                help="DALL-E 3: $0.16/topic (1 HD hero $0.08 + 2 standard supporting $0.08)"
+            )
         else:
             max_article_words = 2000
             synthesis_strategy = "bm25_llm"
+            enable_images = False
 
         if st.button("💾 Save Configuration", use_container_width=True):
             new_config = {
@@ -157,7 +167,8 @@ def render_config_sidebar():
                 "enable_reranking": enable_reranking,
                 "enable_synthesis": enable_synthesis,
                 "max_article_words": max_article_words,
-                "synthesis_strategy": synthesis_strategy
+                "synthesis_strategy": synthesis_strategy,
+                "enable_images": enable_images
             }
             save_research_config(new_config)
             st.success("✅ Configuration saved!")
@@ -171,9 +182,12 @@ def render_config_sidebar():
         base_cost = 0.005 * enabled_backends  # ~$0.005 per backend
         reranking_cost = 0.002 if enable_reranking else 0
         synthesis_cost = 0.003 if enable_synthesis else 0
-        total_cost = base_cost + reranking_cost + synthesis_cost
+        images_cost = 0.16 if enable_images else 0  # $0.16/topic (1 HD hero + 2 standard supporting)
+        total_cost = base_cost + reranking_cost + synthesis_cost + images_cost
         st.caption(f"• Estimated: ${total_cost:.4f}/topic")
         st.caption(f"• {enabled_backends} backend{'s' if enabled_backends != 1 else ''} enabled")
+        if enable_images:
+            st.caption(f"• Images: +${images_cost:.2f}/topic")
 
         return config
 
@@ -259,21 +273,42 @@ async def process_topic_async(
 
         # Stage 4: Content Synthesis
         article = None
+        hero_image_url = None
+        hero_image_alt = None
+        supporting_images = []
+        image_cost = 0.0
+
         if synthesizer and results:
             progress_bar.progress(0.75)
             status_text.info("📝 **Stage 4/4**: Synthesizing article with citations...")
 
+            # Extract brand tone from market config or use default
+            brand_tone = market_config.market.brand_tone if hasattr(market_config, 'market') and hasattr(market_config.market, 'brand_tone') else ["Professional"]
+
             synthesis_result = await synthesizer.synthesize(
                 query=topic,
                 sources=results,
-                config=market_config
+                config=market_config,
+                brand_tone=brand_tone,
+                generate_images=config.get("enable_images", False)
             )
 
             article = synthesis_result["article"]
             total_cost += synthesis_result.get("cost", 0)
 
+            # Extract image data
+            hero_image_url = synthesis_result.get("hero_image_url")
+            hero_image_alt = synthesis_result.get("hero_image_alt")
+            supporting_images = synthesis_result.get("supporting_images", [])
+            image_cost = synthesis_result.get("image_cost", 0.0)
+            total_cost += image_cost
+
             with metrics_container:
-                st.success(f"✅ Article generated: {synthesis_result.get('word_count', 0)} words, {len(synthesis_result.get('citations', []))} citations")
+                word_count = len(article.split()) if article else 0
+                st.success(f"✅ Article generated: {word_count} words, {len(synthesis_result.get('citations', []))} citations")
+                if config.get("enable_images", False):
+                    images_generated = (1 if hero_image_url else 0) + len(supporting_images)
+                    st.info(f"🖼️ Images generated: {images_generated}/3 (${image_cost:.2f})")
 
         # Complete
         progress_bar.progress(1.0)
@@ -287,7 +322,11 @@ async def process_topic_async(
             "article": article,
             "cost": total_cost,
             "duration_sec": duration,
-            "backend_counts": dict(backend_counts)
+            "backend_counts": dict(backend_counts),
+            "hero_image_url": hero_image_url,
+            "hero_image_alt": hero_image_alt,
+            "supporting_images": supporting_images,
+            "image_cost": image_cost
         }
 
     except Exception as e:
@@ -305,19 +344,72 @@ def render_results(result: Dict):
     col1.metric("Total Sources", len(result['sources']))
     col2.metric("Total Cost", f"${result['cost']:.4f}")
     col3.metric("Duration", f"{result['duration_sec']:.1f}s")
-    col4.metric("Backends", len(result['backend_counts']))
+
+    # Show images count if generated
+    if result.get('hero_image_url') or result.get('supporting_images'):
+        images_count = (1 if result.get('hero_image_url') else 0) + len(result.get('supporting_images', []))
+        col4.metric("Images", f"{images_count}/3")
+    else:
+        col4.metric("Backends", len(result['backend_counts']))
 
     # Tabs for different views
-    tabs = st.tabs(["📝 Article", "📊 Sources", "📈 Analytics", "🔍 Raw Data"])
+    tab_names = ["📝 Article", "🖼️ Images", "📊 Sources", "📈 Analytics", "🔍 Raw Data"]
+    tabs = st.tabs(tab_names)
 
     with tabs[0]:
         st.subheader("Generated Article")
         if result.get('article'):
+            # Display hero image if available
+            if result.get('hero_image_url'):
+                st.image(
+                    result['hero_image_url'],
+                    caption=result.get('hero_image_alt', 'Hero image'),
+                    use_container_width=True
+                )
+                st.divider()
+
             st.markdown(result['article'])
         else:
             st.info("Content synthesis was disabled")
 
     with tabs[1]:
+        st.subheader("Generated Images")
+
+        # Hero image
+        if result.get('hero_image_url'):
+            st.markdown("### Hero Image (1792x1024 HD)")
+            st.image(
+                result['hero_image_url'],
+                caption=result.get('hero_image_alt', 'Hero image'),
+                use_container_width=True
+            )
+        else:
+            st.info("No hero image generated")
+
+        st.divider()
+
+        # Supporting images
+        supporting = result.get('supporting_images', [])
+        if supporting:
+            st.markdown(f"### Supporting Images ({len(supporting)}/2)")
+            cols = st.columns(2)
+            for i, img in enumerate(supporting):
+                with cols[i % 2]:
+                    st.image(
+                        img.get('url'),
+                        caption=img.get('alt', f'Supporting image {i+1}'),
+                        use_container_width=True
+                    )
+                    st.caption(f"**Size**: {img.get('size', 'N/A')} | **Quality**: {img.get('quality', 'N/A')}")
+        else:
+            st.info("No supporting images generated")
+
+        # Cost breakdown
+        if result.get('image_cost', 0) > 0:
+            st.divider()
+            st.caption(f"**Image Generation Cost**: ${result['image_cost']:.2f}")
+
+    with tabs[2]:
         st.subheader("Top Sources")
         for i, source in enumerate(result['sources'][:10], 1):
             with st.expander(f"{i}. {source.get('title', 'Untitled')[:80]}"):
@@ -328,7 +420,7 @@ def render_results(result: Dict):
                 if 'snippet' in source:
                     st.text(source['snippet'][:200] + "...")
 
-    with tabs[2]:
+    with tabs[3]:
         st.subheader("Backend Distribution")
 
         # Backend breakdown
@@ -342,8 +434,10 @@ def render_results(result: Dict):
         st.subheader("Cost Breakdown")
         st.caption(f"• Total: ${result['cost']:.4f}")
         st.caption(f"• Per source: ${result['cost'] / max(len(result['sources']), 1):.5f}")
+        if result.get('image_cost', 0) > 0:
+            st.caption(f"• Images: ${result['image_cost']:.2f}")
 
-    with tabs[3]:
+    with tabs[4]:
         st.subheader("Raw Result Data")
         st.json({
             "topic": result['topic'],
@@ -351,7 +445,10 @@ def render_results(result: Dict):
             "has_article": result.get('article') is not None,
             "cost": result['cost'],
             "duration_sec": result['duration_sec'],
-            "backend_counts": result['backend_counts']
+            "backend_counts": result['backend_counts'],
+            "has_hero_image": result.get('hero_image_url') is not None,
+            "supporting_images_count": len(result.get('supporting_images', [])),
+            "image_cost": result.get('image_cost', 0.0)
         })
 
 

@@ -43,6 +43,7 @@ from trafilatura import fetch_url, extract
 from google import genai
 
 from src.research.backends.base import SearchResult
+from src.media.image_generator import ImageGenerator
 from src.utils.logger import get_logger
 from src.utils.config_loader import FullConfig
 
@@ -229,19 +230,38 @@ class ContentSynthesizer:
                 'total_duration_ms': total_duration
             })
 
-            # Add image placeholders (actual generation in Phase 4)
-            result['hero_image_url'] = None
-            result['hero_image_alt'] = None
-            result['supporting_images'] = []
-            result['image_cost'] = 0.0
+            # Step 4: Generate images (if enabled)
+            if generate_images:
+                logger.info("generating_images", query=query, brand_tone=brand_tone)
+                image_gen_start = datetime.now()
 
-            # TODO: Image generation will be implemented in Phase 4
-            # if generate_images and brand_tone:
-            #     image_result = await self.image_generator.generate_article_images(...)
-            #     result['hero_image_url'] = image_result.get('hero_url')
-            #     result['hero_image_alt'] = image_result.get('hero_alt')
-            #     result['supporting_images'] = image_result.get('supporting', [])
-            #     result['image_cost'] = image_result.get('total_cost', 0.0)
+                image_result = await self._generate_article_images(
+                    query=query,
+                    brand_tone=brand_tone or ["Professional"]
+                )
+
+                image_gen_duration = (datetime.now() - image_gen_start).total_seconds() * 1000
+                result['metadata']['image_generation_duration_ms'] = image_gen_duration
+
+                # Add image results
+                result['hero_image_url'] = image_result.get('hero_image_url')
+                result['hero_image_alt'] = image_result.get('hero_image_alt')
+                result['supporting_images'] = image_result.get('supporting_images', [])
+                result['image_cost'] = image_result.get('image_cost', 0.0)
+
+                logger.info(
+                    "images_generated",
+                    hero_generated=bool(result['hero_image_url']),
+                    num_supporting=len(result['supporting_images']),
+                    image_cost=result['image_cost'],
+                    duration_ms=image_gen_duration
+                )
+            else:
+                # Images disabled
+                result['hero_image_url'] = None
+                result['hero_image_alt'] = None
+                result['supporting_images'] = []
+                result['image_cost'] = 0.0
 
             logger.info(
                 "synthesis_completed",
@@ -687,3 +707,96 @@ Generate the article now:
 
         # Return sorted by id
         return [citations_dict[sid] for sid in sorted(citations_dict.keys())]
+
+    async def _generate_article_images(
+        self,
+        query: str,
+        brand_tone: List[str]
+    ) -> Dict:
+        """
+        Generate 3 images for article: 1 HD hero + 2 standard supporting
+
+        Args:
+            query: Article topic
+            brand_tone: Brand tone descriptors (e.g., ['Professional', 'Technical'])
+
+        Returns:
+            Dict with:
+            - hero_image_url: Optional[str] - Hero image URL or None if failed
+            - hero_image_alt: Optional[str] - Hero image alt text or None if failed
+            - supporting_images: List[Dict] - Supporting images (url, alt, size, quality)
+            - image_cost: float - Total image generation cost
+
+        Note: Uses silent failure - returns None for failed images, synthesis continues
+        """
+        try:
+            # Initialize ImageGenerator
+            image_generator = ImageGenerator()
+
+            # Generate hero image (1792x1024 HD, $0.08)
+            logger.info("generating_hero_image", topic=query)
+            hero_result = await image_generator.generate_hero_image(
+                topic=query,
+                brand_tone=brand_tone
+            )
+
+            # Generate 2 supporting images (1024x1024 Standard, $0.04 each)
+            logger.info("generating_supporting_images", topic=query)
+            supporting_aspects = ["key benefits", "implementation overview"]
+            supporting_tasks = [
+                image_generator.generate_supporting_image(
+                    topic=query,
+                    brand_tone=brand_tone,
+                    aspect=aspect
+                )
+                for aspect in supporting_aspects
+            ]
+            supporting_results = await asyncio.gather(*supporting_tasks)
+
+            # Build result dict
+            result = {
+                'hero_image_url': None,
+                'hero_image_alt': None,
+                'supporting_images': [],
+                'image_cost': 0.0
+            }
+
+            # Process hero image
+            if hero_result:
+                result['hero_image_url'] = hero_result.get('url')
+                result['hero_image_alt'] = f"Hero image for article about {query}"
+                result['image_cost'] += hero_result.get('cost', 0.0)
+                logger.info("hero_image_generated", url_length=len(hero_result['url']))
+            else:
+                logger.warning("hero_image_failed", topic=query)
+
+            # Process supporting images
+            for i, supporting_result in enumerate(supporting_results):
+                if supporting_result:
+                    result['supporting_images'].append({
+                        'url': supporting_result.get('url'),
+                        'alt': f"Supporting illustration {i+1} for {query}",
+                        'size': supporting_result.get('size'),
+                        'quality': supporting_result.get('quality')
+                    })
+                    result['image_cost'] += supporting_result.get('cost', 0.0)
+                    logger.info(f"supporting_image_{i+1}_generated", url_length=len(supporting_result['url']))
+                else:
+                    logger.warning(f"supporting_image_{i+1}_failed", topic=query)
+
+            return result
+
+        except Exception as e:
+            # Silent failure - log error but continue synthesis
+            logger.error(
+                "image_generation_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                topic=query
+            )
+            return {
+                'hero_image_url': None,
+                'hero_image_alt': None,
+                'supporting_images': [],
+                'image_cost': 0.0
+            }

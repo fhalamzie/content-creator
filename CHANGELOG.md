@@ -2,6 +2,28 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 046: Media Generation - Phases 4-7 (Integration & E2E Testing) (2025-11-08)
+
+**Feature COMPLETE (2.3/10.5 hours)** - 78% faster than estimated, production ready with 100% E2E coverage
+
+**Implementation**:
+- ✅ Phase 4 (Synthesizer): `_generate_article_images()` method with hero + 2 supporting images, silent failure on errors
+- ✅ Phase 5 (Streamlit UI): 5-tab display (Hero, Support 1-2, Sources, Article), image generation checkbox, cost breakdown ($0.16 images + $0.01 synthesis)
+- ✅ Phase 6 (Notion): Added `hero_image_url` (URL) + `supporting_images` (JSON) fields to Topic model + TOPICS_SCHEMA, TopicsSync mapping
+- ✅ Phase 7 (E2E Tests): 4 comprehensive tests (2 live API with skip markers, 2 fully mocked), complete pipeline validation
+
+**Test Results**: ✅ 4/4 E2E tests passing, ✅ 41/41 total tests (no regressions), ✅ Live validation: 544 words + 3 images in 62s for $0.16
+
+**TDD Success**: Tests written before implementation, mocked tests always runnable (CI/CD safe), live tests with conditional skip markers
+
+**Live Validation**: Images enabled (544 words, 3 images, $0.16, 62s) ✅, Images disabled (583 words, 0 images, $0.00, 13s) ✅, Silent failure handling ✅, Notion sync ✅
+
+**Status**: ✅ ALL 7 PHASES COMPLETE - Feature production ready, full pipeline validated (research → images → synthesis → UI → Notion)
+
+**See**: [Full details](docs/sessions/046-media-generation-phase4-7-integration.md)
+
+---
+
 ## Session 045: Media Generation - Phase 3 (ImageGenerator Module) (2025-11-08)
 
 **Phase 3 of 7 Complete (5/18.5 hours)** - DALL-E 3 integration with 7-tone prompt mapping
@@ -47,43 +69,4 @@ Recent development sessions (last 3 sessions, <100 lines).
 
 ---
 
-## Session 043: Notion Sync + Automation + E2E Validation (2025-11-08)
-
-**Phase 1 MVP: 5/6 Acceptance Criteria Complete (83%)** - Production ready!
-
-**Implementation**:
-- ✅ Notion sync: `sync_to_notion(limit=10)` with auto-loading from environment variables
-- ✅ TOPICS_SCHEMA added (19 properties: Title, Status, Priority, Domain, Market, etc.)
-- ✅ Daily automation: Already implemented via Huey (2 AM collection, Monday 9 AM Notion sync)
-- ✅ Field name fixes: `deep_research_report` → `research_report`, `research_sources` → `citations` (8 fixes)
-
-**Test Results**: ✅ 9/9 Notion sync unit tests, ✅ 4/4 Universal Topic Agent E2E tests (25:40 runtime), ✅ 13/13 Streamlit Playwright E2E tests (52s runtime), ✅ 34/36 Huey tasks tests
-
-**Bugs Fixed**: MarketConfig missing `vertical`, Topic priority range (1-10), `weekly_notion_sync()` undefined variable
-
-**Status**: Topic discovery (49 topics/run - close to 50+/week), Deep research ($0.02597/topic), Deduplication (22.22% < 30%), Language detection (100%), Notion sync (working), Daily automation (working)
-
-**See**: [Full details](docs/sessions/043-notion-sync-automation-e2e-fixes.md)
-
----
-
-## Session 042: E2E Test Fixes & Validation (2025-11-08)
-
-**All E2E Tests Fixed**: Corrected field names, thresholds, and API calls to align with current codebase.
-
-**10 Fixes Applied**:
-- 7 field name updates: `deep_research_report` → `research_report`, `research_sources` → `citations`
-- 2 threshold updates: duplicate rate <5% → <30% (Session 040 acceptance criteria)
-- 1 API fix: `search_documents()` → `get_documents_by_language()` for language detection
-
-**Test Results**: ✅ 5/5 clustering E2E, ✅ 150/150 collector unit tests, ✅ 22/22 clusterer unit tests, ⏳ Full pipeline E2E running
-
-**Validation**: Topic clustering PRODUCTION READY, Data collectors PRODUCTION READY, Collection → Clustering flow VALIDATED
-
-**Performance**: Individual E2E test 6:59 runtime, $0.02597 research cost, 22.22% duplicate rate (< 30% target)
-
-**See**: [Full details](docs/sessions/042-e2e-test-fixes.md)
-
----
-
-*Older sessions (038-044) archived in `docs/sessions/` directory*
+*Older sessions (038-045) archived in `docs/sessions/` directory*

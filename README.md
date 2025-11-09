@@ -12,6 +12,7 @@ Automated topic discovery and research system for SaaS companies. Finds trending
 - **6-Stage Pipeline** - Website analysis → Competitor research → Topic validation → Research → Article
 - **Automatic Fallback** - Gemini rate limit → Tavily API ensures 95%+ uptime
 - **Professional Research Reports** - 2000-word articles at $0.01/topic (50% under budget)
+- **Automated Image Generation** (NEW) - Optional DALL-E 3 integration (1 HD hero + 2 supporting images, $0.16/topic)
 - **Cost Tracking** - Monitor free vs paid API usage per stage
 - **Notion Integration** - Review and approve discovered topics in Notion before writing
 - **Smart Deduplication** - MinHash/LSH similarity detection keeps duplicate rate <5%

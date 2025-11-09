@@ -1,141 +1,26 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/test_config_loader.py",
+      "moduleId": "tests/integration/test_image_generation_e2e.py",
       "tests": [
         {
-          "name": "test_create_market_config_with_required_fields",
-          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_create_market_config_with_required_fields",
+          "name": "test_synthesis_with_images_enabled",
+          "fullName": "tests/integration/test_image_generation_e2e.py::test_synthesis_with_images_enabled",
           "state": "passed"
         },
         {
-          "name": "test_create_market_config_with_optional_fields",
-          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_create_market_config_with_optional_fields",
+          "name": "test_synthesis_with_images_disabled",
+          "fullName": "tests/integration/test_image_generation_e2e.py::test_synthesis_with_images_disabled",
           "state": "passed"
         },
         {
-          "name": "test_missing_required_field_raises_error",
-          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_missing_required_field_raises_error",
+          "name": "test_topic_with_images_notion_sync",
+          "fullName": "tests/integration/test_image_generation_e2e.py::test_topic_with_images_notion_sync",
           "state": "passed"
         },
         {
-          "name": "test_seed_keywords_cannot_be_empty",
-          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_seed_keywords_cannot_be_empty",
-          "state": "passed"
-        },
-        {
-          "name": "test_image_generation_defaults",
-          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_image_generation_defaults",
-          "state": "passed"
-        },
-        {
-          "name": "test_image_generation_custom_values",
-          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_image_generation_custom_values",
-          "state": "passed"
-        },
-        {
-          "name": "test_image_quality_validation",
-          "fullName": "tests/unit/test_config_loader.py::TestMarketConfig::test_image_quality_validation",
-          "state": "passed"
-        },
-        {
-          "name": "test_create_collector_config_with_defaults",
-          "fullName": "tests/unit/test_config_loader.py::TestCollectorsConfig::test_create_collector_config_with_defaults",
-          "state": "passed"
-        },
-        {
-          "name": "test_create_collector_config_with_custom_values",
-          "fullName": "tests/unit/test_config_loader.py::TestCollectorsConfig::test_create_collector_config_with_custom_values",
-          "state": "passed"
-        },
-        {
-          "name": "test_create_scheduling_config_with_defaults",
-          "fullName": "tests/unit/test_config_loader.py::TestSchedulingConfig::test_create_scheduling_config_with_defaults",
-          "state": "passed"
-        },
-        {
-          "name": "test_create_scheduling_config_with_custom_values",
-          "fullName": "tests/unit/test_config_loader.py::TestSchedulingConfig::test_create_scheduling_config_with_custom_values",
-          "state": "passed"
-        },
-        {
-          "name": "test_load_config_from_yaml",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_config_from_yaml",
-          "state": "passed"
-        },
-        {
-          "name": "test_load_config_from_yaml_with_minimal_fields",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_config_from_yaml_with_minimal_fields",
-          "state": "passed"
-        },
-        {
-          "name": "test_load_nonexistent_config_raises_error",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_nonexistent_config_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_load_invalid_yaml_raises_error",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_invalid_yaml_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_load_config_missing_required_field_raises_error",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoader::test_load_config_missing_required_field_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_default_collectors_all_enabled",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderDefaults::test_default_collectors_all_enabled",
-          "state": "passed"
-        },
-        {
-          "name": "test_default_scheduling",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderDefaults::test_default_scheduling",
-          "state": "passed"
-        },
-        {
-          "name": "test_load_multiple_configs",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderMultipleConfigs::test_load_multiple_configs",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_opml_feeds",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderHelpers::test_get_opml_feeds",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_reddit_subreddits",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigLoaderHelpers::test_get_reddit_subreddits",
-          "state": "passed"
-        },
-        {
-          "name": "test_language_iso_639_1_format",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigValidation::test_language_iso_639_1_format",
-          "state": "passed"
-        },
-        {
-          "name": "test_seed_keywords_minimum_one",
-          "fullName": "tests/unit/test_config_loader.py::TestConfigValidation::test_seed_keywords_minimum_one",
-          "state": "passed"
-        }
-      ]
-    },
-    {
-      "moduleId": "tests/test_unit/test_orchestrator_tone_propagation.py",
-      "tests": [
-        {
-          "name": "test_research_topic_inherits_image_generation_from_config",
-          "fullName": "tests/test_unit/test_orchestrator_tone_propagation.py::TestTonePropagation::test_research_topic_inherits_image_generation_from_config",
-          "state": "passed"
-        },
-        {
-          "name": "test_run_pipeline_extracts_and_passes_tone",
-          "fullName": "tests/test_unit/test_orchestrator_tone_propagation.py::TestRunPipelineTonePropagation::test_run_pipeline_extracts_and_passes_tone",
-          "state": "passed"
-        },
-        {
-          "name": "test_run_pipeline_returns_brand_tone",
-          "fullName": "tests/test_unit/test_orchestrator_tone_propagation.py::TestRunPipelineTonePropagation::test_run_pipeline_returns_brand_tone",
+          "name": "test_image_generation_silent_failure",
+          "fullName": "tests/integration/test_image_generation_e2e.py::test_image_generation_silent_failure",
           "state": "passed"
         }
       ]
