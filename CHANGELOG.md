@@ -2,6 +2,31 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 048: Image Quality Enhancements & Multilingual Architecture (2025-11-11)
+
+**OPTIMIZATION (3.5 hours)** - Improved image quality, 60% cost reduction via mixed models, dynamic supporting images, multilingual system prompts
+
+**Problem**: RAW mode producing dull images, high costs ($0.19/article), fixed 2 supporting images, unpredictable safety tolerance (6), no German text specification.
+
+**Solutions**:
+- ✅ **RAW Mode Disabled**: Changed `raw: False` (was `True`) → polished, vibrant images (not dull candid style)
+- ✅ **Safety Tolerance**: Reduced 6 → 4 (good diversity, professional predictability, prevents inappropriate styles)
+- ✅ **Mixed Models**: Hero = Flux Ultra ($0.06), Supporting = Flux Dev ($0.003, 95% cheaper)
+- ✅ **Dynamic Supporting Images**: 0-2 based on H2 section count (≤3 sections → 0, 4-5 → 1, 6+ → 2)
+- ✅ **German Text in Images**: Explicit language requirement for UI elements, captions, signs
+- ✅ **Multilingual Architecture**: English system prompts + language parameter (industry standard, scalable to N languages)
+- ✅ **Correct Pricing**: Updated $0.04 → $0.06 per Flux Ultra image (Replicate official pricing)
+
+**Cost Impact**: 60% reduction - Short articles $0.07 (was $0.19), Medium $0.073, Long $0.076. Monthly (10 articles): $0.75 (was $1.90).
+
+**Quality**: Premium hero (4MP Ultra), good supporting (2MP Dev), more polished/predictable style, German language support.
+
+**Architecture**: Multilingual ready - add languages via config (`language: es`) without code changes.
+
+**See**: [Full details](docs/sessions/048-image-quality-enhancements-multilingual-architecture.md)
+
+---
+
 ## Session 047: Flux Migration & Image Quality Improvements (2025-11-10)
 
 **CRITICAL FIX (2.5 hours)** - Migrated from DALL-E 3 to Flux 1.1 Pro Ultra RAW MODE, fixed image quality + Notion sync
@@ -70,27 +95,4 @@ Recent development sessions (last 3 sessions, <100 lines).
 
 ---
 
-## Session 044: Media Generation - Phase 1-2 (Config + Tone Propagation) (2025-11-08)
-
-**Phase 1-2 of 7 Complete (3.5/18.5 hours)** - Image generation foundation established
-
-**Implementation**:
-- ✅ Added 4 image config fields to MarketConfig: `brand_tone`, `enable_image_generation` (default ON), `image_quality` (hd/standard), `image_style_preferences`
-- ✅ Tone propagation: Stage 1 website analysis → Stage 5 synthesis (brand_tone parameter flows through pipeline)
-- ✅ 3-tier control system: Market config (default ON) → Python API (optional override) → Streamlit UI (final say, pending Phase 5)
-- ✅ Updated `research_topic()` + `synthesize()` signatures with `brand_tone` and `generate_images` parameters
-- ✅ Config inheritance: `generate_images=None` inherits from `enable_image_generation` market setting
-
-**Key Discovery**: Tone analysis already exists in Stage 1! No need to build separate analyzer - just propagate existing data.
-
-**Test Results**: ✅ 26/26 tests passing (23 config + 3 tone propagation), no regressions
-
-**Status**: Phase 1-2 COMPLETE, Phase 3-7 pending (ImageGenerator, Synthesizer integration, UI, Notion sync, E2E tests)
-
-**Cost**: $0.17/topic when enabled (1 HD hero $0.08 + 2 standard supporting $0.08, exceeds $0.10 budget but opt-in)
-
-**See**: [Full details](docs/sessions/044-media-generation-phase1-2-config-tone.md)
-
----
-
-*Older sessions (038-045) archived in `docs/sessions/` directory*
+*Older sessions (044-047) archived in `docs/sessions/` directory*

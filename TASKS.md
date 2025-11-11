@@ -64,11 +64,11 @@
 
 ---
 
-## High Priority - Content Creator Phase 4.5: Media Generation (Sessions 044-047)
+## High Priority - Content Creator Phase 4.5: Media Generation (Sessions 044-048)
 
-**Goal**: Automated 3-image generation (1 HD hero + 2 standard supporting) with tone-appropriate styling
+**Goal**: Automated image generation with cost optimization and quality enhancements
 
-**Status**: ✅ COMPLETE + QUALITY FIXES (9.8/18.5 hours - 47% faster than estimated) - Production Ready
+**Status**: ✅ COMPLETE + OPTIMIZED (13.3/18.5 hours - 28% faster than estimated) - Production Ready
 
 **Key Discoveries**:
 - ✅ Tone analysis already exists in Stage 1 (`extract_website_keywords()`)
@@ -113,6 +113,16 @@
 - [x] **Process**: Established Streamlit restart discipline (critical for code changes)
 - [x] **Result**: User feedback "much better!!" → "more crisp and raw results"
 
+### Phase 9: Cost Optimization & Multilingual (3.5 hours) ✅ COMPLETE (Session 048)
+- [x] **RAW Mode Fix**: Disabled RAW mode (was causing dull appearance)
+- [x] **Safety Tolerance**: Reduced 6 → 4 (professional predictability)
+- [x] **Mixed Models**: Hero = Flux Ultra ($0.06), Supporting = Flux Dev ($0.003, 95% cheaper)
+- [x] **Dynamic Supporting**: 0-2 images based on H2 section count (≤3 → 0, 4-5 → 1, 6+ → 2)
+- [x] **German Text**: Explicit language requirement for text in images
+- [x] **Multilingual**: English system prompts + language parameter (industry standard)
+- [x] **Pricing Fix**: Updated $0.04 → $0.06 (correct Replicate pricing)
+- [x] **Result**: 60% cost reduction ($1.90 → $0.75/month), more polished images
+
 ### Phase 4: Synthesizer Integration (0.5 hours) ✅ COMPLETE (Session 046)
 - [x] Integrate ImageGenerator into ContentSynthesizer
 - [x] Add image generation step after article synthesis (`_generate_article_images()`)
@@ -140,18 +150,23 @@
 
 ### Cost Impact
 
-**Per Topic** (Updated Session 047 - Flux Migration):
+**Per Topic** (Updated Session 048 - Cost Optimization):
 - Research + Synthesis: $0.01
-- Hero Image (Flux 16:9, 2048x2048): $0.04
-- 2 Supporting (Flux 1:1, 2048x2048): $0.08
-- **Total: $0.13/topic** ⚠️ (Exceeds $0.10 budget by 30%, but improved from $0.17 with DALL-E 3)
+- Hero Image (Flux 1.1 Pro Ultra, 16:9, 4MP): $0.06
+- Supporting (Flux Dev, 1:1, ~2MP): $0.003 each
+- **Short (≤3 sections)**: $0.07 (hero only)
+- **Medium (4-5 sections)**: $0.073 (hero + 1 Dev)
+- **Long (6+ sections)**: $0.076 (hero + 2 Dev)
 
-**Monthly (200 topics)**:
-- All with images: $26.00 (was $34.00 with DALL-E 3)
-- 50% with images: $14.00 (was $18.00)
-- 10% with images: $3.40 (was $4.40)
+**Monthly (10 articles, realistic usage)**:
+- Before (Session 047): $1.90
+- After (Session 048): $0.75
+- **Savings: 60%** ($1.15/month, $13.80/year)
 
-**Quality**: Flux RAW MODE delivers photorealistic images (user: "much better!!") vs DALL-E 3's "3D comic-style"
+**Quality**:
+- Hero: Premium 4MP Flux Ultra (polished, not dull RAW)
+- Supporting: Good 2MP Flux Dev (95% cheaper, still quality)
+- Safety tolerance: 4 (professional predictability)
 
 ### Implementation Order (TDD)
 - ✅ **Phase 1-2 (3.5h)**: Config + Tone Propagation (Session 044)
@@ -161,22 +176,25 @@
 - ✅ **Phase 6 (0.5h)**: Notion Sync (Session 046)
 - ✅ **Phase 7 (0.8h)**: E2E Tests (Session 046)
 - ✅ **Phase 8 (2.5h)**: Quality Improvements - Flux Migration + RAW Enhancements (Session 047)
+- ✅ **Phase 9 (3.5h)**: Cost Optimization + Multilingual Architecture (Session 048)
 
-**Total**: 18.5 hours estimated → 9.8 hours actual (47% faster) ✅ ALL PHASES COMPLETE + QUALITY FIXES
+**Total**: 18.5 hours estimated → 13.3 hours actual (28% faster) ✅ ALL PHASES COMPLETE + OPTIMIZED
 
 ### Success Criteria
 - ✅ Tone extracted from Stage 1 and propagated to synthesis
-- ✅ 3 images generated per topic (1 HD hero + 2 standard supporting)
-- ✅ Tone-appropriate prompts (no anime on business blogs)
+- ✅ Dynamic images (0-2 supporting based on article structure)
+- ✅ Professional predictability (safety_tolerance: 4, no inappropriate styles)
 - ✅ Silent failure (research completes even if images fail)
 - ✅ 3-tier control: Config → API → UI
 - ✅ All images sync to Notion
-- ✅ Cost tracking accurate ($0.13/topic with Flux)
+- ✅ Cost tracking accurate ($0.07-$0.076/topic with mixed models)
 - ✅ E2E test validates full flow
-- ✅ **NEW (Session 047)**: Photorealistic quality (Flux RAW MODE)
-- ✅ **NEW (Session 047)**: Supporting images use actual article sections (not generic aspects)
-- ✅ **NEW (Session 047)**: Crisp RAW photography aesthetic (safety_tolerance: 5)
-- ✅ **NEW (Session 047)**: Notion sync handles unlimited blog post length (auto-chunked at 100 blocks)
+- ✅ Polished quality (Standard mode, not dull RAW)
+- ✅ Supporting images use actual article sections (H2 headings)
+- ✅ German text in images (UI, captions, signs)
+- ✅ Multilingual architecture (English prompts + language parameter)
+- ✅ 60% cost reduction via mixed models (Ultra hero, Dev supporting)
+- ✅ Notion sync handles unlimited blog post length (auto-chunked at 100 blocks)
 
 ---
 
