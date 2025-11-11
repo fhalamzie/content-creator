@@ -144,11 +144,41 @@ class SyncManager:
                 # Insert images into content blocks
                 children = self._insert_images_into_blocks(children, blog_data.get('metadata', {}))
 
-                page = self.notion_client.create_page(
-                    parent_database_id=self.notion_client.database_ids['blog_posts'],
-                    properties=properties,
-                    children=children
-                )
+                # Notion API limit: 100 blocks per request
+                # If more than 100 blocks, create page with first 100, then append rest
+                NOTION_BLOCK_LIMIT = 100
+
+                if len(children) <= NOTION_BLOCK_LIMIT:
+                    # Simple case: all blocks fit in one request
+                    page = self.notion_client.create_page(
+                        parent_database_id=self.notion_client.database_ids['blog_posts'],
+                        properties=properties,
+                        children=children
+                    )
+                else:
+                    # Complex case: need to chunk blocks
+                    logger.info(f"Blog post has {len(children)} blocks, splitting into chunks")
+
+                    # Create page with first 100 blocks
+                    first_chunk = children[:NOTION_BLOCK_LIMIT]
+                    page = self.notion_client.create_page(
+                        parent_database_id=self.notion_client.database_ids['blog_posts'],
+                        properties=properties,
+                        children=first_chunk
+                    )
+
+                    # Append remaining blocks in chunks
+                    remaining_blocks = children[NOTION_BLOCK_LIMIT:]
+                    for i in range(0, len(remaining_blocks), NOTION_BLOCK_LIMIT):
+                        chunk = remaining_blocks[i:i + NOTION_BLOCK_LIMIT]
+                        logger.info(f"Appending chunk {i//NOTION_BLOCK_LIMIT + 1}: {len(chunk)} blocks")
+                        self.notion_client.append_blocks(
+                            block_id=page['id'],
+                            children=chunk,
+                            retry=True
+                        )
+                        # Rate limit between chunks
+                        self.rate_limiter.acquire()
 
                 logger.info(f"Synced blog post successfully: {slug} → {page['id']}")
 

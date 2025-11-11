@@ -1,7 +1,7 @@
 # Session 047: Flux Migration & Image Quality Improvements
 
 **Date**: 2025-11-10
-**Duration**: 2 hours
+**Duration**: 2.5 hours
 **Status**: Completed
 
 ## Objective
@@ -311,11 +311,67 @@ async def test_image_generation():
 - Features: RAW mode, safety_tolerance (0-6), aspect ratios
 - Output: PNG or JPG only (no WebP)
 
-### Future Improvements (Not Implemented)
-1. Adjust `safety_tolerance` (currently 2) if images too conservative
-2. Experiment with different aspect ratios for supporting images
-3. Consider parallel generation of hero + supporting (currently sequential)
-4. Add image quality scoring/validation before returning
+### Additional Improvements (Continuation Session)
+
+**6. Enhanced RAW Photography Prompts** (`image_generator.py:171-194`)
+- Updated Qwen expansion prompt to emphasize RAW authenticity
+- Added explicit instructions: crisp details, imperfections, grain, natural light
+- Balanced subject matter: "Wähle das passendste Motiv" (not always humans)
+- Provided 3 diverse examples (damage docs, meetings, tech tools)
+- Key phrases: "RAW + CRISP + IMPERFEKT", "dokumentarischer Stil"
+
+**Before:**
+```
+- Spezifische Szene/Situation beschreiben
+- Kamera-Details (z.B. "mit DSLR-Kamera aufgenommen")
+- Professionelle, realistische Ästhetik betonen
+```
+
+**After:**
+```
+- VIELFÄLTIGE MOTIVE: Menschen, Objekte, Räume - thematisch passend
+- RAW AUTHENTIZITÄT: Unperfektion, natürliche Texturen, Körnigkeit
+- SCHARFE DETAILS: "Scharfe Fokussierung", "hohe Detailgenauigkeit"
+- NATÜRLICHES LICHT: Echtes Tageslicht, keine Studiobeleuchtung
+- VERMEIDEN: Perfekte Symmetrie, zu saubere Szenen, Stockfoto-Ästhetik
+```
+
+**7. Increased Safety Tolerance** (`image_generator.py:302`)
+- Changed `safety_tolerance` from 2 → 5 (max is 6)
+- Allows more diverse, raw, interesting outputs
+- Less conservative generation = more authentic results
+
+**8. Fixed Notion Block Limit** (`sync_manager.py:147-181`)
+
+**Problem:** Blog posts with >100 blocks failed with:
+```
+Notion API error: body.children.length should be ≤ 100, instead was 103
+```
+
+**Solution:** Automatic block chunking
+```python
+NOTION_BLOCK_LIMIT = 100
+
+if len(children) <= NOTION_BLOCK_LIMIT:
+    # Simple case: all blocks fit
+    page = self.notion_client.create_page(...)
+else:
+    # Complex case: chunk blocks
+    first_chunk = children[:NOTION_BLOCK_LIMIT]
+    page = self.notion_client.create_page(...)
+
+    # Append remaining in chunks of 100
+    remaining_blocks = children[NOTION_BLOCK_LIMIT:]
+    for chunk in chunks(remaining_blocks, NOTION_BLOCK_LIMIT):
+        self.notion_client.append_blocks(
+            block_id=page['id'],
+            children=chunk,
+            retry=True
+        )
+        self.rate_limiter.acquire()
+```
+
+**Result:** Supports blog posts of any length (chunked automatically)
 
 ### Documentation Updates Needed
 - README.md: Update image generation provider (DALL-E 3 → Flux)
@@ -324,12 +380,13 @@ async def test_image_generation():
 
 ## Metrics
 
-- **Files Modified**: 5
-- **Lines Changed**: ~200 (mostly image_generator.py rewrite)
+- **Files Modified**: 6 (initial) + 2 (continuation) = 8 total
+- **Lines Changed**: ~200 (image_generator.py rewrite) + ~50 (enhancements) = ~250 total
 - **New Dependencies**: `replicate` Python package
 - **Cost Impact**: $0 change (same $0.12/article for 3 images)
-- **Quality Impact**: Significant improvement (user confirmed "much better")
+- **Quality Impact**: Significant improvement (user: "much better!!")
 - **Generation Time**: +0-2 seconds (negligible)
+- **Notion Sync**: Now supports unlimited blog post length (auto-chunked)
 
 ## Success Criteria
 
@@ -340,11 +397,14 @@ async def test_image_generation():
 - [x] Cost remains at $0.12 per article (3 images)
 - [x] Streamlit restart discipline established
 - [x] Robust extraction prevents generic fallbacks
+- [x] **NEW**: Crisp RAW photography aesthetic (safety_tolerance: 5)
+- [x] **NEW**: Balanced subject matter (humans when appropriate, objects/scenes as needed)
+- [x] **NEW**: Notion sync handles blog posts >100 blocks (automatic chunking)
 
 ## Next Steps
 
-1. Monitor user feedback on new Flux-generated images
-2. Fine-tune safety_tolerance if needed (currently 2)
+1. Monitor user feedback on enhanced RAW photography prompts
+2. Test Notion sync with very large blog posts (200+ blocks)
 3. Consider adding image validation/scoring before returning
 4. Document Replicate API setup in README.md
 5. Update ARCHITECTURE.md with Flux integration details

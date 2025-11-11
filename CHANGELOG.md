@@ -4,20 +4,23 @@ Recent development sessions (last 3 sessions, <100 lines).
 
 ## Session 047: Flux Migration & Image Quality Improvements (2025-11-10)
 
-**CRITICAL FIX (2 hours)** - Migrated from DALL-E 3 to Flux 1.1 Pro Ultra RAW MODE, fixed image quality + supporting image relevance
+**CRITICAL FIX (2.5 hours)** - Migrated from DALL-E 3 to Flux 1.1 Pro Ultra RAW MODE, fixed image quality + Notion sync
 
-**Problem**: DALL-E 3 producing "3D comic-style" images despite optimization attempts (style="natural", German prompts, Qwen expansion), supporting images using generic aspects instead of article sections, writing agent failing with empty responses.
+**Problem**: DALL-E 3 producing "3D comic-style" images despite optimization attempts, supporting images using generic aspects, writing agent failing with empty responses, Notion sync failing on blog posts >100 blocks.
 
 **Solutions**:
 - ✅ **Flux Migration**: Switched to Flux 1.1 Pro Ultra with RAW MODE via Replicate API for authentic photorealism ($0.04/image, same cost)
 - ✅ **Writing Agent Fix**: Changed model from `qwen3-235b-a22b` → `qwen3-235b-a22b-2507` (non-reasoning variant, no empty responses)
 - ✅ **Topic Extraction Fix**: Added `topic` parameter to `generate_supporting_images()`, passed directly from UI to avoid markdown parsing errors
 - ✅ **Section-Based Aspects**: 4-tier extraction (H2 → H3 → paragraphs → topic+context), supporting images now use actual article headings instead of "key benefits"
+- ✅ **RAW Photography Prompts**: Enhanced Qwen prompts with "RAW + CRISP + IMPERFEKT", balanced subject matter (not always humans), 3 diverse examples
+- ✅ **Safety Tolerance**: Increased from 2 → 5 (more diverse/raw outputs)
+- ✅ **Notion Block Chunking**: Automatic chunking for blog posts >100 blocks (103-block post now works)
 - ✅ **Streamlit Restart Discipline**: Established restart workflow (critical - cached code was preventing improvements from taking effect)
 
-**Quality Impact**: User feedback progression: "still total shit" → "much better!!" (Flux), supporting images now article-specific.
+**Quality Impact**: User feedback: "still total shit" → "much better!!" → "more crisp and raw results" (continuation improvements).
 
-**Technical Details**: Replicate client, 2048x2048 resolution (up from 1792x1024), PNG output, 8-10s generation, RAW MODE for authentic photography aesthetic.
+**Technical Details**: Replicate client, 2048x2048 resolution, PNG output, 8-10s generation, safety_tolerance: 5, Notion auto-chunking at 100 blocks.
 
 **See**: [Full details](docs/sessions/047-flux-migration-image-quality-improvements.md)
 

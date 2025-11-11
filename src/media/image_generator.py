@@ -168,22 +168,28 @@ class ImageGenerator:
             logger.warning("OpenRouter not configured, using simple prompt")
             return simple_prompt
 
-        expansion_prompt = f"""Du bist ein Experte für DALL-E 3 Prompt-Engineering.
+        expansion_prompt = f"""Du bist ein Experte für RAW-Fotografie Prompt-Engineering für Flux 1.1 Pro Ultra.
 
-Expandiere diesen einfachen Prompt in einen detaillierten, beschreibenden Prompt für DALL-E 3:
+Expandiere diesen einfachen Prompt in einen detaillierten, RAW-Photography Prompt:
 
 "{simple_prompt}"
 
 Thema: {topic}
 
 Erstelle einen detaillierten deutschen Prompt mit:
-- Spezifische Szene/Situation beschreiben (z.B. konkretes Zimmer, Situation)
-- Licht und Atmosphäre (z.B. "weiches natürliches Licht durch Fenster")
-- Kamera-Details (z.B. "mit DSLR-Kamera aufgenommen")
-- Professionelle, realistische Ästhetik betonen
-- 2-3 Sätze, sehr beschreibend
+- VIELFÄLTIGE MOTIVE: Wähle das passendste Motiv für das Thema - Menschen, Objekte, Räume, Situationen, Details. Nicht immer Menschen!
+- RAW AUTHENTIZITÄT: Betone Unperfektion, natürliche Texturen, leichte Fehler, Körnigkeit
+- SCHARFE DETAILS: "Scharfe Fokussierung", "hohe Detailgenauigkeit", "klare Kanten"
+- NATÜRLICHES LICHT: Echtes Tageslicht, keine perfekte Studiobeleuchtung
+- KAMERA: "Aufgenommen mit DSLR", "RAW-Format", "dokumentarischer Stil"
+- VERMEIDEN: Perfekte Symmetrie, zu saubere Szenen, Stockfoto-Ästhetik
 
-Wichtig: Der Prompt muss auf Deutsch sein und PHOTOREALISTISCH betonen.
+Beispiele:
+- Schadensmanagement: "Ein wasserfleckiger Parkettboden mit sichtbaren Beschädigungen, dokumentarischer RAW-Stil, natürliches Fensterlicht"
+- Kundengespräch: "Zwei Personen im Beratungsgespräch an einem Holztisch, natürliches Tageslicht von der Seite, authentische Gesprächssituation"
+- Digitale Tools: "Ein Laptop mit geöffneter Software auf einem Schreibtisch, scharfe Details der Benutzeroberfläche, leichte Unordnung im Hintergrund"
+
+Wichtig: Auf Deutsch, RAW + CRISP + IMPERFEKT betonen, Motivwahl thematisch passend (nicht gezwungen).
 
 Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
 
@@ -296,7 +302,7 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
                         "prompt": expanded_prompt,
                         "aspect_ratio": aspect_ratio,
                         "output_format": "png",  # Flux supports jpg/png only
-                        "safety_tolerance": 2,
+                        "safety_tolerance": 5,  # Higher = more diverse/raw outputs (max 6)
                         "raw": True  # RAW MODE = photorealistic, authentic photography!
                     }
                 )
