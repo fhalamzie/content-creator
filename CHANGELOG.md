@@ -2,6 +2,27 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 049: Image Generation Optimization & Chutes.ai Integration (2025-11-12)
+
+**OPTIMIZATION (3 hours)** - Flux prompt optimization, Chutes.ai model comparison, FactChecker API migration
+
+**Problems**: FactChecker using Gemini CLI (30s timeout hangs), only 3 Flux images (no comparison), Flux prompts not following best practices (keyword-heavy), poor Chutes model quality (dreamshaper-xl, schnell).
+
+**Solutions**:
+- ✅ **FactChecker Migration**: Gemini CLI → API (60s timeout, better error handling, same FREE cost)
+- ✅ **Chutes.ai Integration**: 2 optimized models (JuggernautXL 25 steps, qwen-image 35 steps)
+- ✅ **Parameter Tuning**: guidance_scale 7.5-8.0, negative prompts, professional photography keywords
+- ✅ **Flux Prompt Optimization**: Natural language structure (Subject → Background → Lighting → Camera), specific equipment (Canon EOS R5, Sony A7R IV), 40-60 words (vs 100-150), output_quality: 90
+- ✅ **Model Comparison**: 5 images total (3 Flux + 2 Chutes), photorealistic quality
+
+**Cost**: Reduced ~$0.17 → ~$0.15 (12% savings) while improving quality
+
+**Quality**: Flux (sharper, better composition), JuggernautXL (photorealistic), qwen-image (high detail, 35 steps)
+
+**See**: [Full details](docs/sessions/049-image-generation-optimization.md)
+
+---
+
 ## Session 048: Image Quality Enhancements & Multilingual Architecture (2025-11-11)
 
 **OPTIMIZATION (3.5 hours)** - Improved image quality, 60% cost reduction via mixed models, dynamic supporting images, multilingual system prompts
@@ -51,48 +72,4 @@ Recent development sessions (last 3 sessions, <100 lines).
 
 ---
 
-## Session 046: Media Generation - Phases 4-7 (Integration & E2E Testing) (2025-11-08)
-
-**Feature COMPLETE (2.3/10.5 hours)** - 78% faster than estimated, production ready with 100% E2E coverage
-
-**Implementation**:
-- ✅ Phase 4 (Synthesizer): `_generate_article_images()` method with hero + 2 supporting images, silent failure on errors
-- ✅ Phase 5 (Streamlit UI): 5-tab display (Hero, Support 1-2, Sources, Article), image generation checkbox, cost breakdown ($0.16 images + $0.01 synthesis)
-- ✅ Phase 6 (Notion): Added `hero_image_url` (URL) + `supporting_images` (JSON) fields to Topic model + TOPICS_SCHEMA, TopicsSync mapping
-- ✅ Phase 7 (E2E Tests): 4 comprehensive tests (2 live API with skip markers, 2 fully mocked), complete pipeline validation
-
-**Test Results**: ✅ 4/4 E2E tests passing, ✅ 41/41 total tests (no regressions), ✅ Live validation: 544 words + 3 images in 62s for $0.16
-
-**TDD Success**: Tests written before implementation, mocked tests always runnable (CI/CD safe), live tests with conditional skip markers
-
-**Live Validation**: Images enabled (544 words, 3 images, $0.16, 62s) ✅, Images disabled (583 words, 0 images, $0.00, 13s) ✅, Silent failure handling ✅, Notion sync ✅
-
-**Status**: ✅ ALL 7 PHASES COMPLETE - Feature production ready, full pipeline validated (research → images → synthesis → UI → Notion)
-
-**See**: [Full details](docs/sessions/046-media-generation-phase4-7-integration.md)
-
----
-
-## Session 045: Media Generation - Phase 3 (ImageGenerator Module) (2025-11-08)
-
-**Phase 3 of 7 Complete (5/18.5 hours)** - DALL-E 3 integration with 7-tone prompt mapping
-
-**Implementation**:
-- ✅ ImageGenerator class (347 lines): DALL-E 3 integration, 7-tone mapping, retry logic, cost tracking
-- ✅ 7-tone prompt system: Professional, Technical, Creative, Casual, Authoritative, Innovative, Friendly
-- ✅ Hero image: 1792x1024 HD ($0.08), Supporting: 1024x1024 Standard ($0.04)
-- ✅ Silent failure: 3 retries with 2s delay, returns None on error (research continues)
-- ✅ API key loading from `/home/envs/openai.env` with environment variable fallback
-- ✅ Full async support using AsyncOpenAI client
-
-**Test Results**: ✅ 23/23 tests passing (115% of 20-test goal), ✅ 26/26 existing tests (no regressions)
-
-**TDD Success**: Tests written first, zero bugs on first full run, comprehensive coverage
-
-**Status**: Phase 3 COMPLETE (1.5h vs 6h estimated - 75% faster), Phase 4-7 pending (Synthesizer integration, UI, Notion sync, E2E)
-
-**See**: [Full details](docs/sessions/045-media-generation-phase3-image-generator.md)
-
----
-
-*Older sessions (044-047) archived in `docs/sessions/` directory*
+*Older sessions (044-048) archived in `docs/sessions/` directory*

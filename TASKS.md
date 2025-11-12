@@ -123,6 +123,17 @@
 - [x] **Pricing Fix**: Updated $0.04 → $0.06 (correct Replicate pricing)
 - [x] **Result**: 60% cost reduction ($1.90 → $0.75/month), more polished images
 
+### Phase 10: Flux Optimization & Chutes.ai Integration (3 hours) ✅ COMPLETE (Session 049)
+- [x] **FactChecker Migration**: Gemini CLI → API (60s timeout, better reliability)
+- [x] **ResearchAgent Fix**: Set use_cli=False (transitive dependency)
+- [x] **Chutes.ai Integration**: httpx client, model comparison (JuggernautXL, qwen-image)
+- [x] **Parameter Tuning**: guidance_scale 7.5-8.0, negative prompts, 25-35 steps
+- [x] **Flux Prompt Optimization**: Natural language structure (Subject → Background → Lighting → Camera)
+- [x] **Specific Equipment**: Canon EOS R5, Sony A7R IV, Nikon Z9 (vs generic DSLR)
+- [x] **Concise Prompts**: 40-60 words (vs 100-150), max_tokens: 150
+- [x] **Quality Parameters**: output_quality: 90 (vs default 80)
+- [x] **Result**: 5 photorealistic images, 12% cost reduction (~$0.15), better composition
+
 ### Phase 4: Synthesizer Integration (0.5 hours) ✅ COMPLETE (Session 046)
 - [x] Integrate ImageGenerator into ContentSynthesizer
 - [x] Add image generation step after article synthesis (`_generate_article_images()`)
@@ -177,8 +188,9 @@
 - ✅ **Phase 7 (0.8h)**: E2E Tests (Session 046)
 - ✅ **Phase 8 (2.5h)**: Quality Improvements - Flux Migration + RAW Enhancements (Session 047)
 - ✅ **Phase 9 (3.5h)**: Cost Optimization + Multilingual Architecture (Session 048)
+- ✅ **Phase 10 (3h)**: Flux Optimization + Chutes.ai Integration (Session 049)
 
-**Total**: 18.5 hours estimated → 13.3 hours actual (28% faster) ✅ ALL PHASES COMPLETE + OPTIMIZED
+**Total**: 21.5 hours estimated → 16.3 hours actual (24% faster) ✅ ALL PHASES COMPLETE + OPTIMIZED
 
 ### Success Criteria
 - ✅ Tone extracted from Stage 1 and propagated to synthesis
