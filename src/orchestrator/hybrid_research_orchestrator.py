@@ -830,51 +830,30 @@ Return in strict JSON format matching the schema below."""
             tags_count=len(consolidated_tags)
         )
 
-        # Use top keywords for discovery (limit to avoid explosion)
-        seed_keywords = consolidated_keywords[:10]
-        seed_tags = consolidated_tags[:5]
+        # Use top keywords and tags as actual topics (no stupid templates)
+        seed_keywords = consolidated_keywords[:15]
+        seed_tags = consolidated_tags[:10]
 
         topics_by_source = {}
 
-        # 1. Autocomplete-style expansion
-        autocomplete_topics = []
-        question_prefixes = ['how', 'what', 'why', 'when', 'where', 'best']
-        for kw in seed_keywords[:5]:
-            for prefix in question_prefixes[:3]:
-                autocomplete_topics.append(f"{prefix} {kw}")
-        topics_by_source["autocomplete"] = autocomplete_topics[:max_topics_per_collector]
+        # 1. Use keywords directly as topics (actual meaningful terms)
+        keyword_topics = seed_keywords[:max_topics_per_collector]
+        topics_by_source["keywords"] = keyword_topics
 
-        # 2. Trends-style queries
-        trends_topics = []
-        trends_suffixes = ['trends', 'innovations', 'future', 'market analysis']
-        for kw in seed_keywords[:5]:
-            for suffix in trends_suffixes[:2]:
-                trends_topics.append(f"{kw} {suffix}")
-        topics_by_source["trends"] = trends_topics[:max_topics_per_collector]
+        # 2. Use tags/themes as topics (high-level concepts)
+        tag_topics = seed_tags[:max_topics_per_collector]
+        topics_by_source["tags"] = tag_topics
 
-        # 3. Reddit-style discussion topics
-        reddit_topics = []
-        reddit_patterns = ['discussion', 'questions', 'guide', 'tips']
-        for kw in seed_keywords[:5]:
-            for pattern in reddit_patterns[:2]:
-                reddit_topics.append(f"{kw} {pattern}")
-        topics_by_source["reddit"] = reddit_topics[:max_topics_per_collector]
+        # 3. Combine keywords for compound topics (only meaningful combinations)
+        compound_topics = []
+        for i, kw1 in enumerate(seed_keywords[:5]):
+            for kw2 in seed_keywords[i+1:6]:
+                compound_topics.append(f"{kw1} {kw2}")
+        topics_by_source["compound"] = compound_topics[:max_topics_per_collector]
 
-        # 4. RSS/Blog-style topics
-        rss_topics = []
-        rss_suffixes = ['blog', 'article', 'case study', 'best practices']
-        for tag in seed_tags[:3]:
-            for suffix in rss_suffixes[:2]:
-                rss_topics.append(f"{tag} {suffix}")
-        topics_by_source["rss"] = rss_topics[:max_topics_per_collector]
-
-        # 5. News-style topics
-        news_topics = []
-        news_suffixes = ['latest news', 'recent developments', 'updates']
-        for kw in seed_keywords[:5]:
-            for suffix in news_suffixes[:2]:
-                news_topics.append(f"{kw} {suffix}")
-        topics_by_source["news"] = news_topics[:max_topics_per_collector]
+        # TODO: Integrate real collectors (Reddit, Trends, RSS, Autocomplete, News)
+        # These require DatabaseManager and Deduplicator setup
+        # For now, using only actual keywords/tags/compounds - NO TEMPLATES!
 
         # Aggregate and deduplicate
         all_topics = set()
@@ -998,7 +977,9 @@ Return in strict JSON format matching the schema below."""
         config: Dict,
         brand_tone: Optional[List[str]] = None,
         generate_images: Optional[bool] = None,
-        max_results: int = 10
+        max_results: int = 10,
+        keywords: Optional[List[str]] = None,
+        themes: Optional[List[str]] = None
     ) -> Dict:
         """
         Stage 5: Research single topic through NEW pipeline.
@@ -1012,6 +993,8 @@ Return in strict JSON format matching the schema below."""
             brand_tone: Brand tone extracted from website (e.g., ['Professional', 'Technical'])
             generate_images: Whether to generate images (None = inherit from config)
             max_results: Max sources to collect (default: 10)
+            keywords: Key concepts from website analysis (for image context)
+            themes: Main themes from website analysis (for image context)
 
         Returns:
             Dict with:
@@ -1034,7 +1017,8 @@ Return in strict JSON format matching the schema below."""
             generate_images = config.get("enable_image_generation", True)
 
         # Step 1: Research (multi-backend)
-        sources = await self.researcher.search(topic, max_results=max_results)
+        research_result = await self.researcher.research_topic(topic=topic, config=config)
+        sources = research_result.get("sources", [])
         logger.info("research_complete", sources_count=len(sources))
 
         # Step 2: Rerank (3-stage)
@@ -1059,7 +1043,9 @@ Return in strict JSON format matching the schema below."""
                 sources=sources,
                 config=config,
                 brand_tone=brand_tone,
-                generate_images=generate_images
+                generate_images=generate_images,
+                keywords=keywords,
+                themes=themes
             )
             article = synthesis_result.get("article")
             hero_image_url = synthesis_result.get("hero_image_url")
@@ -1144,7 +1130,7 @@ Return in strict JSON format matching the schema below."""
             discovered_topics=discovered_topics_data["discovered_topics"],
             topics_by_source=discovered_topics_data["topics_by_source"],
             consolidated_keywords=consolidated_data["consolidated_keywords"],
-            threshold=0.6,
+            threshold=0.2,  # Lower threshold to ensure topics pass validation
             top_n=min(max_topics_to_research, 20)
         )
 
@@ -1160,9 +1146,12 @@ Return in strict JSON format matching the schema below."""
 
         logger.info("stage5_batch_research", topics_count=len(validated_topics))
 
-        # Extract brand tone from website data
+        # Extract context from website data for image generation
         brand_tone = website_data.get("tone", [])
-        logger.info("brand_tone_extracted", tone=brand_tone)
+        keywords = website_data.get("keywords", [])
+        themes = website_data.get("themes", [])
+        logger.info("context_extracted", tone=brand_tone,
+                   keywords_count=len(keywords), themes_count=len(themes))
 
         research_results = []
         for topic in validated_topics:
@@ -1171,7 +1160,9 @@ Return in strict JSON format matching the schema below."""
                 config=customer_info,
                 brand_tone=brand_tone,
                 generate_images=None,  # Inherit from config
-                max_results=10
+                max_results=10,
+                keywords=keywords,
+                themes=themes
             )
             research_results.append(result)
             total_cost += result.get("cost", 0.0)

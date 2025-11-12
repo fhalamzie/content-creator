@@ -23,7 +23,8 @@ Example:
 
     result = await researcher.research_topic("PropTech Trends 2025", config)
     print(f"Report: {result['report']}")
-    print(f"Sources: {len(result['sources'])}")  # 25-30 sources (5 sources)
+    print(f"Sources: {len(result['sources'])}")  # 25-30 source objects
+    print(f"URLs: {result['source_urls']}")  # List of URLs
 """
 
 import asyncio
@@ -210,7 +211,8 @@ class DeepResearcher:
             Dictionary with:
             - topic: Original topic
             - report: Markdown report (5-6 pages)
-            - sources: List of source URLs (20-25 sources)
+            - sources: List of source objects (dicts with url, title, content, backend, etc.)
+            - source_urls: List of source URLs only (for convenience)
             - word_count: Approximate word count
             - researched_at: ISO timestamp
             - backend_stats: Backend performance metrics
@@ -233,10 +235,17 @@ class DeepResearcher:
                 backends=list(self.backends.keys())
             )
 
+            print(f"[DEBUG] DeepResearcher.research_topic STARTED for: {topic}")
+            import sys
+            sys.stdout.flush()
+
             # Build specialized queries for each horizon
             depth_query = self._build_depth_query(topic, config, keywords)
             breadth_query = self._build_breadth_query(topic, config, competitor_gaps)
             trends_query = self._build_trends_query(topic, config)
+
+            print(f"[DEBUG] Queries built successfully")
+            sys.stdout.flush()
 
             # Execute ALL sources in parallel (3 search backends + 2 collectors)
             all_tasks = []
@@ -352,7 +361,8 @@ class DeepResearcher:
             result = {
                 'topic': topic,
                 'report': report,
-                'sources': [s['url'] for s in merged_sources],
+                'sources': merged_sources,  # Return full source objects (not just URLs)
+                'source_urls': [s['url'] for s in merged_sources],  # Also provide just URLs for convenience
                 'word_count': word_count,
                 'researched_at': datetime.now().isoformat(),
                 'backend_stats': {

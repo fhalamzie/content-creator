@@ -149,14 +149,17 @@ class TavilyBackend(SearchBackend):
             # Transform to standard format
             results = []
             for item in response.get('results', []):
+                # Use raw_content as primary content source (falls back to snippet)
+                content = item.get('raw_content') or item.get('content', '')
+
                 result = SearchResult.create(
                     url=item.get('url', ''),
                     title=item.get('title', ''),
                     snippet=item.get('content', ''),
+                    content=content,  # Full content for MinHash/synthesis
                     backend=self.backend_name,
                     score=item.get('score', 0.0),
-                    published_date=item.get('published_date'),
-                    raw_content=item.get('raw_content')
+                    published_date=item.get('published_date')
                 )
                 results.append(result)
 

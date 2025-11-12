@@ -53,6 +53,10 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
     Returns:
         dict: Generation results with blog post data
     """
+    print(f"[DEBUG] generate_content() CALLED - Topic: {topic}, Language: {content_language}")
+    import sys
+    sys.stdout.flush()
+
     try:
         # Get API keys from environment
         openrouter_key = os.getenv("OPENROUTER_API_KEY")
@@ -223,10 +227,26 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
                         supporting_images = supporting_result["images"]
                         image_cost += supporting_result["cost"]
 
+                    # Generate chutes.ai comparison images (3 models)
+                    comparison_images_result = await image_generator.generate_chutes_comparison_images(
+                        prompt=f"Professional image about {topic}",
+                        topic=topic
+                    )
+
+                    # Add comparison images to supporting images
+                    for img in comparison_images_result:
+                        if img.get("success"):
+                            supporting_images.append(img)
+                            image_cost += img["cost"]
+
                 # Run async generation
                 asyncio.run(generate_all_images())
 
-                status_placeholder.success(f"✅ Generated {1 if hero_image_url else 0} hero + {len(supporting_images)} supporting images (${image_cost:.2f})")
+                # Count Flux vs Chutes images
+                flux_count = sum(1 for img in supporting_images if img.get("provider") != "chutes.ai") + (1 if hero_image_url else 0)
+                chutes_count = sum(1 for img in supporting_images if img.get("provider") == "chutes.ai")
+
+                status_placeholder.success(f"✅ Generated {flux_count} Flux + {chutes_count} Chutes.ai images (${image_cost:.2f})")
 
             except Exception as e:
                 status_placeholder.warning(f"⚠️ Image generation failed: {e}")
@@ -438,21 +458,21 @@ def render():
         with col2:
             generate_images = st.checkbox(
                 "🖼️ Generate Images",
-                value=False,
-                help="Generate AI images for the article (1 hero + 2 supporting = $0.12)"
+                value=True,
+                help="Generate AI images for the article (3 Flux + 2 Chutes.ai optimized models = ~$0.15)"
             )
 
         col3, col4 = st.columns(2)
         with col3:
             enable_competitor_research = st.checkbox(
                 "🔎 Competitor Research",
-                value=True,
+                value=False,
                 help="Analyze competitor content (requires Gemini API)"
             )
         with col4:
             enable_keyword_research = st.checkbox(
                 "🎯 Keyword Research",
-                value=True,
+                value=False,
                 help="Research SEO keywords (requires Gemini API)"
             )
 
@@ -460,12 +480,12 @@ def render():
         with col5:
             st.checkbox(
                 "Generate Social Posts",
-                value=True,
+                value=False,
                 help="Generate social media variants (LinkedIn, Facebook, etc.)"
             )
         with col6:
             if generate_images:
-                st.info("💰 Image cost: $0.12 (DALL-E 3)")
+                st.info("💰 Image cost: ~$0.15 (3 Flux + 2 Chutes optimized)")
 
     # Store in session state
     st.session_state.generate_images = generate_images

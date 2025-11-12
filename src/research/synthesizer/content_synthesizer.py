@@ -244,7 +244,7 @@ class ContentSynthesizer:
                     query=query,
                     brand_tone=brand_tone or ["Professional"],
                     config=config,
-                    article=article,
+                    article=result.get('article'),  # Extract article from result dict
                     keywords=keywords,
                     themes=themes
                 )
@@ -733,13 +733,18 @@ Generate the article now:
         themes: Optional[List[str]] = None
     ) -> Dict:
         """
-        Generate 3 images for article: 1 HD hero + 2 standard supporting
+        Generate images for article: 1 hero + 0-2 supporting (dynamic based on article structure)
+
+        Dynamic selection logic:
+        - 1-3 H2 sections: 1 hero + 0 supporting (short articles)
+        - 4-5 H2 sections: 1 hero + 1 supporting (medium articles)
+        - 6+ H2 sections: 1 hero + 2 supporting (long articles)
 
         Args:
             query: Article topic
             brand_tone: Brand tone descriptors (e.g., ['Professional', 'Technical'])
             config: Market configuration (for domain extraction)
-            article: Generated article text (for excerpt)
+            article: Generated article text (for supporting image count determination)
             keywords: Key concepts from website analysis
             themes: Main themes from website analysis
 
@@ -749,6 +754,7 @@ Generate the article now:
             - hero_image_alt: Optional[str] - Hero image alt text or None if failed
             - supporting_images: List[Dict] - Supporting images (url, alt, size, quality)
             - image_cost: float - Total image generation cost
+            - num_sections: int - Number of H2 sections detected
 
         Note: Uses silent failure - returns None for failed images, synthesis continues
         """
@@ -762,7 +768,36 @@ Generate the article now:
             else:
                 domain = str(config.market.domain)
 
-            # Generate hero image (1792x1024 HD, $0.08 - DALL-E 3)
+            # Determine number of supporting images based on article structure
+            num_supporting_images = 0
+            num_sections = 0
+
+            if article:
+                # Count H2 headings (## in markdown)
+                import re
+                h2_pattern = r'^## [^#]'  # Lines starting with ## but not ###
+                num_sections = len(re.findall(h2_pattern, article, re.MULTILINE))
+
+                # Dynamic selection logic
+                if num_sections <= 3:
+                    num_supporting_images = 0  # Short article
+                elif num_sections <= 5:
+                    num_supporting_images = 1  # Medium article
+                else:  # 6+ sections
+                    num_supporting_images = 2  # Long article
+
+                logger.info(
+                    "dynamic_image_count_determined",
+                    num_sections=num_sections,
+                    num_supporting=num_supporting_images,
+                    logic="short(≤3)→0, medium(4-5)→1, long(6+)→2"
+                )
+            else:
+                # No article provided, default to 0 supporting images
+                num_supporting_images = 0
+                logger.warning("no_article_provided_for_image_count", defaulting_to=0)
+
+            # Generate hero image (Flux 1.1 Pro Ultra, 16:9, $0.06)
             logger.info("generating_hero_image", topic=query, domain=domain,
                        has_keywords=bool(keywords), has_themes=bool(themes))
             hero_result = await image_generator.generate_hero_image(
@@ -774,32 +809,42 @@ Generate the article now:
                 article_excerpt=article[:200] if article else None
             )
 
-            # Generate 2 supporting images (1024x1024 Standard, $0.04 each - DALL-E 3)
-            logger.info("generating_supporting_images", topic=query, domain=domain)
-            supporting_aspects = ["key benefits", "implementation overview"]
-            supporting_tasks = [
-                image_generator.generate_supporting_image(
-                    topic=query,
+            # Generate supporting images ONLY if needed (Flux 1.1 Pro Ultra, 1:1, $0.06 each)
+            supporting_results = []
+            if num_supporting_images > 0 and article:
+                logger.info(
+                    "generating_supporting_images",
+                    num_images=num_supporting_images,
+                    topic=query
+                )
+
+                # Use new generate_supporting_images method (extracts sections from article)
+                supporting_result = await image_generator.generate_supporting_images(
+                    article_content=article,
+                    num_images=num_supporting_images,
                     brand_tone=brand_tone,
-                    aspect=aspect,
                     domain=domain,
                     keywords=keywords,
-                    themes=themes
+                    themes=themes,
+                    topic=query  # Pass topic explicitly to avoid markdown parsing issues
                 )
-                for aspect in supporting_aspects
-            ]
-            supporting_results = await asyncio.gather(*supporting_tasks)
+
+                if supporting_result.get('success'):
+                    supporting_results = supporting_result.get('images', [])
+            else:
+                logger.info("skipping_supporting_images", reason="not_needed_for_short_article")
 
             # Build result dict
             result = {
                 'hero_image_url': None,
                 'hero_image_alt': None,
                 'supporting_images': [],
-                'image_cost': 0.0
+                'image_cost': 0.0,
+                'num_sections': num_sections
             }
 
             # Process hero image
-            if hero_result:
+            if hero_result and hero_result.get('success'):
                 result['hero_image_url'] = hero_result.get('url')
                 result['hero_image_alt'] = f"Hero image for article about {query}"
                 result['image_cost'] += hero_result.get('cost', 0.0)
@@ -807,19 +852,27 @@ Generate the article now:
             else:
                 logger.warning("hero_image_failed", topic=query)
 
-            # Process supporting images
-            for i, supporting_result in enumerate(supporting_results):
-                if supporting_result:
+            # Process supporting images (already structured correctly from generate_supporting_images)
+            for i, supporting_img in enumerate(supporting_results):
+                if supporting_img and supporting_img.get('url'):
                     result['supporting_images'].append({
-                        'url': supporting_result.get('url'),
-                        'alt': f"Supporting illustration {i+1} for {query}",
-                        'size': supporting_result.get('size'),
-                        'quality': supporting_result.get('quality')
+                        'url': supporting_img.get('url'),
+                        'alt': supporting_img.get('alt_text', f"Supporting illustration {i+1} for {query}"),
+                        'aspect_ratio': supporting_img.get('aspect_ratio'),
+                        'resolution': supporting_img.get('resolution')
                     })
-                    result['image_cost'] += supporting_result.get('cost', 0.0)
-                    logger.info(f"supporting_image_{i+1}_generated", url_length=len(supporting_result['url']))
+                    result['image_cost'] += supporting_img.get('cost', 0.0)
+                    logger.info(f"supporting_image_{i+1}_generated", url_length=len(supporting_img['url']))
                 else:
                     logger.warning(f"supporting_image_{i+1}_failed", topic=query)
+
+            logger.info(
+                "image_generation_complete",
+                hero_generated=bool(result['hero_image_url']),
+                num_supporting=len(result['supporting_images']),
+                total_cost=result['image_cost'],
+                num_sections=num_sections
+            )
 
             return result
 
@@ -835,5 +888,6 @@ Generate the article now:
                 'hero_image_url': None,
                 'hero_image_alt': None,
                 'supporting_images': [],
-                'image_cost': 0.0
+                'image_cost': 0.0,
+                'num_sections': 0
             }

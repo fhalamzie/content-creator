@@ -219,6 +219,10 @@ async def process_topic_async(
         progress_bar.progress(0.1)
         status_text.info("🔧 **Stage 1/4**: Initializing pipeline components...")
 
+        print("[DEBUG] Stage 1 START - Initializing DeepResearcher...")
+        import sys
+        sys.stdout.flush()
+
         researcher = DeepResearcher(
             enable_tavily=config["enable_tavily"],
             enable_searxng=config["enable_searxng"],
@@ -227,21 +231,47 @@ async def process_topic_async(
             enable_thenewsapi=config["enable_thenewsapi"]
         )
 
+        print("[DEBUG] DeepResearcher initialized, initializing Reranker...")
+        sys.stdout.flush()
+
         reranker = MultiStageReranker(
             enable_voyage=config["enable_reranking"],
             stage3_final_count=25
         ) if config["enable_reranking"] else None
+
+        print("[DEBUG] Reranker initialized, initializing ContentSynthesizer...")
+        sys.stdout.flush()
 
         synthesizer = ContentSynthesizer(
             strategy=PassageExtractionStrategy.BM25_LLM if config["synthesis_strategy"] == "bm25_llm" else PassageExtractionStrategy.LLM_ONLY,
             max_article_words=config["max_article_words"]
         ) if config["enable_synthesis"] else None
 
+        print("[DEBUG] Stage 1 COMPLETE - All components initialized")
+        sys.stdout.flush()
+
         # Stage 2: Research
         progress_bar.progress(0.25)
         status_text.info(f"🔍 **Stage 2/4**: Researching topic across {sum([config['enable_tavily'], config['enable_searxng'], config['enable_gemini'], config['enable_rss'], config['enable_thenewsapi']])} backends...")
 
-        results = await researcher.search(topic, max_results=10)
+        # Build config dict for researcher
+        research_config = {
+            "market": market_config.get("market", "Germany"),
+            "vertical": market_config.get("vertical", "General"),
+            "domain": market_config.get("domain", "General"),
+            "language": market_config.get("language", "en")
+        }
+
+        print(f"[DEBUG] About to call researcher.research_topic with config: {research_config}")
+        import sys
+        sys.stdout.flush()
+
+        research_result = await researcher.research_topic(topic=topic, config=research_config)
+
+        print(f"[DEBUG] research_topic completed, got {len(research_result.get('sources', []))} sources")
+        sys.stdout.flush()
+
+        results = research_result.get("sources", [])
         backend_counts = defaultdict(int)
         for result in results:
             backend_counts[result.get('backend', 'unknown')] += 1
@@ -484,6 +514,10 @@ def render():
     process_button = st.button("🚀 Research Topic", type="primary", use_container_width=True, disabled=not topic)
 
     if process_button and topic:
+        print(f"[DEBUG] BUTTON CLICKED - Topic: {topic}")
+        import sys
+        sys.stdout.flush()
+
         # Check API keys
         required_keys = []
         if config["enable_tavily"]:
@@ -492,6 +526,9 @@ def render():
             required_keys.append("GEMINI_API_KEY")
         if config["enable_reranking"]:
             required_keys.append("VOYAGE_API_KEY")
+
+        print(f"[DEBUG] Checking {len(required_keys)} API keys...")
+        sys.stdout.flush()
 
         missing_keys = [key for key in required_keys if not os.getenv(key)]
         if missing_keys:
@@ -503,11 +540,17 @@ def render():
         st.header("⚙️ Pipeline Processing")
         progress_container = st.container()
 
+        print("[DEBUG] About to call asyncio.run(process_topic_async...)")
+        sys.stdout.flush()
+
         try:
             # Run async processing
             result = asyncio.run(
                 process_topic_async(topic, config, progress_container)
             )
+
+            print(f"[DEBUG] asyncio.run completed successfully")
+            sys.stdout.flush()
 
             # Store in session state
             st.session_state.research_result = result

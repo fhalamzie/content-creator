@@ -1,25 +1,40 @@
 """
-Image Generator - Flux 1.1 Pro Ultra (RAW MODE) for photorealistic images
+Image Generator - Mixed Flux Models (Ultra for Hero, Dev for Supporting)
 
-Generates hero and supporting images for blog articles with:
-- Flux 1.1 Pro Ultra with RAW MODE (true photorealism, not 3D art!)
-- Simple German prompts expanded with Qwen
-- 2048x2048 high resolution images
-- Cost: $0.04 per image (same as DALL-E standard, but MUCH better quality)
-- 8-10 second generation time
+Generates ULTRA-CRISP, POLISHED, magazine-quality images with cost optimization:
+- Hero: Flux 1.1 Pro Ultra ($0.06) - Premium 4MP, polished, STANDARD MODE
+- Supporting: Flux Dev ($0.003) - Good 2MP quality, 95% cheaper
+- Enhanced Qwen prompt expansion with professional photography keywords
+- German language text in images (UI elements, captions, signs)
+- 8-10 second generation time per image
+- Balanced safety_tolerance (4) for good diversity without unpredictability
 
-RAW MODE delivers:
-- Authentic, candid photographic feel
-- Natural textures and imperfections
-- Real-world realism (not polished 3D renders)
-- Professional photography aesthetic
+Enhanced STANDARD MODE delivers:
+- **Tack-sharp focus** with professional DSLR quality
+- **Award-winning composition** (rule of thirds, leading lines, dynamic framing)
+- **Dramatic lighting** (golden hour, blue hour, rim lighting, side lighting)
+- **Professional post-processing** (color grading, enhanced dynamic range)
+- **Cinematic/Editorial style** (magazine-quality, polished, attractive)
+- **Crisp, vibrant aesthetic** (NOT dull/candid RAW mode)
+
+Photography keywords automatically included:
+- Technical: "Messerscharfe Schärfe", "85mm f/2.8", "shallow depth of field"
+- Composition: "Drittel-Regel", "Cinematic framing", "Negative space"
+- Lighting: "Dramatisches Licht", "Goldene Stunde", "Rim lighting"
+- Quality: "Ultra-detailliert", "Professionelle Farbkorrektur", "Editorial-Stil"
+
+Architecture:
+- Content Creator: Generate high-quality 4MP images → Store URLs in Notion
+- Publishing System: Your blog/CMS optimizes images when publishing (WebP, responsive sizes, CDN)
+- Separation of concerns: Generate quality content, let publishing infrastructure handle optimization
 
 Example:
     from src.media.image_generator import ImageGenerator
 
     generator = ImageGenerator()  # Uses Replicate API
 
-    # Generate hero image
+    # Generate hero image (16:9, ultra-crisp, polished, attractive)
+    # Returns Replicate URL - your publishing system will optimize when serving
     hero = await generator.generate_hero_image(
         topic="Versicherungsschäden",
         brand_tone=["Professional"]
@@ -31,6 +46,7 @@ import asyncio
 from typing import List, Optional, Dict
 from openai import AsyncOpenAI
 import replicate
+import httpx
 
 from src.utils.logger import get_logger
 
@@ -44,19 +60,33 @@ class ImageGenerationError(Exception):
 
 class ImageGenerator:
     """
-    Image generator using Flux 1.1 Pro Ultra with RAW MODE
+    Image generator using MIXED Flux models for cost optimization
 
-    Features:
-    - Flux 1.1 Pro Ultra with RAW MODE for true photorealism
-    - Prompt expansion with Qwen (German prompts → detailed descriptions)
-    - High resolution: 2048x2048 (4x better than standard)
-    - Fast generation: 8-10 seconds
-    - Authentic photography: natural textures, imperfections, realism
-    - Cost: $0.04 per image (all images, any aspect ratio)
+    Enhanced Features (Session 048):
+    - Hero images: Flux 1.1 Pro Ultra STANDARD MODE ($0.06, 4MP premium quality)
+    - Supporting images: Flux Dev ($0.003, 2MP good quality, 95% cheaper)
+    - Safety_tolerance: 4 (good diversity, professional predictability)
+    - German language specification for text in images
+    - Professional photography prompt expansion with Qwen:
+      * Technical quality: Tack-sharp focus, DSLR specs, depth of field
+      * Composition: Rule of thirds, leading lines, cinematic framing
+      * Lighting: Dramatic natural light, golden/blue hour, rim lighting
+      * Post-processing: Color grading, enhanced dynamic range, film grain
+      * Artistic style: Editorial/magazine quality, award-winning composition
+    - High resolution: Up to 4MP (hero), ~2MP (supporting)
+    - Fast generation: 8-10 seconds per image
+
+    Cost per article (dynamic):
+    - Short (1-3 sections): Hero only = $0.07 total
+    - Medium (4-5 sections): Hero + 1 Dev = $0.073 total
+    - Long (6+ sections): Hero + 2 Dev = $0.076 total
+
+    Result: Premium hero + good supporting images, 60% cost savings vs all-Ultra
     """
 
-    # Flux 1.1 Pro Ultra costs
-    COST_PER_IMAGE = 0.04  # Same cost for all images
+    # Flux model costs (Replicate official pricing, Session 048)
+    COST_ULTRA = 0.06   # Flux 1.1 Pro Ultra (hero images)
+    COST_DEV = 0.003    # Flux Dev (supporting images, 95% cheaper)
 
     # Retry configuration
     MAX_RETRIES = 3
@@ -94,11 +124,28 @@ class ImageGenerator:
                 base_url="https://openrouter.ai/api/v1"
             )
 
+        # Load Chutes.ai API key for model comparison
+        self.chutes_key = self._load_chutes_key()
+        if not self.chutes_key:
+            logger.warning("CHUTES_API_KEY not found, chutes.ai models will not be available")
+            self.chutes_client = None
+        else:
+            # Initialize HTTP client for chutes.ai
+            self.chutes_client = httpx.AsyncClient(
+                base_url="https://chutes.ai",
+                headers={
+                    "Authorization": f"Bearer {self.chutes_key}",
+                    "Content-Type": "application/json"
+                },
+                timeout=60.0
+            )
+
         logger.info(
             "image_generator_initialized",
-            provider="flux-1.1-pro-ultra-raw",
+            provider="flux-1.1-pro-ultra-standard",
             has_replicate_key=bool(self.replicate_key),
-            has_openrouter_key=bool(self.openrouter_key)
+            has_openrouter_key=bool(self.openrouter_key),
+            has_chutes_key=bool(self.chutes_key)
         )
 
     def _load_replicate_key(self) -> Optional[str]:
@@ -149,63 +196,132 @@ class ImageGenerator:
 
         return None
 
-    async def _expand_prompt_with_llm(self, simple_prompt: str, topic: str) -> str:
-        """
-        Expand simple prompt into detailed DALL-E 3 prompt using Qwen via OpenRouter.
+    def _load_chutes_key(self) -> Optional[str]:
+        """Load Chutes.ai API key from environment"""
+        # Check environment variable
+        api_key = os.getenv("CHUTES_API_KEY")
+        if api_key:
+            return api_key
 
-        This mimics what ChatGPT does - it expands short prompts into detailed,
-        descriptive prompts that produce photorealistic results.
+        # Check /home/envs/choutes.env
+        env_file = "/home/envs/choutes.env"
+        if os.path.exists(env_file):
+            try:
+                with open(env_file, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            if key.strip() == 'CHUTES_API_KEY':
+                                logger.info("chutes_key_loaded_from_file", file=env_file)
+                                return value.strip()
+            except Exception as e:
+                logger.warning("failed_to_load_chutes_key", error=str(e))
+
+        return None
+
+    async def _expand_prompt_with_llm(
+        self,
+        simple_prompt: str,
+        topic: str,
+        content_language: str = "de"
+    ) -> str:
+        """
+        Expand simple prompt into detailed professional photography prompt using Qwen.
+
+        Uses English instructions + target language parameter (industry best practice).
+        This approach works for any language without maintaining N translations.
 
         Args:
             simple_prompt: Simple prompt like "Ein Bild über Versicherungsschäden"
             topic: Original topic
+            content_language: ISO 639-1 code (de, en, es, fr, etc.)
 
         Returns:
-            Expanded, detailed prompt in German
+            Expanded, detailed prompt in target language
         """
         # If OpenRouter not available, return simple prompt
         if not self.openrouter_client:
             logger.warning("OpenRouter not configured, using simple prompt")
             return simple_prompt
 
-        expansion_prompt = f"""Du bist ein Experte für RAW-Fotografie Prompt-Engineering für Flux 1.1 Pro Ultra.
+        # Qwen expansion: Always use English for best Flux quality
+        # Flux is trained primarily on English - better quality and adherence
 
-Expandiere diesen einfachen Prompt in einen detaillierten, RAW-Photography Prompt:
+        # Map content language for text-in-image specification
+        language_map = {'de': 'German', 'en': 'English', 'es': 'Spanish', 'fr': 'French'}
+        target_language = language_map.get(content_language, 'German')
 
-"{simple_prompt}"
+        expansion_prompt = f"""You are an expert in Flux 1.1 Pro Ultra prompt engineering. Create a natural language photography prompt following Flux best practices.
 
-Thema: {topic}
+**INPUT**:
+Simple prompt: "{simple_prompt}"
+Topic: {topic}
 
-Erstelle einen detaillierten deutschen Prompt mit:
-- VIELFÄLTIGE MOTIVE: Wähle das passendste Motiv für das Thema - Menschen, Objekte, Räume, Situationen, Details. Nicht immer Menschen!
-- RAW AUTHENTIZITÄT: Betone Unperfektion, natürliche Texturen, leichte Fehler, Körnigkeit
-- SCHARFE DETAILS: "Scharfe Fokussierung", "hohe Detailgenauigkeit", "klare Kanten"
-- NATÜRLICHES LICHT: Echtes Tageslicht, keine perfekte Studiobeleuchtung
-- KAMERA: "Aufgenommen mit DSLR", "RAW-Format", "dokumentarischer Stil"
-- VERMEIDEN: Perfekte Symmetrie, zu saubere Szenen, Stockfoto-Ästhetik
+**IMPORTANT FLUX BEST PRACTICES**:
 
-Beispiele:
-- Schadensmanagement: "Ein wasserfleckiger Parkettboden mit sichtbaren Beschädigungen, dokumentarischer RAW-Stil, natürliches Fensterlicht"
-- Kundengespräch: "Zwei Personen im Beratungsgespräch an einem Holztisch, natürliches Tageslicht von der Seite, authentische Gesprächssituation"
-- Digitale Tools: "Ein Laptop mit geöffneter Software auf einem Schreibtisch, scharfe Details der Benutzeroberfläche, leichte Unordnung im Hintergrund"
+1. **Natural Language Structure** (Subject → Background → Lighting → Camera Settings):
+   - Start with the MAIN SUBJECT (front-load most important elements)
+   - Add background/environment
+   - Describe lighting conditions
+   - End with camera/lens specs
 
-Wichtig: Auf Deutsch, RAW + CRISP + IMPERFEKT betonen, Motivwahl thematisch passend (nicht gezwungen).
+2. **Use Specific Camera Equipment**:
+   - Real cameras: "shot on Canon EOS R5", "captured with Sony A7R IV", "photographed on Nikon Z9"
+   - Specific lenses: "85mm f/1.8", "50mm f/1.4", "24-70mm f/2.8"
+   - Real settings: "f/2.8, ISO 400, 1/250s"
 
-Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
+3. **Active, Natural Language**:
+   - Use action and movement words
+   - Write as if describing to a human photographer
+   - Avoid keyword stacking
+
+4. **Keep It Concise** (40-60 words):
+   - Flux works best with focused, clear descriptions
+   - Don't over-describe
+   - One main style anchor only
+
+5. **If text is visible** (screens, signs, UI): specify "{target_language} text" or "{target_language} interface"
+
+**EXAMPLE OUTPUTS** (Note the natural flow):
+
+1. "Close-up of water-damaged hardwood flooring showing warped planks and discoloration, captured in natural window light from the side creating dramatic shadows, shot on Canon EOS R5 with 50mm f/2.8 lens, sharp focus on wood grain texture, documentary editorial style"
+
+2. "Professional property manager consulting with tenant at modern office desk, natural golden hour sunlight streaming through window, captured with Sony A7R IV using 85mm f/1.8 lens for shallow depth of field, cinematic composition with emphasis on their engaged conversation"
+
+3. "Modern smart home dashboard displaying on tablet screen with {target_language} interface, placed on minimalist desk in bright natural daylight, photographed with Nikon Z9 macro lens at f/4, clean composition with soft bokeh background"
+
+**YOUR TASK**:
+Create ONE concise prompt (40-60 words) following this structure:
+[Subject with action/state] → [Environment/background] → [Lighting description] → [Camera: specific model + lens + settings] → [One style anchor]
+
+Output ONLY the prompt in English, no explanations or quotes."""
 
         try:
             # Use Qwen via OpenRouter for prompt expansion (cheap and fast)
-            response = await self.openrouter_client.chat.completions.create(
-                model="qwen/qwen-2.5-72b-instruct",  # Fast and cheap via OpenRouter
-                messages=[
-                    {"role": "user", "content": expansion_prompt}
-                ],
-                temperature=0.7,
-                max_tokens=200,
-                extra_headers={
-                    "HTTP-Referer": "https://github.com/content-creator",
-                    "X-Title": "Content Creator - Image Prompt Expansion"
-                }
+            # Add 30s timeout to prevent hanging when OpenRouter is overloaded
+            import asyncio
+
+            logger.info(
+                "qwen_expansion_started",
+                topic=topic,
+                simple_prompt_length=len(simple_prompt)
+            )
+
+            response = await asyncio.wait_for(
+                self.openrouter_client.chat.completions.create(
+                    model="qwen/qwen-2.5-72b-instruct",  # Fast and cheap via OpenRouter
+                    messages=[
+                        {"role": "user", "content": expansion_prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=150,  # Reduced from 200 for more concise 40-60 word prompts
+                    extra_headers={
+                        "HTTP-Referer": "https://github.com/content-creator",
+                        "X-Title": "Content Creator - Image Prompt Expansion"
+                    }
+                ),
+                timeout=30.0  # 30 second timeout
             )
 
             expanded = response.choices[0].message.content.strip()
@@ -215,16 +331,30 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
                 expanded = expanded[1:-1]
 
             logger.info(
-                "prompt_expanded_with_qwen",
+                "qwen_expansion_success",
                 original_length=len(simple_prompt),
                 expanded_length=len(expanded),
-                topic=topic
+                topic=topic,
+                expanded_preview=expanded[:100]
             )
 
             return expanded
 
+        except asyncio.TimeoutError:
+            logger.warning(
+                "qwen_expansion_timeout",
+                topic=topic,
+                message="Qwen expansion timed out after 30s, using simple fallback prompt"
+            )
+            return simple_prompt
         except Exception as e:
-            logger.warning(f"Prompt expansion failed: {e}, using simple prompt")
+            logger.warning(
+                "qwen_expansion_failed",
+                topic=topic,
+                error=str(e),
+                error_type=type(e).__name__,
+                message="Using simple fallback prompt"
+            )
             return simple_prompt
 
     def _map_tone_to_prompt(
@@ -238,7 +368,7 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
         article_excerpt: Optional[str] = None
     ) -> str:
         """
-        Generate simple German prompt (will be expanded later with LLM)
+        Generate simple English prompt (will be expanded later with Qwen → German)
 
         Args:
             brand_tone: List of tone descriptors (not used - kept for compatibility)
@@ -250,13 +380,15 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
             article_excerpt: Article excerpt (not used)
 
         Returns:
-            Simple prompt in German (will be expanded by _expand_prompt_with_llm)
+            Simple professional prompt in English (Flux works best with English)
         """
-        # Simple base prompt - will be expanded with LLM to match ChatGPT's approach
-        prompt = f"Ein Bild über {topic}. Photorealistisch, passend für einen Blog-Artikel."
+        # Simple English prompt with professional photography keywords
+        # Flux is trained on English - better quality than German prompts
+        # Qwen expansion will translate to German when OpenRouter works
+        prompt = f"Professional photograph about {topic}, photorealistic, magazine quality, sharp focus, natural lighting, suitable for blog article header"
 
         logger.info(
-            "simple_german_prompt_created",
+            "simple_english_prompt_created",
             topic=topic,
             is_hero=is_hero,
             prompt_length=len(prompt)
@@ -268,21 +400,47 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
         self,
         prompt: str,
         aspect_ratio: str,
-        topic: str
+        topic: str,
+        use_dev_model: bool = False
     ) -> Optional[str]:
         """
-        Generate image with retry logic using Flux 1.1 Pro Ultra (RAW MODE)
+        Generate image with retry logic using Flux (Ultra for hero, Dev for supporting)
 
         Args:
             prompt: Simple base prompt
             aspect_ratio: Image aspect ratio (16:9 for hero, 1:1 for supporting)
             topic: Topic for prompt expansion
+            use_dev_model: If True, use Flux Dev ($0.003) instead of Ultra ($0.06)
 
         Returns:
-            Image URL or None if all retries failed
+            Image URL (Replicate-hosted) or None if all retries failed
         """
         # CRITICAL: Expand prompt with Qwen (like ChatGPT does!)
         expanded_prompt = await self._expand_prompt_with_llm(prompt, topic)
+
+        # Select model and parameters
+        if use_dev_model:
+            model_name = "black-forest-labs/flux-dev"
+            model_label = "flux-dev"
+            cost = self.COST_DEV
+            # Flux Dev doesn't support safety_tolerance or raw parameters
+            model_input = {
+                "prompt": expanded_prompt,
+                "aspect_ratio": aspect_ratio,
+                "output_format": "png"
+            }
+        else:
+            model_name = "black-forest-labs/flux-1.1-pro-ultra"
+            model_label = "flux-1.1-pro-ultra-standard"
+            cost = self.COST_ULTRA
+            model_input = {
+                "prompt": expanded_prompt,
+                "aspect_ratio": aspect_ratio,
+                "output_format": "png",
+                "output_quality": 90,  # Higher quality output (80-100, default 80)
+                "safety_tolerance": 4,  # Good diversity without unpredictability
+                "raw": False  # Standard mode = polished, crisp, attractive
+            }
 
         for attempt in range(1, self.MAX_RETRIES + 1):
             try:
@@ -290,31 +448,34 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
                     "flux_generation_attempt",
                     attempt=attempt,
                     aspect_ratio=aspect_ratio,
-                    model="flux-1.1-pro-ultra-raw",
-                    prompt_preview=expanded_prompt[:100]
+                    model=model_label,
+                    cost=cost,
+                    safety_tolerance=model_input.get("safety_tolerance"),
+                    raw_mode=model_input.get("raw"),
+                    full_prompt=expanded_prompt  # Log full prompt for debugging
                 )
 
-                # Run Flux 1.1 Pro Ultra with RAW MODE (synchronously)
+                # Run Flux model
                 output = await asyncio.to_thread(
                     self.client.run,
-                    "black-forest-labs/flux-1.1-pro-ultra",
-                    input={
-                        "prompt": expanded_prompt,
-                        "aspect_ratio": aspect_ratio,
-                        "output_format": "png",  # Flux supports jpg/png only
-                        "safety_tolerance": 5,  # Higher = more diverse/raw outputs (max 6)
-                        "raw": True  # RAW MODE = photorealistic, authentic photography!
-                    }
+                    model_name,
+                    input=model_input
                 )
 
-                # Flux returns a FileOutput object with .url attribute
-                url = output.url if hasattr(output, 'url') else str(output)
+                # Flux returns a FileOutput object (or list of FileOutput objects) with .url attribute
+                # Handle both single object and list cases
+                if isinstance(output, list) and len(output) > 0:
+                    file_output = output[0]  # Take first image from list
+                else:
+                    file_output = output
+
+                url = file_output.url if hasattr(file_output, 'url') else str(file_output)
 
                 logger.info(
                     "flux_generation_success",
                     attempt=attempt,
-                    url_length=len(url),
-                    raw_mode=True
+                    model=model_label,
+                    url_length=len(url)
                 )
                 return url
 
@@ -332,6 +493,112 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
                     logger.error(
                         "flux_generation_failed",
                         max_retries=self.MAX_RETRIES,
+                        error=str(e)
+                    )
+                    return None
+
+        return None
+
+    async def _generate_with_chutes(
+        self,
+        prompt: str,
+        model_slug: str,
+        model_name: str,
+        width: int = 1024,
+        height: int = 1024,
+        num_inference_steps: int = 20,
+        guidance_scale: float = 7.5,
+        negative_prompt: str = ""
+    ) -> Optional[bytes]:
+        """
+        Generate image using chutes.ai diffusion model
+
+        Args:
+            prompt: Expanded prompt
+            model_slug: Chutes model slug (e.g., 'chutes-qwen-image')
+            model_name: Display name for logging
+            width: Image width
+            height: Image height
+            num_inference_steps: Number of inference steps
+            guidance_scale: How closely to follow the prompt (1.0-20.0, default 7.5)
+            negative_prompt: What to avoid in the image
+
+        Returns:
+            Image bytes or None if failed
+        """
+        if not self.chutes_client:
+            logger.warning("chutes_client_not_initialized")
+            return None
+
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            try:
+                logger.info(
+                    "chutes_generation_attempt",
+                    attempt=attempt,
+                    model=model_name,
+                    slug=model_slug,
+                    width=width,
+                    height=height,
+                    steps=num_inference_steps
+                )
+
+                # Generate image
+                payload = {
+                    "prompt": prompt,
+                    "width": width,
+                    "height": height,
+                    "num_inference_steps": num_inference_steps,
+                    "guidance_scale": guidance_scale
+                }
+
+                # Add negative prompt if provided
+                if negative_prompt:
+                    payload["negative_prompt"] = negative_prompt
+
+                response = await self.chutes_client.post(
+                    f"https://{model_slug}.chutes.ai/generate",
+                    json=payload,
+                    timeout=60.0
+                )
+
+                if response.status_code == 200:
+                    logger.info(
+                        "chutes_generation_success",
+                        attempt=attempt,
+                        model=model_name,
+                        content_length=len(response.content)
+                    )
+                    return response.content
+                else:
+                    logger.warning(
+                        "chutes_generation_http_error",
+                        attempt=attempt,
+                        status_code=response.status_code,
+                        error=response.text[:200]
+                    )
+
+                    # Retry on rate limiting or infrastructure issues
+                    if response.status_code in [429, 503]:
+                        if attempt < self.MAX_RETRIES:
+                            await asyncio.sleep(self.RETRY_DELAY * 2)  # Longer delay for infra issues
+                            continue
+                    return None
+
+            except Exception as e:
+                logger.warning(
+                    "chutes_generation_attempt_failed",
+                    attempt=attempt,
+                    error=str(e),
+                    error_type=type(e).__name__
+                )
+
+                if attempt < self.MAX_RETRIES:
+                    await asyncio.sleep(self.RETRY_DELAY)
+                else:
+                    logger.error(
+                        "chutes_generation_failed",
+                        max_retries=self.MAX_RETRIES,
+                        model=model_name,
                         error=str(e)
                     )
                     return None
@@ -374,7 +641,7 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
             article_excerpt=article_excerpt
         )
 
-        # Generate with retry (includes Qwen prompt expansion + Flux RAW MODE)
+        # Generate with retry (includes Qwen prompt expansion + Flux)
         url = await self._generate_with_retry(
             prompt=prompt,
             aspect_ratio="16:9",
@@ -389,9 +656,9 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
             "url": url,
             "alt_text": f"Hero image for {topic}",
             "aspect_ratio": "16:9",
-            "resolution": "2048x2048",
-            "raw_mode": True,
-            "cost": self.COST_PER_IMAGE
+            "resolution": "2048x2048 (up to 4MP)",
+            "model": "Flux 1.1 Pro Ultra",
+            "cost": self.COST_ULTRA
         }
 
     async def generate_supporting_image(
@@ -404,7 +671,10 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
         themes: Optional[List[str]] = None
     ) -> Optional[Dict]:
         """
-        Generate supporting image with Flux 1.1 Pro Ultra RAW MODE (1:1, 2048x2048, $0.04)
+        Generate supporting image with Flux Dev (1:1, ~2MP, $0.003)
+
+        Uses budget Flux Dev model for supporting images (95% cheaper than Ultra).
+        Quality is still good, just not premium 4MP like hero images.
 
         Args:
             topic: Article topic
@@ -421,7 +691,7 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
             "generating_flux_supporting_image",
             topic=topic,
             aspect=aspect,
-            raw_mode=True
+            model="flux-dev"
         )
 
         # Add aspect to topic for more specific prompt
@@ -437,11 +707,12 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
             themes=themes
         )
 
-        # Generate with retry (includes Qwen prompt expansion + Flux RAW MODE)
+        # Generate with retry (includes Qwen prompt expansion + Flux Dev)
         url = await self._generate_with_retry(
             prompt=prompt,
             aspect_ratio="1:1",
-            topic=topic_with_aspect
+            topic=topic_with_aspect,
+            use_dev_model=True  # Use budget model for supporting images
         )
 
         if url is None:
@@ -451,9 +722,9 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
             "url": url,
             "alt_text": f"Supporting image for {topic} - {aspect}",
             "aspect_ratio": "1:1",
-            "resolution": "2048x2048",
-            "raw_mode": True,
-            "cost": self.COST_PER_IMAGE
+            "resolution": "~2048x2048 (~2MP)",
+            "model": "Flux Dev",
+            "cost": self.COST_DEV
         }
 
     async def generate_supporting_images(
@@ -585,6 +856,129 @@ Antworte NUR mit dem erweiterten Prompt, keine Erklärungen."""
             "images": images,
             "cost": total_cost
         }
+
+    async def generate_chutes_comparison_images(
+        self,
+        prompt: str,
+        topic: str
+    ) -> List[Dict]:
+        """
+        Generate comparison images using optimized chutes.ai models
+
+        Models (optimized for photorealistic quality):
+        - JuggernautXL ($0.20/hr, 25 steps) - Photorealistic, cinematic
+        - qwen-image ($0.6/hr, 35 steps) - High quality, detailed
+
+        Optimizations:
+        - Enhanced prompt with professional photography keywords
+        - Negative prompt to avoid common issues (blur, cartoon, text)
+        - Higher guidance_scale for better prompt adherence (7.5-8.0)
+        - More inference steps (25-35 vs 10-20)
+
+        Args:
+            prompt: Simple prompt (will be expanded with Qwen)
+            topic: Topic for prompt expansion
+
+        Returns:
+            List of dicts with url (base64 data URL), alt_text, model, cost
+        """
+        if not self.chutes_client:
+            logger.warning("chutes_comparison_skipped_no_client")
+            return []
+
+        # Expand prompt with Qwen first (same as Flux pipeline)
+        expanded_prompt = await self._expand_prompt_with_llm(prompt, topic)
+
+        # Enhanced prompt for photorealistic quality
+        # Add professional photography keywords for better results
+        enhanced_prompt = f"{expanded_prompt}, professional photography, high detail, sharp focus, realistic lighting, cinematic composition"
+
+        # Negative prompt to avoid common issues
+        negative_prompt = "blurry, low quality, cartoon, anime, illustration, painting, drawing, sketch, out of focus, distorted, deformed, ugly, bad anatomy, text, watermark, signature"
+
+        # Define comparison models (optimized based on testing)
+        models = [
+            {
+                "slug": "chutes-juggernautxl",
+                "name": "JuggernautXL",
+                "label": "Photorealistic (JuggernautXL)",
+                "cost": 0.001,  # per step
+                "steps": 25,  # More steps for quality
+                "guidance_scale": 7.5,  # Standard guidance
+                "negative_prompt": negative_prompt
+            },
+            {
+                "slug": "chutes-qwen-image",
+                "name": "qwen-image",
+                "label": "Quality (qwen-image)",
+                "cost": 0.003,  # per step
+                "steps": 35,  # Increased from 20 for better quality
+                "guidance_scale": 8.0,  # Slightly higher for more prompt adherence
+                "negative_prompt": negative_prompt
+            }
+        ]
+
+        logger.info(
+            "chutes_comparison_started",
+            num_models=len(models),
+            expanded_prompt_length=len(expanded_prompt)
+        )
+
+        # Generate images in parallel
+        tasks = []
+        for model in models:
+            tasks.append(
+                self._generate_with_chutes(
+                    prompt=enhanced_prompt,
+                    model_slug=model["slug"],
+                    model_name=model["name"],
+                    width=1024,
+                    height=1024,
+                    num_inference_steps=model["steps"],
+                    guidance_scale=model.get("guidance_scale", 7.5),
+                    negative_prompt=model.get("negative_prompt", "")
+                )
+            )
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        comparison_images = []
+        for model, result in zip(models, results):
+            if isinstance(result, bytes):
+                # Convert bytes to base64 data URL
+                import base64
+                b64_data = base64.b64encode(result).decode('utf-8')
+                data_url = f"data:image/jpeg;base64,{b64_data}"
+
+                comparison_images.append({
+                    "success": True,
+                    "url": data_url,
+                    "alt_text": f"{topic} - {model['label']}",
+                    "model": model["name"],
+                    "label": model["label"],
+                    "cost": model["cost"] * model["steps"],
+                    "provider": "chutes.ai"
+                })
+                logger.info(
+                    "chutes_model_success",
+                    model=model["name"],
+                    cost=model["cost"] * model["steps"]
+                )
+            else:
+                logger.warning(
+                    "chutes_model_failed",
+                    model=model["name"],
+                    error=str(result) if isinstance(result, Exception) else "Unknown error"
+                )
+                comparison_images.append({
+                    "success": False,
+                    "model": model["name"],
+                    "label": model["label"],
+                    "cost": 0.0
+                })
+
+        return comparison_images
 
 
 # Helper function for loading env file (for testing)

@@ -41,11 +41,16 @@ def setup_logging(log_level: str = "INFO") -> None:
     # Convert string to logging constant
     numeric_level = getattr(logging, log_level.upper())
 
+    # Force unbuffered stdout for immediate log visibility
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
     # Configure standard library logging
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
-        level=numeric_level
+        level=numeric_level,
+        force=True  # Override any existing configuration
     )
 
     # Configure structlog

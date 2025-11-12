@@ -12,7 +12,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import pages
-from ui.pages import dashboard, setup, generate, content_browser, settings, topic_research
+from ui.pages import dashboard, setup, generate, content_browser, settings, topic_research, pipeline_automation
+from src.utils.logger import setup_logging
 
 
 def init_session_state():
@@ -40,6 +41,7 @@ def render_sidebar():
             "📊 Dashboard": "Dashboard",
             "⚙️ Setup": "Setup",
             "✨ Generate": "Generate",
+            "🎯 Pipeline Automation": "Pipeline Automation",
             "🔬 Topic Research": "Topic Research",
             "📚 Content Browser": "Content Browser",
             "🔧 Settings": "Settings"
@@ -73,6 +75,9 @@ def main():
         initial_sidebar_state="expanded"
     )
 
+    # Setup logging
+    setup_logging(log_level="DEBUG")
+
     # Initialize session state
     init_session_state()
 
@@ -88,6 +93,8 @@ def main():
         setup.render()
     elif page == "Generate":
         generate.render()
+    elif page == "Pipeline Automation":
+        pipeline_automation.render()
     elif page == "Topic Research":
         topic_research.render()
     elif page == "Content Browser":

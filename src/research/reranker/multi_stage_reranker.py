@@ -133,7 +133,7 @@ class MultiStageReranker:
         self,
         sources: List[Dict],
         query: str,
-        config: FullConfig
+        config
     ) -> List[Dict]:
         """
         Rerank sources using 3-stage pipeline
@@ -141,7 +141,7 @@ class MultiStageReranker:
         Args:
             sources: List of search results from orchestrator (with RRF/MinHash already applied)
             query: Research query
-            config: Market configuration (Pydantic FullConfig model)
+            config: Market configuration (FullConfig Pydantic model or dict)
 
         Returns:
             Reranked list of sources (top 25) sorted by final_score descending
@@ -366,7 +366,7 @@ class MultiStageReranker:
         self,
         sources: List[Dict],
         query: str,
-        config: FullConfig
+        config
     ) -> List[Dict]:
         """
         Stage 3: Voyage Full + 6 custom SEO metrics
@@ -383,7 +383,7 @@ class MultiStageReranker:
         Args:
             sources: Filtered sources from Stage 2
             query: Research query
-            config: Market configuration (Pydantic FullConfig model)
+            config: Market configuration (FullConfig Pydantic model or dict)
 
         Returns:
             Final ranked sources with all metrics + final_score
@@ -655,7 +655,7 @@ class MultiStageReranker:
         else:
             return 0.0
 
-    def _calculate_locality(self, source: Dict, config: FullConfig) -> float:
+    def _calculate_locality(self, source: Dict, config) -> float:
         """
         Calculate Locality metric for market/language matching
 
@@ -665,16 +665,22 @@ class MultiStageReranker:
 
         Args:
             source: Source to evaluate
-            config: Market configuration (Pydantic FullConfig model)
+            config: Market configuration (FullConfig Pydantic model or dict)
 
         Returns:
             Locality score [0,1]
         """
         url = source.get('url', '')
 
-        # Extract market and language from Pydantic FullConfig
-        market = str(config.market.market).lower()
-        language = str(config.market.language).lower()
+        # Extract market and language (handle both FullConfig and dict)
+        if isinstance(config, dict):
+            # Plain dict format
+            market = str(config.get('market', 'USA')).lower()
+            language = str(config.get('language', 'en')).lower()
+        else:
+            # FullConfig Pydantic model
+            market = str(config.market.market).lower()
+            language = str(config.market.language).lower()
 
         if not url:
             return 0.5  # Neutral

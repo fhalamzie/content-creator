@@ -55,7 +55,8 @@ class BaseAgent:
         self,
         agent_type: str,
         api_key: str,
-        custom_config: Optional[Dict[str, Any]] = None
+        custom_config: Optional[Dict[str, Any]] = None,
+        timeout: Optional[float] = None
     ):
         """
         Initialize BaseAgent.
@@ -64,6 +65,7 @@ class BaseAgent:
             agent_type: Type of agent (writing, repurposing, publishing)
             api_key: OpenRouter API key
             custom_config: Optional custom configuration override
+            timeout: Optional timeout in seconds for API calls (default: 120s for writing, 60s for others)
 
         Raises:
             AgentError: If configuration is invalid or API key is missing
@@ -77,16 +79,24 @@ class BaseAgent:
         # Load configuration
         self._load_config(custom_config)
 
-        # Initialize OpenAI client with OpenRouter base URL
+        # Set timeout (default: 120s for writing agent, 60s for others)
+        if timeout is not None:
+            self.timeout = timeout
+        else:
+            self.timeout = 120.0 if agent_type == "writing" else 60.0
+
+        # Initialize OpenAI client with OpenRouter base URL and timeout
         self.client = OpenAI(
             api_key=self.api_key,
-            base_url=self.openrouter_base_url
+            base_url=self.openrouter_base_url,
+            timeout=self.timeout
         )
 
         logger.info(
             f"BaseAgent initialized: type={agent_type}, "
             f"model={self.model}, "
-            f"temperature={self.temperature}"
+            f"temperature={self.temperature}, "
+            f"timeout={self.timeout}s"
         )
 
     def _load_config(self, custom_config: Optional[Dict[str, Any]] = None) -> None:

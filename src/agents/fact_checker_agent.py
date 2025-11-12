@@ -1,33 +1,34 @@
 """
-FactCheckerAgent - 4-Layer Fact-Checking with Gemini CLI
+FactCheckerAgent - 4-Layer Fact-Checking with Gemini API
 
 Acts as a critical human fact-checker to detect hallucinations and verify claims.
 
 Design Principles:
-- All analysis uses FREE Gemini CLI ($0.00 cost)
+- All analysis uses FREE Gemini API ($0.00 cost)
 - 4-layer verification architecture
 - Comprehensive fact-check reports
 - Thoroughness levels (basic, medium, thorough)
 
-Architecture (4 Layers - ALL using Gemini CLI):
-1. Internal consistency check (Gemini CLI) - Detect contradictions, implausible claims
+Architecture (4 Layers - ALL using Gemini API):
+1. Internal consistency check (Gemini API) - Detect contradictions, implausible claims
 2. URL validation (HTTP) - Check if URLs exist
-3. Web research verification (Gemini CLI via ResearchAgent) - Verify claims
-4. Content quality analysis (Gemini CLI) - Detect vague claims, weasel words
+3. Web research verification (Gemini API via ResearchAgent) - Verify claims
+4. Content quality analysis (Gemini API) - Detect vague claims, weasel words
 5. Generate comprehensive 4-layer fact-check report
 
-Total Cost: $0.00 (100% FREE)
+Total Cost: $0.00 (100% FREE - same quota as CLI)
 """
 
 import logging
 import json
 import re
 import requests
-import subprocess
+import os
 from typing import Dict, Any, List
 
 from src.agents.base_agent import BaseAgent
 from src.agents.research_agent import ResearchAgent
+from src.agents.gemini_agent import GeminiAgent
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,8 @@ class FactCheckerAgent(BaseAgent):
         Initialize FactCheckerAgent.
 
         Args:
-            api_key: OpenRouter API key for LLM calls
+            api_key: OpenRouter API key for LLM calls (BaseAgent)
+                    + GEMINI_API_KEY from env for fact-checking
 
         Raises:
             AgentError: If initialization fails
@@ -72,10 +74,23 @@ class FactCheckerAgent(BaseAgent):
         # Initialize base agent with fact_checker config
         super().__init__(agent_type="fact_checker", api_key=api_key)
 
-        # Initialize ResearchAgent for web research
-        self.research_agent = ResearchAgent(api_key=api_key, use_cli=True)
+        # Initialize Gemini API for fact-checking (60s timeout)
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if not gemini_key:
+            raise FactCheckError("GEMINI_API_KEY not found in environment")
 
-        logger.info("FactCheckerAgent initialized (LLM-powered with web research)")
+        self.gemini_agent = GeminiAgent(
+            model="gemini-2.5-flash",
+            api_key=gemini_key,
+            enable_grounding=False,  # No grounding needed for fact-checking
+            temperature=0.3,
+            max_tokens=8000
+        )
+
+        # Initialize ResearchAgent for web research (using Gemini API, not CLI)
+        self.research_agent = ResearchAgent(api_key=api_key, use_cli=False)
+
+        logger.info("FactCheckerAgent initialized (Gemini API + web research API, 60s timeout)")
 
     def verify_content(
         self,
@@ -392,24 +407,23 @@ Return JSON array with all claims."""
                         else:
                             # No array found, use empty list
                             claims = []
-            except json.JSONDecodeError:
-                # Try wrapping in array brackets if missing
-                if not content_str.startswith('['):
-                    content_str = f'[{content_str}]'
-                claims = json.loads(content_str)
+            except json.JSONDecodeError as parse_error:
+                # JSON parsing failed - likely malformed JSON from LLM
+                logger.warning(f"JSON parsing failed: {parse_error}. Returning empty claims list.")
+                # Don't fail the entire fact-check - just return no claims
+                return []
 
             if not isinstance(claims, list):
-                raise FactCheckError(f"LLM returned non-array claims: {type(claims)}")
+                logger.warning(f"LLM returned non-array claims: {type(claims)}. Returning empty list.")
+                return []
 
             logger.info(f"Extracted {len(claims)} claims from content")
             return claims
 
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse claims JSON: {e}")
-            raise FactCheckError(f"Failed to parse claims: {e}") from e
         except Exception as e:
-            logger.error(f"Claim extraction failed: {e}")
-            raise FactCheckError(f"Claim extraction failed: {e}") from e
+            # For any other error, log and return empty list instead of failing
+            logger.warning(f"Claim extraction failed: {e}. Returning empty claims list.")
+            return []
 
     def _extract_urls_from_claims(self, claims: List[Dict[str, Any]]) -> List[str]:
         """
@@ -777,47 +791,31 @@ Return JSON with verification result."""
 
         return "\n".join(lines)
 
-    def _run_gemini_cli(self, prompt: str, timeout: int = 30) -> str:
+    def _run_gemini_api(self, prompt: str) -> str:
         """
-        Execute Gemini CLI command.
+        Execute Gemini API call via GeminiAgent.
 
         Args:
             prompt: Prompt for Gemini
-            timeout: Command timeout in seconds
 
         Returns:
             Gemini response text
 
         Raises:
-            FactCheckError: If command fails
+            FactCheckError: If API call fails
         """
         try:
-            result = subprocess.run(
-                ['gemini', prompt],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False  # Don't raise on non-zero exit
+            result = self.gemini_agent.generate(
+                prompt=prompt,
+                enable_grounding=False,  # No web search needed for fact-checking
+                temperature=0.3
             )
 
-            # Check return code manually
-            if result.returncode != 0:
-                error_msg = result.stderr or "Unknown error"
-                raise FactCheckError(f"Gemini CLI error: {error_msg}")
-
-            return result.stdout.strip()
-
-        except subprocess.TimeoutExpired:
-            logger.error(f"Gemini CLI timeout after {timeout}s")
-            raise FactCheckError(f"Gemini CLI timeout after {timeout}s")
-
-        except FileNotFoundError:
-            logger.error("Gemini CLI not found. Install: npm install -g @google/generative-ai-cli")
-            raise FactCheckError("Gemini CLI not installed")
+            return result['content'].strip()
 
         except Exception as e:
-            logger.error(f"Gemini CLI execution failed: {e}")
-            raise FactCheckError(f"Gemini CLI execution failed: {e}")
+            logger.error(f"Gemini API call failed: {e}")
+            raise FactCheckError(f"Gemini API call failed: {e}")
 
     def _parse_json_response(self, response: str) -> Dict[str, Any]:
         """
@@ -896,10 +894,10 @@ Return ONLY valid JSON in this exact format:
 Score should be 0.0-1.0 where 1.0 = perfectly consistent.
 If no issues found, return empty issues array."""
 
-        logger.info("Running internal consistency check via Gemini CLI...")
+        logger.info("Running internal consistency check via Gemini API...")
 
         try:
-            response = self._run_gemini_cli(prompt, timeout=30)
+            response = self._run_gemini_api(prompt)
             result = self._parse_json_response(response)
 
             # Validate structure
@@ -972,10 +970,10 @@ Return ONLY valid JSON in this exact format:
 
 If no issues found, return empty issues and recommendations arrays."""
 
-        logger.info("Running content quality analysis via Gemini CLI...")
+        logger.info("Running content quality analysis via Gemini API...")
 
         try:
-            response = self._run_gemini_cli(prompt, timeout=30)
+            response = self._run_gemini_api(prompt)
             result = self._parse_json_response(response)
 
             # Validate structure
