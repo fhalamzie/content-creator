@@ -1,0 +1,68 @@
+# Gitleaks Configuration
+# Optimized for CasaDocs/PostCentral project
+
+title = "Gitleaks Configuration for CasaDocs"
+
+# Custom rules for project-specific secrets
+[[rules]]
+id = "gocardless-live"
+description = "GoCardless Live API Token"
+regex = '''live_[A-Za-z0-9]{40,}'''
+tags = ["gocardless", "api-key"]
+
+[[rules]]
+id = "gocardless-sandbox"
+description = "GoCardless Sandbox API Token"
+regex = '''sandbox_[A-Za-z0-9]{40,}'''
+tags = ["gocardless", "api-key"]
+
+[[rules]]
+id = "openrouter-api-key"
+description = "OpenRouter API Key"
+regex = '''sk-or-v1-[A-Za-z0-9]{40,}'''
+tags = ["openrouter", "api-key"]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-proj-[A-Za-z0-9_-]{100,}'''
+tags = ["openai", "api-key"]
+
+[[rules]]
+id = "postgres-connection-string"
+description = "PostgreSQL Connection String with Password"
+regex = '''postgres(ql)?://[^:]+:[^@\s]+@[^/\s]+'''
+tags = ["database", "connection-string"]
+
+[[rules]]
+id = "azure-key"
+description = "Azure API Key (32 char hex)"
+regex = '''[0-9a-f]{32}'''
+tags = ["azure", "api-key"]
+# More prone to false positives, consider carefully
+
+# Global allowlist for common false positives
+[allowlist]
+description = "Global allowlist for false positives"
+paths = [
+  '''\.gitleaksignore''',
+  '''\.git/''',
+  '''node_modules/''',
+  '''package-lock\.json''',
+  '''poetry\.lock''',
+  '''\.env\.example''',
+  '''REDACTED''',
+]
+
+regexes = [
+  # Ignore REDACTED placeholder values
+  '''REDACTED_[A-Z_]+''',
+
+  # Ignore example/test values
+  '''(example|test|dummy|fake|mock)_[a-z_]+''',
+
+  # Ignore specific known safe patterns
+  '''<your-[a-z-]+-here>''',
+  '''your-[a-z-]+-key''',
+  '''placeholder-[a-z-]+''',
+]

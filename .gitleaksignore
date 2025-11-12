@@ -1,0 +1,38 @@
+# Gitleaks Ignore File
+# Add paths or patterns for legitimate false positives
+# Format: path:rule-id (optional) or just path
+
+# Documentation and examples (safe placeholders)
+docs/**/*REDACTED*
+README.md
+ARCHITECTURE.md
+*.example
+*.sample
+
+# Test files with dummy credentials
+tests/**/*
+**/*test*.py
+**/*test*.ts
+**/*test*.js
+**/fixtures/**
+**/mocks/**
+
+# Lock files (contain hashes, not secrets)
+package-lock.json
+poetry.lock
+yarn.lock
+pnpm-lock.yaml
+
+# Build artifacts
+dist/**
+build/**
+.next/**
+node_modules/**
+
+# Already redacted in git history
+docs/security/SEC-3-CREDENTIALS-SECURITY.md
+
+# Environment templates (placeholders only)
+.env.example
+.env.sample
+.env.template

@@ -1,0 +1,57 @@
+name: Secret Scanning (Gitleaks)
+
+# Run on every push and pull request to catch secrets early
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch: # Allow manual trigger
+
+# Prevent concurrent runs on same branch
+concurrency:
+  group: gitleaks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan-secrets:
+    name: Scan for Secrets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for comprehensive scanning
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Optional: for Gitleaks Enterprise
+          GITLEAKS_NOTIFY_USER_LIST: ${{ secrets.GITLEAKS_NOTIFY_USER_LIST }} # Optional
+
+      - name: Upload Gitleaks Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: results.sarif
+          retention-days: 30
+
+      - name: Comment on PR (if secrets found)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## 🚨 Secret Scanning Failed\n\nGitleaks detected potential secrets in this PR. Please review the findings and remove any sensitive information.\n\n**Actions:**\n1. Check the Gitleaks scan results in the Actions tab\n2. Remove any detected secrets\n3. If false positive, add to `.gitleaksignore`\n4. Force push to update the PR\n\n**Learn more:** [Gitleaks Documentation](https://github.com/gitleaks/gitleaks)'
+            })
