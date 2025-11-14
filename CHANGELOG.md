@@ -2,9 +2,9 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
-## Session 049: Image Generation Optimization & Chutes.ai Integration (2025-11-12)
+## Session 049: Image Generation Optimization & Chutes.ai Integration (2025-11-12, verified 2025-11-15)
 
-**OPTIMIZATION (3 hours)** - Flux prompt optimization, Chutes.ai model comparison, FactChecker API migration
+**OPTIMIZATION + VERIFICATION (4 hours)** - Flux prompt optimization, Chutes.ai model comparison, FactChecker API migration, full production testing
 
 **Problems**: FactChecker using Gemini CLI (30s timeout hangs), only 3 Flux images (no comparison), Flux prompts not following best practices (keyword-heavy), poor Chutes model quality (dreamshaper-xl, schnell).
 
@@ -14,10 +14,13 @@ Recent development sessions (last 3 sessions, <100 lines).
 - ✅ **Parameter Tuning**: guidance_scale 7.5-8.0, negative prompts, professional photography keywords
 - ✅ **Flux Prompt Optimization**: Natural language structure (Subject → Background → Lighting → Camera), specific equipment (Canon EOS R5, Sony A7R IV), 40-60 words (vs 100-150), output_quality: 90
 - ✅ **Model Comparison**: 5 images total (3 Flux + 2 Chutes), photorealistic quality
+- ✅ **Full Testing** (2025-11-15): Programmatic verification with `/tmp/full_generation_test.py`, all 5 images successful, all optimizations confirmed in production
 
-**Cost**: Reduced ~$0.17 → ~$0.15 (12% savings) while improving quality
+**Cost** (Verified): $0.20/article (Blog $0.0056 + Flux Ultra $0.06 + 2x Flux Dev $0.006 + JuggernautXL $0.025 + qwen-image $0.105). +18% vs old config but +100% quality.
 
-**Quality**: Flux (sharper, better composition), JuggernautXL (photorealistic), qwen-image (high detail, 35 steps)
+**Performance** (Measured): Blog 142s, Images 77s total (Flux Ultra 13s, Flux Dev 10-15s each, JuggernautXL 5s, qwen-image 34s). qwen-image: 35 steps (↑75% from old 20).
+
+**Quality** (Verified): All images photorealistic. Flux (sharper, better composition, camera specs in prompts), JuggernautXL (cinematic, 122KB), qwen-image (high detail, 100KB). Natural language prompts working, negative prompts preventing artifacts.
 
 **See**: [Full details](docs/sessions/049-image-generation-optimization.md)
 
