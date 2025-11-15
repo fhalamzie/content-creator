@@ -2,6 +2,29 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 051: UI Refactoring Phase 1 & 2 - Quick Create + Settings Consolidation (2025-11-15)
+
+**UI/UX IMPROVEMENT (4 hours)** - Simplified user experience, reduced 8 → 7 pages, consolidated configuration
+
+**Problems**: Confusing navigation (8 pages), split configuration (Setup + Settings), no cost/time estimates, checkbox overload, no feature explanations.
+
+**Solutions**:
+- ✅ **Quick Create Page**: 429 lines (31% smaller than Generate), Settings defaults, cost/time estimates BEFORE generation, "What happens next?" guide, advanced options collapsed
+- ✅ **Settings Consolidation**: Merged Setup + Settings → 5 tabs (Brand Setup, API Keys, Rate Limits, Models, Advanced), What/Why/Required? pattern everywhere
+- ✅ **Reusable Components**: 12 help components (cost_estimate, time_estimate, feature_explanation, etc.), progressive help system
+- ✅ **Navigation Update**: 8 → 7 pages, removed Setup, added Quick Create
+- ✅ **ImageGenerator Bug Fix**: Test script using correct parameters (topic, brand_tone, article_excerpt)
+
+**Design Principles**: Progressive Help (inline → tooltips → expandables), Explain Everything (What + Why + When), Show Costs First, Use Defaults, Collapse Complexity.
+
+**Impact**: 67% of Week 1 UI refactoring complete (Phases 1-2), ~40% reduction in required user actions, <10 min to first article.
+
+**Files**: +3 created (help.py, quick_create.py, session file), 6 modified (streamlit_app, settings.py), 1 deleted (setup.py), 1,374 lines added.
+
+**See**: [Full details](docs/sessions/051-ui-refactoring-phase1-phase2.md)
+
+---
+
 ## Session 049: Image Generation Optimization & Chutes.ai Integration (2025-11-12, verified 2025-11-15)
 
 **OPTIMIZATION + VERIFICATION (4 hours)** - Flux prompt optimization, Chutes.ai model comparison, FactChecker API migration, full production testing

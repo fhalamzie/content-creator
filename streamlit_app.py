@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import pages
-from ui.pages import dashboard, setup, generate, content_browser, settings, topic_research, pipeline_automation
+from ui.pages import dashboard, generate, content_browser, settings, topic_research, pipeline_automation, quick_create
 from src.utils.logger import setup_logging
 
 
@@ -39,7 +39,7 @@ def render_sidebar():
         # Navigation menu
         pages = {
             "📊 Dashboard": "Dashboard",
-            "⚙️ Setup": "Setup",
+            "⚡ Quick Create": "Quick Create",
             "✨ Generate": "Generate",
             "🎯 Pipeline Automation": "Pipeline Automation",
             "🔬 Topic Research": "Topic Research",
@@ -89,8 +89,8 @@ def main():
 
     if page == "Dashboard":
         dashboard.render()
-    elif page == "Setup":
-        setup.render()
+    elif page == "Quick Create":
+        quick_create.render()
     elif page == "Generate":
         generate.render()
     elif page == "Pipeline Automation":

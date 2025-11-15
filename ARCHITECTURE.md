@@ -6,6 +6,8 @@ AI-powered German content generation pipeline with Notion editorial interface. E
 
 **Core Principles**: TDD first, disk caching before Notion sync, 2.5 req/sec rate limiting, cost optimization (77% savings), fail-safe design.
 
+**Note**: This document describes the current MVP architecture. For the planned production SaaS architecture (multi-tenant, FastAPI + React, Postgres), see [TARGET_ARCHITECTURE.md](TARGET_ARCHITECTURE.md).
+
 ## Technology Stack
 
 | Layer | Technology | Purpose |
@@ -283,4 +285,4 @@ Phase 6 (post-MVP): Image generation (DALL-E 3), plagiarism checker, analytics, 
 
 ## References
 
-[PLAN.md](PLAN.md) | [Notion API](https://developers.notion.com/) | [OpenRouter](https://openrouter.ai/docs) | [Qwen](https://huggingface.co/Qwen) | [Gemini CLI](https://ai.google.dev/gemini-api/docs/) | [Streamlit](https://docs.streamlit.io/)
+[TARGET_ARCHITECTURE.md](TARGET_ARCHITECTURE.md) (Production SaaS architecture) | [PLAN.md](PLAN.md) | [Notion API](https://developers.notion.com/) | [OpenRouter](https://openrouter.ai/docs) | [Qwen](https://huggingface.co/Qwen) | [Gemini CLI](https://ai.google.dev/gemini-api/docs/) | [Streamlit](https://docs.streamlit.io/)

@@ -1,5 +1,5 @@
 """Streamlit pages module."""
 
-from . import dashboard, setup, generate, content_browser, settings, topic_research
+from . import dashboard, generate, content_browser, settings, topic_research, quick_create
 
-__all__ = ['dashboard', 'setup', 'generate', 'content_browser', 'settings', 'topic_research']
+__all__ = ['dashboard', 'quick_create', 'generate', 'content_browser', 'settings', 'topic_research']

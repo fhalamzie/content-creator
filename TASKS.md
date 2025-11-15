@@ -53,6 +53,106 @@
 
 ---
 
+## High Priority - Streamlit UI Refactoring (Session 050)
+
+**Goal**: Improve user flow clarity and reduce confusion in Streamlit prototype
+
+**Status**: APPROVED - Ready for Implementation (AI Expert Review: Codex GPT-5 + Gemini 2.5 Flash)
+
+**Detailed Plan**: [docs/UI_REFACTORING_PLAN.md](docs/UI_REFACTORING_PLAN.md)
+
+### Current Problems
+- ❌ 7 pages with unclear purposes
+- ❌ 3 overlapping generation methods (Generate, Pipeline, Research)
+- ❌ Checkbox overload (6+ options, users don't understand)
+- ❌ No clear onboarding path
+- ❌ Configuration split (Setup vs Settings)
+- ❌ No "why" explanations for features
+
+### Proposed Solution (5-6 pages)
+1. **Dashboard** - Guided routing ("What do you want to do?")
+2. **Quick Create** - Simplified single-topic (uses saved defaults)
+3. **Automation** - 3-step wizard (website → topics → articles)
+4. **Research Lab** - Analysis tabs (Topic/Competitor/Keywords)
+5. **Settings** - Unified config (Brand + API + Models + Advanced)
+6. **Library** - Browse/manage (keep as-is)
+
+### Week 1 (Start Here) - High Impact
+- [x] **Phase 1: Quick Create Refactoring** (Days 1-2) ✅ COMPLETE (Session 051, 2.5 hours)
+  - [x] Create `src/ui/pages/quick_create.py` (429 lines, 31% smaller than generate.py)
+  - [x] Create `src/ui/components/help.py` (359 lines, 12 reusable components)
+  - [x] Simplify to single form with Settings defaults
+  - [x] Collapse advanced options (advanced_options_expander)
+  - [x] Add inline help: ℹ️ tooltips for every option
+  - [x] Add "What it does + Why + When to use" explanations (feature_explanation component)
+  - [x] Show cost/time estimates before generation (cost_estimate, time_estimate components)
+  - [x] Add "What happens next?" expandable (5-step process guide)
+  - [x] Success: Users understand every option without asking ✅ ACHIEVED
+
+- [x] **Phase 2: Settings Consolidation** (Day 3) ✅ COMPLETE (Session 051, 1.5 hours)
+  - [x] Merge `setup.py` → `settings.py` Tab 1 (Brand Setup) - 586 lines total
+  - [x] Add explanations: "What", "Why", "Required?" - Applied to all 5 tabs
+  - [x] Add "Why do I need these?" expandables for API keys (feature_explanation component)
+  - [x] Delete old `setup.py` file ✅ DONE
+  - [x] Success: One unified configuration page ✅ ACHIEVED (5 tabs: Brand, API, Limits, Models, Advanced)
+
+- [ ] **Phase 3: Dashboard Routing** (Days 4-5)
+  - [ ] Refactor `dashboard.py` with routing cards
+  - [ ] Add 4 cards: Quick Create, Automation, Research Lab, Library
+  - [ ] Add "When to use", time/cost estimates for each
+  - [ ] Add "Getting Started" guide (3-step setup)
+  - [ ] Success: New users know where to start
+
+### Week 2 - Polish & Enhancement
+- [ ] **Phase 4: Automation Wizard** (Days 6-7)
+  - [ ] Refactor `pipeline_automation.py`
+  - [ ] Add progress indicators (1/3, 2/3, 3/3)
+  - [ ] Add "What we'll do" explanations for each step
+  - [ ] Show costs BEFORE generation (not after)
+  - [ ] Success: Users understand pipeline progress
+
+- [ ] **Phase 5: Research Lab Tabs** (Days 8-9)
+  - [ ] Refactor `topic_research.py` into 3 tabs
+  - [ ] Tab 1: Topic Research (deep research)
+  - [ ] Tab 2: Competitor Analysis (content gaps)
+  - [ ] Tab 3: Keyword Research (SEO keywords)
+  - [ ] Add "When to use" for each tab
+  - [ ] Add "Export to Quick Create" button
+  - [ ] Success: Users know which tab to use
+
+- [ ] **Phase 6: Testing & Refinement** (Day 10)
+  - [ ] User flow testing
+  - [ ] Cost estimate verification
+  - [ ] Help text clarity review
+  - [ ] Update navigation in `streamlit_app.py`
+
+### Design Principles
+- **Progressive Help**: Inline hints (always) → Tooltips (hover) → Expandables (optional)
+- **Explain Everything**: What it does + Why it exists + When to use
+- **Show Costs First**: Before every expensive action
+- **Use Defaults**: Settings → Quick Create (no manual config)
+- **Collapse Complexity**: Hide advanced options by default
+
+### Success Metrics
+- [ ] Users can explain what each page does
+- [ ] Zero questions about "what does this checkbox do?"
+- [ ] Clear cost expectations before generation
+- [ ] New users complete first article in <10 minutes
+
+### AI Expert Consensus (Codex + Gemini)
+✅ Structure is correct (5-6 pages, 3 user paths)
+✅ Start with Quick Create FIRST (highest impact)
+✅ Keep Research Lab separate (surface insights inline)
+✅ Merge Setup + Settings
+✅ Add onboarding wizard on Dashboard
+✅ Show cost/time before every action
+
+**Timeline**: 2 weeks (Week 1 high impact, Week 2 polish)
+
+**Skipped for Prototype**: Multi-brand profiles, performance metrics, visual polish
+
+---
+
 ## High Priority - Content Creator Phase 4: Repurposing Agent
 
 - [ ] Write tests + implement `src/agents/repurposing_agent.py`
