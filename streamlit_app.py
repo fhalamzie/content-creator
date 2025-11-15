@@ -42,7 +42,7 @@ def render_sidebar():
             "⚡ Quick Create": "Quick Create",
             "✨ Generate": "Generate",
             "🎯 Pipeline Automation": "Pipeline Automation",
-            "🔬 Topic Research": "Topic Research",
+            "🔬 Research Lab": "Topic Research",
             "📚 Content Browser": "Content Browser",
             "🏠 Logo Showcase": "Logo Showcase",
             "🔧 Settings": "Settings"

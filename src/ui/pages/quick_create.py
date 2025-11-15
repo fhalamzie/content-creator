@@ -216,6 +216,21 @@ def render():
             st.rerun()
         return
 
+    # Check for exported research data from Research Lab
+    exported_topic = None
+    if "export_to_quick_create" in st.session_state:
+        exported_data = st.session_state.export_to_quick_create
+        exported_topic = exported_data.get("topic", "")
+
+        st.success("✅ **Research Imported!** Topic pre-filled from Research Lab")
+        st.info(f"📊 **Topic**: {exported_topic}")
+
+        if st.button("🗑️ Clear Imported Data"):
+            del st.session_state.export_to_quick_create
+            st.rerun()
+
+        st.divider()
+
     # Show what happens next
     what_happens_next()
 
@@ -225,9 +240,10 @@ def render():
     with st.form("quick_create_form"):
         st.subheader("📝 What do you want to write about?")
 
-        # Topic input (required)
+        # Topic input (required) - pre-fill with exported topic if available
         topic = st.text_input(
             "Article Topic",
+            value=exported_topic if exported_topic else "",
             placeholder="e.g., PropTech Trends 2025",
             help="The main subject of your blog post. Be specific!"
         )

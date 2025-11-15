@@ -482,26 +482,34 @@ def render_results(result: Dict):
         })
 
 
-def render():
-    """Render Topic Research page."""
-    st.title("🔬 Topic Research Lab")
-    st.caption("Production-ready pipeline with 5 backends, 3-stage reranking, and content synthesis")
+def render_topic_research_tab(config: dict):
+    """Render Tab 1: Topic Research (Deep Research)."""
+    from src.ui.components.help import feature_explanation
 
-    # Render config sidebar
-    config = render_config_sidebar()
+    # Tab-level explanation
+    feature_explanation(
+        title="When to use Topic Research",
+        what="Comprehensive research across 5 backends with AI synthesis into a full article",
+        why="Perfect for creating in-depth, well-researched content (1500-2000 words) with citations",
+        when="Use when you need authoritative content for blog posts, guides, or whitepapers. Skip for quick social posts.",
+        icon="🔍"
+    )
+
+    st.divider()
 
     # Initialize session state
     if "research_result" not in st.session_state:
         st.session_state.research_result = None
 
     # Main content
-    st.header("🎯 Research a Topic")
+    st.subheader("🎯 Research a Topic")
 
     # Topic input
     topic = st.text_input(
         "Enter your research topic",
         placeholder="e.g., PropTech AI automation trends 2025",
-        help="The system will research this topic across multiple backends"
+        help="The system will research this topic across multiple backends",
+        key="topic_research_input"
     )
 
     # Quick examples
@@ -511,7 +519,7 @@ def render():
         st.caption("**Fashion**: Sustainable fashion e-commerce, AI styling recommendations")
 
     # Process button
-    process_button = st.button("🚀 Research Topic", type="primary", use_container_width=True, disabled=not topic)
+    process_button = st.button("🚀 Research Topic", type="primary", use_container_width=True, disabled=not topic, key="research_topic_btn")
 
     if process_button and topic:
         print(f"[DEBUG] BUTTON CLICKED - Topic: {topic}")
@@ -537,7 +545,7 @@ def render():
 
         # Process topic
         st.divider()
-        st.header("⚙️ Pipeline Processing")
+        st.subheader("⚙️ Pipeline Processing")
         progress_container = st.container()
 
         print("[DEBUG] About to call asyncio.run(process_topic_async...)")
@@ -562,11 +570,182 @@ def render():
     # Display results if available
     if st.session_state.research_result:
         st.divider()
-        st.header("📊 Results")
+        st.subheader("📊 Results")
 
         render_results(st.session_state.research_result)
 
-        # Clear results button
-        if st.button("🗑️ Clear Results", use_container_width=True):
-            st.session_state.research_result = None
-            st.rerun()
+        # Action buttons
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("📤 Export to Quick Create", use_container_width=True, type="primary"):
+                # Export research results to Quick Create page
+                st.session_state.export_to_quick_create = {
+                    "topic": st.session_state.research_result["topic"],
+                    "article": st.session_state.research_result.get("article"),
+                    "sources": st.session_state.research_result.get("sources", [])
+                }
+                st.success("✅ Research exported! Navigate to Quick Create to use it.")
+
+        with col2:
+            if st.button("🗑️ Clear Results", use_container_width=True):
+                st.session_state.research_result = None
+                st.rerun()
+
+
+def render_competitor_analysis_tab():
+    """Render Tab 2: Competitor Analysis (Content Gaps)."""
+    from src.ui.components.help import feature_explanation
+
+    # Tab-level explanation
+    feature_explanation(
+        title="When to use Competitor Analysis",
+        what="Analyze competitor content to identify gaps and opportunities in your niche",
+        why="Helps you find topics your competitors are missing and create differentiated content",
+        when="Use before planning content strategy or when entering a new market. Great for finding low-competition keywords.",
+        icon="🏢"
+    )
+
+    st.divider()
+
+    st.subheader("🏢 Competitor Content Gap Analysis")
+
+    st.info("🚧 **Coming Soon** - This feature is under development")
+
+    st.markdown("""
+    ### Planned Features:
+    - **Competitor Discovery**: Automatic identification of top competitors in your niche
+    - **Content Gap Analysis**: Topics they cover that you don't (and vice versa)
+    - **Keyword Overlap**: Shared vs unique keywords
+    - **Content Quality Scoring**: Compare your content depth vs competitors
+    - **Publication Frequency**: Track competitor publishing patterns
+    - **Export Insights**: Send findings to Quick Create for content planning
+
+    ### How it will work:
+    1. Enter your website URL or select competitors from Settings
+    2. AI analyzes competitor content structure and topics
+    3. Identifies gaps where you can create unique value
+    4. Suggests 10-20 high-opportunity topics
+    5. Export to Quick Create for immediate content generation
+    """)
+
+    st.divider()
+
+    # Placeholder inputs (non-functional)
+    st.text_input(
+        "Your website URL",
+        placeholder="https://your-company.com",
+        help="Your website for comparison",
+        disabled=True
+    )
+
+    st.text_area(
+        "Competitor URLs (one per line)",
+        placeholder="https://competitor1.com\nhttps://competitor2.com",
+        help="Add up to 5 competitor websites",
+        disabled=True,
+        height=100
+    )
+
+    st.button("🔍 Analyze Competitors", type="primary", use_container_width=True, disabled=True)
+
+
+def render_keyword_research_tab():
+    """Render Tab 3: Keyword Research (SEO Keywords)."""
+    from src.ui.components.help import feature_explanation
+
+    # Tab-level explanation
+    feature_explanation(
+        title="When to use Keyword Research",
+        what="Discover high-value SEO keywords with search volume, competition, and intent analysis",
+        why="Target keywords that drive organic traffic without expensive paid ads",
+        when="Use at the start of content planning or when optimizing existing content. Essential for SEO-focused content.",
+        icon="🔑"
+    )
+
+    st.divider()
+
+    st.subheader("🔑 SEO Keyword Research")
+
+    st.info("🚧 **Coming Soon** - This feature is under development")
+
+    st.markdown("""
+    ### Planned Features:
+    - **Keyword Discovery**: Find related keywords and long-tail variations
+    - **Search Volume**: Estimate monthly searches (Google Trends + predictive models)
+    - **Competition Analysis**: Difficulty score (0-100) for ranking
+    - **Search Intent**: Informational, Commercial, Transactional, Navigational
+    - **SERP Analysis**: Current top 10 ranking pages
+    - **Question Keywords**: "How to", "What is", "Best" variations
+    - **Export to Quick Create**: Generate content targeting specific keywords
+
+    ### How it will work:
+    1. Enter seed keyword or topic
+    2. AI generates 50-100 related keywords
+    3. Filters by search volume and difficulty
+    4. Ranks by opportunity score (volume / difficulty)
+    5. Shows SERP features (featured snippets, PAA, images)
+    6. Export top 10 keywords to Quick Create
+
+    ### Data Sources:
+    - Google Autocomplete (free, real-time suggestions)
+    - Gemini Trends API (free, trending queries)
+    - SearXNG (aggregated search volumes)
+    - Manual SERP scraping (top 10 analysis)
+    """)
+
+    st.divider()
+
+    # Placeholder inputs (non-functional)
+    st.text_input(
+        "Seed keyword",
+        placeholder="e.g., property management software",
+        help="Starting keyword for research",
+        disabled=True
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.selectbox(
+            "Language",
+            ["German", "English", "French"],
+            help="Target language for keywords",
+            disabled=True
+        )
+
+    with col2:
+        st.selectbox(
+            "Market",
+            ["Germany", "USA", "France"],
+            help="Target geographic market",
+            disabled=True
+        )
+
+    st.button("🔍 Research Keywords", type="primary", use_container_width=True, disabled=True)
+
+
+def render():
+    """Render Topic Research Lab page with 3 tabs."""
+    st.title("🔬 Research Lab")
+    st.caption("Comprehensive research tools: Deep topic research, competitor analysis, and SEO keyword discovery")
+
+    # Render config sidebar (shared across all tabs)
+    config = render_config_sidebar()
+
+    st.divider()
+
+    # Tab navigation
+    tab1, tab2, tab3 = st.tabs([
+        "🔍 Topic Research",
+        "🏢 Competitor Analysis",
+        "🔑 Keyword Research"
+    ])
+
+    with tab1:
+        render_topic_research_tab(config)
+
+    with tab2:
+        render_competitor_analysis_tab()
+
+    with tab3:
+        render_keyword_research_tab()
