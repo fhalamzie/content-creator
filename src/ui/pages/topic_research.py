@@ -595,7 +595,14 @@ def render_topic_research_tab(config: dict):
 
 def render_competitor_analysis_tab():
     """Render Tab 2: Competitor Analysis (Content Gaps)."""
-    from src.ui.components.help import feature_explanation
+    import os
+    from src.ui.components.help import (
+        feature_explanation,
+        cost_estimate,
+        time_estimate,
+        what_happens_next
+    )
+    from src.agents.competitor_research_agent import CompetitorResearchAgent, CompetitorResearchError
 
     # Tab-level explanation
     feature_explanation(
@@ -610,49 +617,244 @@ def render_competitor_analysis_tab():
 
     st.subheader("🏢 Competitor Content Gap Analysis")
 
-    st.info("🚧 **Coming Soon** - This feature is under development")
-
-    st.markdown("""
-    ### Planned Features:
-    - **Competitor Discovery**: Automatic identification of top competitors in your niche
-    - **Content Gap Analysis**: Topics they cover that you don't (and vice versa)
-    - **Keyword Overlap**: Shared vs unique keywords
-    - **Content Quality Scoring**: Compare your content depth vs competitors
-    - **Publication Frequency**: Track competitor publishing patterns
-    - **Export Insights**: Send findings to Quick Create for content planning
-
-    ### How it will work:
-    1. Enter your website URL or select competitors from Settings
-    2. AI analyzes competitor content structure and topics
-    3. Identifies gaps where you can create unique value
-    4. Suggests 10-20 high-opportunity topics
-    5. Export to Quick Create for immediate content generation
-    """)
+    # Cost and time estimates
+    col1, col2 = st.columns(2)
+    with col1:
+        cost_estimate(
+            cost_usd=0.0,
+            description="FREE (Gemini API with Google Search grounding)"
+        )
+    with col2:
+        time_estimate(
+            duration_seconds=15,
+            description="Typically 10-20 seconds"
+        )
 
     st.divider()
 
-    # Placeholder inputs (non-functional)
-    st.text_input(
-        "Your website URL",
-        placeholder="https://your-company.com",
-        help="Your website for comparison",
-        disabled=True
+    # Input form
+    topic = st.text_input(
+        "Research Topic or Niche",
+        placeholder="e.g., property management software, sustainable fashion, AI content tools",
+        help="Your business topic or industry niche for competitor analysis",
+        key="competitor_topic"
     )
 
-    st.text_area(
-        "Competitor URLs (one per line)",
-        placeholder="https://competitor1.com\nhttps://competitor2.com",
-        help="Add up to 5 competitor websites",
-        disabled=True,
-        height=100
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        language = st.selectbox(
+            "Language",
+            options=["de", "en", "es", "fr"],
+            format_func=lambda x: {"de": "German", "en": "English", "es": "Spanish", "fr": "French"}[x],
+            help="Target language for competitor research",
+            key="competitor_language"
+        )
+
+    with col2:
+        max_competitors = st.slider(
+            "Max Competitors",
+            min_value=3,
+            max_value=10,
+            value=5,
+            help="Number of competitors to analyze (3-10)",
+            key="competitor_max"
+        )
+
+    with col3:
+        include_content_analysis = st.checkbox(
+            "Include Content Strategy",
+            value=True,
+            help="Analyze competitor content patterns and posting frequency",
+            key="competitor_content_analysis"
+        )
+
+    # What happens next
+    what_happens_next([
+        "🔍 AI identifies top competitors in your niche using Google Search",
+        "📊 Analyzes their content strategy, topics, and social presence",
+        "🎯 Identifies content gaps and opportunities",
+        "📈 Finds trending topics in your market",
+        "💡 Provides strategic recommendations"
+    ])
+
+    # Analysis button
+    analyze_button = st.button(
+        "🔍 Analyze Competitors",
+        type="primary",
+        use_container_width=True,
+        key="run_competitor_analysis"
     )
 
-    st.button("🔍 Analyze Competitors", type="primary", use_container_width=True, disabled=True)
+    # Process analysis
+    if analyze_button and topic:
+        # Check API key
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            st.error("❌ Missing GEMINI_API_KEY. Please configure in Settings → API Keys.")
+            return
+
+        # Progress tracking
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        try:
+            # Initialize agent
+            status_text.text("Initializing competitor research agent...")
+            progress_bar.progress(10)
+
+            agent = CompetitorResearchAgent(
+                api_key=api_key,
+                use_cli=False,  # Use API with grounding (more reliable)
+                model="gemini-2.5-flash"
+            )
+
+            # Run analysis
+            status_text.text(f"Analyzing competitors for '{topic}'...")
+            progress_bar.progress(30)
+
+            result = agent.research_competitors(
+                topic=topic,
+                language=language,
+                max_competitors=max_competitors,
+                include_content_analysis=include_content_analysis,
+                save_to_cache=False
+            )
+
+            progress_bar.progress(90)
+            status_text.text("Analysis complete! Displaying results...")
+
+            # Store in session state
+            st.session_state.competitor_result = result
+            st.session_state.competitor_topic = topic
+
+            progress_bar.progress(100)
+            status_text.text("✅ Competitor analysis complete!")
+
+            st.success(f"✅ Found {len(result.get('competitors', []))} competitors with {len(result.get('content_gaps', []))} content gap opportunities!")
+
+        except CompetitorResearchError as e:
+            st.error(f"❌ Competitor research failed: {str(e)}")
+            progress_bar.empty()
+            status_text.empty()
+            return
+        except Exception as e:
+            st.error(f"❌ Unexpected error: {str(e)}")
+            progress_bar.empty()
+            status_text.empty()
+            return
+
+    # Display results
+    if st.session_state.get("competitor_result"):
+        st.divider()
+        st.subheader(f"📊 Results for '{st.session_state.get('competitor_topic', 'Unknown')}'")
+
+        result = st.session_state.competitor_result
+        competitors = result.get("competitors", [])
+        content_gaps = result.get("content_gaps", [])
+        trending_topics = result.get("trending_topics", [])
+        recommendation = result.get("recommendation", "")
+
+        # Metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Competitors Found", len(competitors))
+        with col2:
+            st.metric("Content Gaps", len(content_gaps))
+        with col3:
+            st.metric("Trending Topics", len(trending_topics))
+
+        # Results tabs
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "🏢 Competitors Overview",
+            "🎯 Content Gaps",
+            "📈 Trending Topics",
+            "💡 Recommendation",
+            "🔍 Raw Data"
+        ])
+
+        with tab1:
+            st.markdown("### Competitor Overview")
+            if competitors:
+                for i, comp in enumerate(competitors, 1):
+                    with st.expander(f"#{i}: {comp.get('name', 'Unknown')} - {comp.get('website', 'No URL')}"):
+                        st.markdown(f"**Description:** {comp.get('description', 'N/A')}")
+
+                        social = comp.get('social_handles', {})
+                        if any(social.values()):
+                            st.markdown("**Social Media:**")
+                            if social.get('linkedin'):
+                                st.markdown(f"- LinkedIn: {social['linkedin']}")
+                            if social.get('twitter'):
+                                st.markdown(f"- Twitter: {social['twitter']}")
+                            if social.get('facebook'):
+                                st.markdown(f"- Facebook: {social['facebook']}")
+
+                        if comp.get('content_topics'):
+                            st.markdown(f"**Content Topics:** {', '.join(comp['content_topics'][:5])}")
+
+                        if comp.get('posting_frequency'):
+                            st.markdown(f"**Posting Frequency:** {comp['posting_frequency']}")
+            else:
+                st.info("No competitors found")
+
+        with tab2:
+            st.markdown("### Content Gap Opportunities")
+            if content_gaps:
+                for i, gap in enumerate(content_gaps, 1):
+                    st.markdown(f"{i}. **{gap}**")
+            else:
+                st.info("No content gaps identified")
+
+        with tab3:
+            st.markdown("### Trending Topics in Your Niche")
+            if trending_topics:
+                for i, topic in enumerate(trending_topics, 1):
+                    st.markdown(f"{i}. {topic}")
+            else:
+                st.info("No trending topics found")
+
+        with tab4:
+            st.markdown("### Strategic Recommendation")
+            if recommendation:
+                st.info(recommendation)
+            else:
+                st.info("No recommendation available")
+
+        with tab5:
+            st.json(result)
+
+        # Export button
+        st.divider()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📤 Export to Quick Create", use_container_width=True):
+                # Store for Quick Create integration
+                st.session_state.imported_competitor_insights = {
+                    "competitors": competitors,
+                    "content_gaps": content_gaps,
+                    "trending_topics": trending_topics,
+                    "recommendation": recommendation,
+                    "timestamp": topic
+                }
+                st.success("✅ Exported to Quick Create! Navigate to Quick Create to use these insights.")
+
+        with col2:
+            if st.button("🗑️ Clear Results", use_container_width=True):
+                st.session_state.competitor_result = None
+                st.session_state.competitor_topic = None
+                st.rerun()
 
 
 def render_keyword_research_tab():
     """Render Tab 3: Keyword Research (SEO Keywords)."""
-    from src.ui.components.help import feature_explanation
+    import os
+    from src.ui.components.help import (
+        feature_explanation,
+        cost_estimate,
+        time_estimate,
+        what_happens_next
+    )
+    from src.agents.keyword_research_agent import KeywordResearchAgent, KeywordResearchError
 
     # Tab-level explanation
     feature_explanation(
@@ -667,61 +869,280 @@ def render_keyword_research_tab():
 
     st.subheader("🔑 SEO Keyword Research")
 
-    st.info("🚧 **Coming Soon** - This feature is under development")
-
-    st.markdown("""
-    ### Planned Features:
-    - **Keyword Discovery**: Find related keywords and long-tail variations
-    - **Search Volume**: Estimate monthly searches (Google Trends + predictive models)
-    - **Competition Analysis**: Difficulty score (0-100) for ranking
-    - **Search Intent**: Informational, Commercial, Transactional, Navigational
-    - **SERP Analysis**: Current top 10 ranking pages
-    - **Question Keywords**: "How to", "What is", "Best" variations
-    - **Export to Quick Create**: Generate content targeting specific keywords
-
-    ### How it will work:
-    1. Enter seed keyword or topic
-    2. AI generates 50-100 related keywords
-    3. Filters by search volume and difficulty
-    4. Ranks by opportunity score (volume / difficulty)
-    5. Shows SERP features (featured snippets, PAA, images)
-    6. Export top 10 keywords to Quick Create
-
-    ### Data Sources:
-    - Google Autocomplete (free, real-time suggestions)
-    - Gemini Trends API (free, trending queries)
-    - SearXNG (aggregated search volumes)
-    - Manual SERP scraping (top 10 analysis)
-    """)
+    # Cost and time estimates
+    col1, col2 = st.columns(2)
+    with col1:
+        cost_estimate(
+            cost_usd=0.0,
+            description="FREE (Gemini API with Google Search grounding)"
+        )
+    with col2:
+        time_estimate(
+            duration_seconds=12,
+            description="Typically 10-15 seconds"
+        )
 
     st.divider()
 
-    # Placeholder inputs (non-functional)
-    st.text_input(
-        "Seed keyword",
-        placeholder="e.g., property management software",
-        help="Starting keyword for research",
-        disabled=True
+    # Input form
+    seed_keyword = st.text_input(
+        "Seed Keyword or Topic",
+        placeholder="e.g., property management software, sustainable fashion, content marketing",
+        help="Starting keyword or topic for SEO research",
+        key="keyword_seed"
     )
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.selectbox(
+        language = st.selectbox(
             "Language",
-            ["German", "English", "French"],
-            help="Target language for keywords",
-            disabled=True
+            options=["de", "en", "es", "fr"],
+            format_func=lambda x: {"de": "German", "en": "English", "es": "Spanish", "fr": "French"}[x],
+            help="Target language for keyword research",
+            key="keyword_language"
         )
 
     with col2:
-        st.selectbox(
-            "Market",
-            ["Germany", "USA", "France"],
-            help="Target geographic market",
-            disabled=True
+        keyword_count = st.slider(
+            "Keywords to Find",
+            min_value=10,
+            max_value=50,
+            value=20,
+            help="Number of keywords to discover (10-50)",
+            key="keyword_count"
         )
 
-    st.button("🔍 Research Keywords", type="primary", use_container_width=True, disabled=True)
+    with col3:
+        target_audience = st.text_input(
+            "Target Audience (Optional)",
+            placeholder="e.g., small business owners",
+            help="Refines keyword suggestions for specific audience",
+            key="keyword_audience"
+        )
+
+    # Advanced options
+    with st.expander("🔧 Advanced Options"):
+        include_search_trends = st.checkbox(
+            "Include Search Trends",
+            value=True,
+            help="Analyze trending keywords and seasonal patterns",
+            key="keyword_trends"
+        )
+
+    # What happens next
+    what_happens_next([
+        "🔍 AI analyzes your seed keyword using Google Search",
+        "📊 Discovers primary, secondary, and long-tail keywords",
+        "💡 Identifies related questions people ask",
+        "📈 Estimates search volume and competition level",
+        "🎯 Calculates keyword difficulty (0-100 score)",
+        "✨ Provides strategic keyword recommendations"
+    ])
+
+    # Research button
+    research_button = st.button(
+        "🔍 Research Keywords",
+        type="primary",
+        use_container_width=True,
+        key="run_keyword_research"
+    )
+
+    # Process research
+    if research_button and seed_keyword:
+        # Check API key
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            st.error("❌ Missing GEMINI_API_KEY. Please configure in Settings → API Keys.")
+            return
+
+        # Progress tracking
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        try:
+            # Initialize agent
+            status_text.text("Initializing keyword research agent...")
+            progress_bar.progress(10)
+
+            agent = KeywordResearchAgent(
+                api_key=api_key,
+                use_cli=False,  # Use API with grounding (more reliable)
+                model="gemini-2.5-flash"
+            )
+
+            # Run research
+            status_text.text(f"Researching keywords for '{seed_keyword}'...")
+            progress_bar.progress(30)
+
+            result = agent.research_keywords(
+                topic=seed_keyword,
+                language=language,
+                target_audience=target_audience if target_audience else None,
+                keyword_count=keyword_count,
+                save_to_cache=False
+            )
+
+            progress_bar.progress(90)
+            status_text.text("Research complete! Displaying results...")
+
+            # Store in session state
+            st.session_state.keyword_result = result
+            st.session_state.keyword_seed = seed_keyword
+
+            progress_bar.progress(100)
+            status_text.text("✅ Keyword research complete!")
+
+            # Count keywords
+            total_keywords = (
+                1 +  # primary
+                len(result.get('secondary_keywords', [])) +
+                len(result.get('long_tail_keywords', []))
+            )
+
+            st.success(f"✅ Discovered {total_keywords} keywords including {len(result.get('related_questions', []))} question variations!")
+
+        except KeywordResearchError as e:
+            st.error(f"❌ Keyword research failed: {str(e)}")
+            progress_bar.empty()
+            status_text.empty()
+            return
+        except Exception as e:
+            st.error(f"❌ Unexpected error: {str(e)}")
+            progress_bar.empty()
+            status_text.empty()
+            return
+
+    # Display results
+    if st.session_state.get("keyword_result"):
+        st.divider()
+        st.subheader(f"📊 Results for '{st.session_state.get('keyword_seed', 'Unknown')}'")
+
+        result = st.session_state.keyword_result
+        primary = result.get("primary_keyword", {})
+        secondary = result.get("secondary_keywords", [])
+        long_tail = result.get("long_tail_keywords", [])
+        questions = result.get("related_questions", [])
+        trends = result.get("search_trends", {})
+        recommendation = result.get("recommendation", "")
+
+        # Metrics
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Keywords", 1 + len(secondary) + len(long_tail))
+        with col2:
+            st.metric("Secondary Keywords", len(secondary))
+        with col3:
+            st.metric("Long-tail Keywords", len(long_tail))
+        with col4:
+            st.metric("Question Keywords", len(questions))
+
+        # Results tabs
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+            "🎯 Primary Keyword",
+            "📊 Secondary Keywords",
+            "🔎 Long-tail Keywords",
+            "❓ Related Questions",
+            "📈 Search Trends",
+            "🔍 Raw Data"
+        ])
+
+        with tab1:
+            st.markdown("### Primary Keyword")
+            if primary:
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Keyword", primary.get('keyword', 'N/A'))
+                with col2:
+                    st.metric("Search Volume", primary.get('search_volume', 'Unknown'))
+                with col3:
+                    st.metric("Competition", primary.get('competition', 'Medium'))
+                with col4:
+                    st.metric("Difficulty", f"{primary.get('difficulty', 50)}/100")
+
+                st.markdown(f"**Search Intent:** {primary.get('intent', 'Informational')}")
+
+                if recommendation:
+                    st.info(f"💡 **Recommendation:** {recommendation}")
+            else:
+                st.info("No primary keyword found")
+
+        with tab2:
+            st.markdown("### Secondary Keywords")
+            if secondary:
+                # Create table
+                import pandas as pd
+                df_data = []
+                for kw in secondary:
+                    df_data.append({
+                        "Keyword": kw.get('keyword', ''),
+                        "Search Volume": kw.get('search_volume', 'Unknown'),
+                        "Competition": kw.get('competition', 'Medium'),
+                        "Difficulty": f"{kw.get('difficulty', 50)}/100",
+                        "Relevance": f"{kw.get('relevance', 50)}%"
+                    })
+                df = pd.DataFrame(df_data)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No secondary keywords found")
+
+        with tab3:
+            st.markdown("### Long-tail Keywords (3-5 words)")
+            if long_tail:
+                # Create table
+                import pandas as pd
+                df_data = []
+                for kw in long_tail:
+                    df_data.append({
+                        "Keyword": kw.get('keyword', ''),
+                        "Search Volume": kw.get('search_volume', 'Unknown'),
+                        "Competition": kw.get('competition', 'Low'),
+                        "Difficulty": f"{kw.get('difficulty', 30)}/100"
+                    })
+                df = pd.DataFrame(df_data)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                st.info("No long-tail keywords found")
+
+        with tab4:
+            st.markdown("### Related Questions")
+            st.caption("Common questions people search related to your topic")
+            if questions:
+                for i, question in enumerate(questions, 1):
+                    st.markdown(f"{i}. {question}")
+            else:
+                st.info("No related questions found")
+
+        with tab5:
+            st.markdown("### Search Trends")
+            if trends:
+                st.json(trends)
+            else:
+                st.info("No search trend data available")
+
+        with tab6:
+            st.json(result)
+
+        # Export button
+        st.divider()
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📤 Export to Quick Create", use_container_width=True):
+                # Store for Quick Create integration
+                st.session_state.imported_keyword_research = {
+                    "primary_keyword": primary,
+                    "secondary_keywords": secondary,
+                    "long_tail_keywords": long_tail,
+                    "related_questions": questions,
+                    "recommendation": recommendation,
+                    "seed_keyword": seed_keyword
+                }
+                st.success("✅ Exported to Quick Create! Navigate to Quick Create to use these keywords.")
+
+        with col2:
+            if st.button("🗑️ Clear Results", use_container_width=True):
+                st.session_state.keyword_result = None
+                st.session_state.keyword_seed = None
+                st.rerun()
 
 
 def render():
