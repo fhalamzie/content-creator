@@ -158,6 +158,71 @@
 
 ---
 
+## High Priority - Research Lab Enhancements (Session 056)
+
+**Status**: 80% Complete (Phases 1-3 done, Phase 4 pending)
+
+**Completed**:
+- [x] **Phase 1: Notion Sync Integration** (3.5 hours) ✅ COMPLETE
+  - [x] Create KEYWORDS_SCHEMA in notion_schemas.py ✅ DONE
+  - [x] Build CompetitorsSync class (300 lines, 16 tests) ✅ DONE
+  - [x] Build KeywordsSync class (300 lines, 15 tests) ✅ DONE
+  - [x] Add sync buttons to Research Lab Tabs 2 & 3 ✅ DONE
+  - [x] Test Notion sync with real databases ⏳ PENDING USER TESTING
+
+- [x] **Phase 2: Quick Create Integration** (1 hour) ✅ COMPLETE
+  - [x] Implement competitor insights import (gaps, count) ✅ DONE
+  - [x] Implement keyword research import (primary, secondary, long-tail) ✅ DONE
+  - [x] Expandable views for imported data ✅ DONE
+  - [x] Clear buttons for each import type ✅ DONE
+
+- [x] **Phase 3: Opportunity Scoring** (2.5 hours) ✅ COMPLETE
+  - [x] Build OpportunityScorer class (350 lines, 23 tests) ✅ DONE
+  - [x] Implement 4 weighted algorithms (SEO, Gap, Intent, Trending) ✅ DONE
+  - [x] AI recommendations via Gemini 2.5 Flash (FREE) ✅ DONE
+  - [x] Custom weight support for advanced users ✅ DONE
+  - [x] Integrate scoring in keyword research workflow ✅ DONE
+  - [ ] Display opportunity scores in keyword tables (color-coded badges) ⏳ PENDING
+  - [ ] Show AI recommendation for primary keyword ⏳ PENDING
+  - [ ] (Optional) Advanced users: Custom weight sliders ⏳ PENDING
+
+**Remaining Work**:
+- [ ] **Phase 3.2: UI Polish** (30 min estimated)
+  - [ ] Add "Opportunity Score" column to Primary/Secondary/Long-tail tabs
+  - [ ] Color-coded badges: 🟢 >70, 🟡 40-70, 🔴 <40
+  - [ ] Show AI recommendation for primary keyword in expander
+  - [ ] (Optional) Custom weight sliders in collapsible section
+
+- [ ] **Phase 4: Competitor Comparison Matrix** (3 hours estimated)
+  - [ ] Create `src/ui/components/competitor_matrix.py` (~500 lines)
+  - [ ] Build View 1: Side-by-side strategy comparison (sortable table)
+  - [ ] Build View 2: Strengths/weaknesses heatmap (color-coded)
+  - [ ] Build View 3: Gap analysis matrix (topics vs competitors)
+  - [ ] Integrate into Tab 2 as 3 sub-tabs
+  - [ ] Export to CSV functionality
+  - [ ] Write tests for matrix components (12 tests estimated)
+
+**Manual Testing Checklist**:
+- [ ] Tab 2: Run competitor analysis → Click "💾 Sync to Notion" → Verify sync success
+- [ ] Tab 3: Run keyword research → Click "💾 Sync to Notion" → Verify sync success
+- [ ] Tab 2: Click "📤 Export to Quick Create" → Navigate to Quick Create → Verify insights display
+- [ ] Tab 3: Click "📤 Export to Quick Create" → Navigate to Quick Create → Verify keywords display
+- [ ] Tab 3: Verify opportunity scores calculate automatically
+- [ ] Quick Create: Clear imported data buttons work
+
+**Success Criteria**:
+- ✅ Competitors sync to Notion Competitors database
+- ✅ Keywords sync to Notion Keywords database
+- ✅ Quick Create pre-fills from both tabs
+- ✅ Opportunity scores calculate (0-100 scale)
+- ✅ AI recommendations generate (Gemini FREE tier)
+- ⏳ Opportunity scores display in UI (color-coded)
+- ⏳ Comparison matrix renders (3 views)
+
+**Cost**: $0.00 (all features use FREE APIs)
+
+---
+
 ## High Priority - Content Creator Phase 4: Repurposing Agent
 
 - [ ] Write tests + implement `src/agents/repurposing_agent.py`

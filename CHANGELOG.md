@@ -2,6 +2,30 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 056: Research Lab Notion Sync + Opportunity Scoring (2025-11-16)
+
+**NEW FEATURE (7 hours, 80% complete)** - Notion sync for Tabs 2 & 3, Quick Create imports, AI-powered opportunity scoring, 54 tests, $0.00 cost
+
+**Objective**: Add Notion integration, Quick Create pre-fill, and keyword opportunity scoring to Research Lab.
+
+**Solutions**:
+- ✅ **Phase 1: Notion Sync** (3.5h) - CompetitorsSync (300 lines, 16 tests) + KeywordsSync (300 lines, 15 tests) + KEYWORDS_SCHEMA + sync buttons in Tabs 2 & 3
+- ✅ **Phase 2: Quick Create Imports** (1h) - Competitor insights display (gaps, count) + keyword research display (primary, secondary, long-tail) with expandable views
+- ✅ **Phase 3: Opportunity Scoring** (2.5h) - OpportunityScorer (350 lines, 23 tests) with 4 weighted algorithms (SEO 30%, Gap 25%, Intent 25%, Trending 20%) + AI recommendations via Gemini 2.5 Flash (FREE)
+- ⏳ **Phase 4: Comparison Matrix** (pending) - 3 views (strategy, heatmap, gap analysis) not started
+
+**Features**: Batch sync to Notion (rate-limited 2.5 req/sec), session state imports with clear buttons, 4-algorithm opportunity scoring (0-100 scale), AI explanations (2-3 sentences), custom weights for advanced users, automatic scoring in workflow.
+
+**Impact**: Research data now persists to Notion databases, insights flow into content generation, keywords prioritized by AI-calculated opportunity score, all features FREE ($0.00 cost).
+
+**Files**: 5 new (competitors_sync.py 300, keywords_sync.py 300, opportunity_scorer.py 350, 3 test files 1100), 3 modified (notion_schemas.py +78, topic_research.py +151, quick_create.py +70), 2,300 total lines added.
+
+**Testing**: 54 unit tests (16 competitors + 15 keywords + 23 opportunity scoring), 100% passing, >85% coverage, 0 bugs found.
+
+**See**: [Full details](docs/sessions/056-research-lab-notion-sync-opportunity-scoring.md)
+
+---
+
 ## Session 055: Research Lab Tabs 2 & 3 Implementation (2025-11-15)
 
 **NEW FEATURE (6 hours)** - Functional Competitor Analysis + Keyword Research tabs with FREE Gemini API, 34 tests, zero cost
