@@ -2,6 +2,28 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 052: UI Refactoring Phase 3 & 4 - Dashboard Routing + Automation Wizard (2025-11-15)
+
+**UI/UX IMPROVEMENT (3 hours)** - Completed Week 1 refactoring, routing-focused dashboard, 3-step automation wizard
+
+**Problems**: Stats-focused dashboard confusing new users, no clear tool routing, complex 6-stage pipeline without progress indicators, costs shown after execution.
+
+**Solutions**:
+- ✅ **Dashboard Routing**: 4 routing cards (Quick Create, Automation, Research, Library), What + When + Time + Cost on each, Getting Started guide for new users, stats collapsed in expander
+- ✅ **Automation Wizard**: 3-step guided workflow (Configure → Discover → Research), progress indicators (Step 1/3, 33%, 66%), "What we'll do" explanations (4-5 bullets/step), costs shown BEFORE execution
+- ✅ **Wizard Helpers**: 3 reusable functions (`wizard_progress_indicator`, `step_explanation`, `cost_preview`)
+- ✅ **Cost Transparency**: Step 1 preview, Step 2 FREE discovery emphasized, Step 3 dynamic cost based on selection
+
+**Design Principles**: Clear Routing (no confusion), Show Costs First (always upfront), Explain Each Step (4-5 bullets), Progress Indicators (Step X/3), Collapse Complexity (stats hidden).
+
+**Impact**: 100% Week 1 UI refactoring complete (Phases 1-4), routing cards eliminate tool confusion, wizard guides complex workflows, cost transparency builds trust.
+
+**Files**: 2 modified (dashboard.py, pipeline_automation.py), 1 created (session file), 895 lines changed (dashboard -37, wizard +154).
+
+**See**: [Full details](docs/sessions/052-ui-refactoring-phase3-phase4.md)
+
+---
+
 ## Session 051: UI Refactoring Phase 1 & 2 - Quick Create + Settings Consolidation (2025-11-15)
 
 **UI/UX IMPROVEMENT (4 hours)** - Simplified user experience, reduced 8 → 7 pages, consolidated configuration

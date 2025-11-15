@@ -96,20 +96,24 @@
   - [x] Delete old `setup.py` file ✅ DONE
   - [x] Success: One unified configuration page ✅ ACHIEVED (5 tabs: Brand, API, Limits, Models, Advanced)
 
-- [ ] **Phase 3: Dashboard Routing** (Days 4-5)
-  - [ ] Refactor `dashboard.py` with routing cards
-  - [ ] Add 4 cards: Quick Create, Automation, Research Lab, Library
-  - [ ] Add "When to use", time/cost estimates for each
-  - [ ] Add "Getting Started" guide (3-step setup)
-  - [ ] Success: New users know where to start
+- [x] **Phase 3: Dashboard Routing** (Days 4-5) ✅ COMPLETE (Session 052, 1.5 hours)
+  - [x] Refactor `dashboard.py` with routing cards (225 lines, 14% reduction)
+  - [x] Add 4 cards: Quick Create, Automation, Research Lab, Library
+  - [x] Add "When to use", time/cost estimates for each card
+  - [x] Add "Getting Started" guide (3-step setup for new users)
+  - [x] Collapse stats in expander (don't overwhelm)
+  - [x] Success: New users know where to start ✅ ACHIEVED
+
+- [x] **Phase 4: Automation Wizard** (Days 6-7) ✅ COMPLETE (Session 052, 1.5 hours)
+  - [x] Refactor `pipeline_automation.py` into 3-step wizard (742 lines)
+  - [x] Add progress indicators (Step 1/3, 2/3, 3/3 + percentages)
+  - [x] Add "What we'll do" explanations for each step (4-5 bullets)
+  - [x] Show costs BEFORE generation (Step 1 preview, Step 3 dynamic)
+  - [x] Create wizard helper functions (wizard_progress_indicator, step_explanation, cost_preview)
+  - [x] Emphasize FREE discovery phase (Step 2)
+  - [x] Success: Users understand pipeline progress ✅ ACHIEVED
 
 ### Week 2 - Polish & Enhancement
-- [ ] **Phase 4: Automation Wizard** (Days 6-7)
-  - [ ] Refactor `pipeline_automation.py`
-  - [ ] Add progress indicators (1/3, 2/3, 3/3)
-  - [ ] Add "What we'll do" explanations for each step
-  - [ ] Show costs BEFORE generation (not after)
-  - [ ] Success: Users understand pipeline progress
 
 - [ ] **Phase 5: Research Lab Tabs** (Days 8-9)
   - [ ] Refactor `topic_research.py` into 3 tabs

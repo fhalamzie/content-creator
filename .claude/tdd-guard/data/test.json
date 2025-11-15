@@ -1,26 +1,166 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/integration/test_image_generation_e2e.py",
+      "moduleId": "tests/ui/test_dashboard.py",
       "tests": [
         {
-          "name": "test_synthesis_with_images_enabled",
-          "fullName": "tests/integration/test_image_generation_e2e.py::test_synthesis_with_images_enabled",
+          "name": "test_load_project_config_when_file_exists",
+          "fullName": "tests/ui/test_dashboard.py::TestProjectConfigLoading::test_load_project_config_when_file_exists",
           "state": "passed"
         },
         {
-          "name": "test_synthesis_with_images_disabled",
-          "fullName": "tests/integration/test_image_generation_e2e.py::test_synthesis_with_images_disabled",
+          "name": "test_load_project_config_when_file_missing",
+          "fullName": "tests/ui/test_dashboard.py::TestProjectConfigLoading::test_load_project_config_when_file_missing",
           "state": "passed"
         },
         {
-          "name": "test_topic_with_images_notion_sync",
-          "fullName": "tests/integration/test_image_generation_e2e.py::test_topic_with_images_notion_sync",
+          "name": "test_load_project_config_with_all_fields",
+          "fullName": "tests/ui/test_dashboard.py::TestProjectConfigLoading::test_load_project_config_with_all_fields",
           "state": "passed"
         },
         {
-          "name": "test_image_generation_silent_failure",
-          "fullName": "tests/integration/test_image_generation_e2e.py::test_image_generation_silent_failure",
+          "name": "test_calculate_stats_with_empty_cache",
+          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_with_empty_cache",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_stats_with_blog_posts",
+          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_with_blog_posts",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_stats_with_social_posts",
+          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_with_social_posts",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_stats_status_breakdown",
+          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_status_breakdown",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_stats_with_missing_word_count",
+          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_with_missing_word_count",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_stats_cost_calculation_accuracy",
+          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_cost_calculation_accuracy",
+          "state": "passed"
+        },
+        {
+          "name": "test_recent_posts_sorted_by_date",
+          "fullName": "tests/ui/test_dashboard.py::TestRecentActivityDisplay::test_recent_posts_sorted_by_date",
+          "state": "passed"
+        },
+        {
+          "name": "test_recent_posts_limit_to_five",
+          "fullName": "tests/ui/test_dashboard.py::TestRecentActivityDisplay::test_recent_posts_limit_to_five",
+          "state": "passed"
+        },
+        {
+          "name": "test_recent_posts_include_notion_url",
+          "fullName": "tests/ui/test_dashboard.py::TestRecentActivityDisplay::test_recent_posts_include_notion_url",
+          "state": "passed"
+        },
+        {
+          "name": "test_posts_display_with_missing_metadata",
+          "fullName": "tests/ui/test_dashboard.py::TestRecentActivityDisplay::test_posts_display_with_missing_metadata",
+          "state": "passed"
+        },
+        {
+          "name": "test_average_words_per_post_calculation",
+          "fullName": "tests/ui/test_dashboard.py::TestDashboardMetrics::test_average_words_per_post_calculation",
+          "state": "passed"
+        },
+        {
+          "name": "test_cost_per_post_metric",
+          "fullName": "tests/ui/test_dashboard.py::TestDashboardMetrics::test_cost_per_post_metric",
+          "state": "passed"
+        },
+        {
+          "name": "test_monthly_target_calculation",
+          "fullName": "tests/ui/test_dashboard.py::TestDashboardMetrics::test_monthly_target_calculation",
+          "state": "passed"
+        },
+        {
+          "name": "test_progress_bar_percentage",
+          "fullName": "tests/ui/test_dashboard.py::TestDashboardMetrics::test_progress_bar_percentage",
+          "state": "passed"
+        },
+        {
+          "name": "test_system_info_research_model",
+          "fullName": "tests/ui/test_dashboard.py::TestSystemInformation::test_system_info_research_model",
+          "state": "passed"
+        },
+        {
+          "name": "test_system_info_writing_model_cost",
+          "fullName": "tests/ui/test_dashboard.py::TestSystemInformation::test_system_info_writing_model_cost",
+          "state": "passed"
+        },
+        {
+          "name": "test_system_info_language",
+          "fullName": "tests/ui/test_dashboard.py::TestSystemInformation::test_system_info_language",
+          "state": "passed"
+        },
+        {
+          "name": "test_sync_rate_display",
+          "fullName": "tests/ui/test_dashboard.py::TestSystemInformation::test_sync_rate_display",
+          "state": "passed"
+        },
+        {
+          "name": "test_quick_action_generate_content_available",
+          "fullName": "tests/ui/test_dashboard.py::TestQuickActions::test_quick_action_generate_content_available",
+          "state": "passed"
+        },
+        {
+          "name": "test_quick_action_browse_content_available",
+          "fullName": "tests/ui/test_dashboard.py::TestQuickActions::test_quick_action_browse_content_available",
+          "state": "passed"
+        },
+        {
+          "name": "test_quick_action_settings_available",
+          "fullName": "tests/ui/test_dashboard.py::TestQuickActions::test_quick_action_settings_available",
+          "state": "passed"
+        },
+        {
+          "name": "test_tip_for_no_posts",
+          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_no_posts",
+          "state": "passed"
+        },
+        {
+          "name": "test_tip_for_few_posts",
+          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_few_posts",
+          "state": "passed"
+        },
+        {
+          "name": "test_tip_for_high_weekly_posts",
+          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_high_weekly_posts",
+          "state": "passed"
+        },
+        {
+          "name": "test_tip_for_missing_keywords",
+          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_missing_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_tip_for_unsynced_content",
+          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_unsynced_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_dashboard_with_complete_data",
+          "fullName": "tests/ui/test_dashboard.py::TestIntegrationScenarios::test_dashboard_with_complete_data",
+          "state": "passed"
+        },
+        {
+          "name": "test_dashboard_with_no_configuration",
+          "fullName": "tests/ui/test_dashboard.py::TestIntegrationScenarios::test_dashboard_with_no_configuration",
+          "state": "passed"
+        },
+        {
+          "name": "test_dashboard_performance_metrics",
+          "fullName": "tests/ui/test_dashboard.py::TestIntegrationScenarios::test_dashboard_performance_metrics",
           "state": "passed"
         }
       ]

@@ -1,19 +1,17 @@
 """
-Pipeline Automation Page - Automated Website → Topics → Articles
+Pipeline Automation Page - 3-Step Wizard for Automated Content Generation
 
-6-Stage Pipeline:
-1. Website Analysis - Extract keywords/tags/themes from customer site (FREE, Gemini API)
-2. Competitor Research - Find competitors + market trends with automatic fallback (FREE → $0.02)
-3. Consolidation - Merge and deduplicate keywords (FREE, CPU)
-4. Topic Discovery - Generate 50+ candidates from 5 collectors (FREE, pattern-based)
-5. Topic Validation - 5-metric scoring filters to top 20 (60% cost savings)
-6. Research Topics - DeepResearcher → Reranker → Synthesizer ($0.01/topic)
+Design Principles (Session 051, Phase 4):
+1. Clear 3-step wizard structure (Configure → Discover → Research)
+2. Show "What we'll do" at each step
+3. Display costs BEFORE execution (not after)
+4. Prominent progress indicators (Step 1/3, 2/3, 3/3)
+5. Explain what's happening at each stage
 
-Features:
-- Automatic fallback (Gemini rate limit → Tavily API)
-- Cost tracking per stage
-- Topic selection for research
-- Full pipeline or partial execution
+Wizard Steps:
+- Step 1/3: Configure & Preview - Enter website URL, see what will happen, cost estimate
+- Step 2/3: Discover Topics - Run 5 stages (FREE), validate 50+ topics
+- Step 3/3: Research & Generate - Select topics, deep research ($0.01/topic)
 """
 
 import streamlit as st
@@ -34,9 +32,89 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.orchestrator.hybrid_research_orchestrator import HybridResearchOrchestrator
 from src.utils.config_loader import ConfigLoader
+from ui.components.help import cost_estimate, time_estimate, what_happens_next
 
 CACHE_DIR = Path(__file__).parent.parent.parent.parent / "cache"
 CONFIG_FILE = CACHE_DIR / "pipeline_automation_config.json"
+
+
+def wizard_progress_indicator(current_step: int, total_steps: int = 3):
+    """
+    Display wizard progress indicator.
+
+    Args:
+        current_step: Current step number (1-3)
+        total_steps: Total number of steps (default 3)
+    """
+    st.markdown(f"### Step {current_step}/{total_steps}")
+    progress_percentage = (current_step - 1) / total_steps
+    st.progress(progress_percentage)
+    st.caption(f"**Progress**: {int(progress_percentage * 100)}% complete")
+
+
+def step_explanation(title: str, what_well_do: List[str], why: str):
+    """
+    Show step explanation: What we'll do + Why.
+
+    Args:
+        title: Step title
+        what_well_do: List of actions (bullet points)
+        why: Why this step is important
+    """
+    with st.expander(f"ℹ️ What happens in this step?", expanded=False):
+        st.markdown(f"### {title}")
+        st.markdown("**What we'll do:**")
+        for item in what_well_do:
+            st.markdown(f"- {item}")
+        st.markdown(f"**Why:** {why}")
+
+
+def cost_preview(
+    num_topics: int,
+    enable_images: bool = False,
+    enable_tavily: bool = True
+):
+    """
+    Show cost preview BEFORE execution.
+
+    Args:
+        num_topics: Number of topics to research
+        enable_images: Whether images will be generated
+        enable_tavily: Whether Tavily fallback is enabled
+    """
+    st.markdown("### 💰 Cost Estimate")
+
+    # Discovery cost
+    discovery_cost = 0.0  # FREE
+    st.caption(f"✅ **Topic Discovery** (Steps 1-5): FREE")
+
+    # Research cost
+    research_cost = 0.01 * num_topics
+    st.caption(f"📊 **Topic Research** ({num_topics} topics × $0.01): ${research_cost:.2f}")
+
+    # Image cost
+    if enable_images:
+        image_cost = 0.076 * num_topics  # Average cost with mixed models
+        st.caption(f"🖼️ **Image Generation** ({num_topics} topics × $0.076): ${image_cost:.2f}")
+    else:
+        image_cost = 0.0
+        st.caption(f"🖼️ **Image Generation**: Disabled (add +${0.076 * num_topics:.2f} to enable)")
+
+    # Fallback cost
+    fallback_cost = 0.02 if enable_tavily else 0.0
+    if enable_tavily:
+        st.caption(f"🔄 **Tavily Fallback** (if Gemini rate-limited): +${fallback_cost:.2f}")
+
+    # Total
+    total_min = discovery_cost + research_cost + image_cost
+    total_max = total_min + fallback_cost
+
+    if fallback_cost > 0:
+        st.metric("**Total Estimated Cost**", f"${total_min:.2f} - ${total_max:.2f}")
+    else:
+        st.metric("**Total Estimated Cost**", f"${total_min:.2f}")
+
+    st.divider()
 
 
 def load_pipeline_config():
@@ -60,102 +138,6 @@ def save_pipeline_config(config: dict):
     CACHE_DIR.mkdir(exist_ok=True)
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
-
-
-def render_config_sidebar():
-    """Render configuration sidebar."""
-    with st.sidebar:
-        st.header("⚙️ Pipeline Configuration")
-
-        config = load_pipeline_config()
-
-        # Customer info
-        st.subheader("🏢 Customer Info")
-        market = st.text_input(
-            "Market",
-            value=config.get("market", "Germany"),
-            help="Target market (e.g., Germany, USA, France)"
-        )
-        vertical = st.text_input(
-            "Vertical",
-            value=config.get("vertical", "PropTech"),
-            help="Industry vertical (e.g., PropTech, SaaS, Fashion)"
-        )
-        domain = st.text_input(
-            "Domain",
-            value=config.get("domain", "SaaS"),
-            help="Business domain (e.g., SaaS, E-commerce, B2B)"
-        )
-        language = st.selectbox(
-            "Language",
-            ["de", "en", "fr", "es"],
-            index=["de", "en", "fr", "es"].index(config.get("language", "de")),
-            help="Content language"
-        )
-
-        # Pipeline settings
-        st.subheader("🔧 Pipeline Settings")
-        enable_tavily = st.checkbox(
-            "Enable Tavily Fallback",
-            value=config.get("enable_tavily", True),
-            help="Automatic fallback when Gemini rate-limited ($0.02/fallback)"
-        )
-        max_topics_to_research = st.slider(
-            "Max Topics to Research",
-            min_value=1,
-            max_value=50,
-            value=config.get("max_topics_to_research", 10),
-            step=1,
-            help="Number of validated topics to research (after Stage 5)"
-        )
-
-        # Image generation
-        st.subheader("🖼️ Image Generation")
-        enable_images = st.checkbox(
-            "Generate images (1 HD hero + 2 supporting)",
-            value=config.get("enable_images", False),
-            help="DALL-E 3: $0.16/topic (1 HD hero $0.08 + 2 standard supporting $0.08)"
-        )
-
-        if st.button("💾 Save Configuration", use_container_width=True):
-            new_config = {
-                "market": market,
-                "vertical": vertical,
-                "domain": domain,
-                "language": language,
-                "enable_tavily": enable_tavily,
-                "max_topics_to_research": max_topics_to_research,
-                "enable_images": enable_images
-            }
-            save_pipeline_config(new_config)
-            st.success("✅ Configuration saved!")
-            st.rerun()
-
-        st.divider()
-
-        # Cost estimation
-        st.caption("💰 **Cost Estimation**")
-        research_cost = 0.01 * max_topics_to_research
-        image_cost = 0.16 * max_topics_to_research if enable_images else 0.0
-        fallback_cost = 0.02  # One-time max if Gemini rate-limited
-        total_cost = research_cost + image_cost
-        total_with_fallback = total_cost + fallback_cost
-
-        st.caption(f"• Research: ${research_cost:.2f} ({max_topics_to_research} topics)")
-        if enable_images:
-            st.caption(f"• Images: +${image_cost:.2f}")
-        st.caption(f"• Fallback: +${fallback_cost:.2f} (if triggered)")
-        st.caption(f"**Total**: ${total_cost:.2f} - ${total_with_fallback:.2f}")
-
-        return {
-            "market": market,
-            "vertical": vertical,
-            "domain": domain,
-            "language": language,
-            "enable_tavily": enable_tavily,
-            "max_topics_to_research": max_topics_to_research,
-            "enable_images": enable_images
-        }
 
 
 async def run_pipeline_async(
@@ -362,39 +344,6 @@ async def research_selected_topics_async(
         raise
 
 
-def render_topics_table(topics: List[Dict]):
-    """Render topics as selectable table."""
-    st.subheader(f"📋 Discovered Topics ({len(topics)})")
-    st.caption(f"Select topics to research (estimated cost: ${0.01 * len(topics):.2f})")
-
-    if not topics:
-        st.warning("No topics discovered. Try adjusting the customer info or website URL.")
-        return []
-
-    # Create selection checkboxes
-    selected_indices = []
-
-    for i, topic in enumerate(topics):
-        col1, col2, col3 = st.columns([1, 6, 2])
-
-        with col1:
-            selected = st.checkbox("", key=f"topic_{i}", value=False)
-            if selected:
-                selected_indices.append(i)
-
-        with col2:
-            st.text(topic["topic"])
-
-        with col3:
-            score = topic.get("score", 0.0)
-            if score > 0:
-                st.caption(f"Score: {score:.2f}")
-            else:
-                st.caption("Raw")
-
-    return [topics[i] for i in selected_indices]
-
-
 def render_articles(articles: List[Dict], config: dict):
     """Render researched articles."""
     st.subheader(f"📚 Researched Articles ({len(articles)})")
@@ -455,133 +404,339 @@ def render_articles(articles: List[Dict], config: dict):
 
 
 def render():
-    """Render Pipeline Automation page."""
-    st.title("🎯 Pipeline Automation")
-    st.caption("Automated Website → Topics → Articles (6-stage pipeline with 60% cost optimization)")
-
-    # Render config sidebar
-    config = render_config_sidebar()
+    """Render Pipeline Automation page - 3-Step Wizard."""
+    st.title("🎯 Automation Wizard")
+    st.caption("3-step guided process: Configure → Discover → Research")
 
     # Initialize session state
-    if "pipeline_result" not in st.session_state:
-        st.session_state.pipeline_result = None
+    if "wizard_step" not in st.session_state:
+        st.session_state.wizard_step = 1
+    if "wizard_config" not in st.session_state:
+        st.session_state.wizard_config = load_pipeline_config()
+    if "discovered_topics" not in st.session_state:
+        st.session_state.discovered_topics = None
+    if "selected_topics" not in st.session_state:
+        st.session_state.selected_topics = []
     if "researched_articles" not in st.session_state:
         st.session_state.researched_articles = None
 
-    # Main content
-    st.header("🌐 Website Analysis")
+    st.divider()
 
-    # Website URL input
-    website_url = st.text_input(
-        "Enter website URL",
-        placeholder="https://example-proptech.com",
-        help="Customer website to analyze for topic discovery"
-    )
+    # Wizard Steps
+    current_step = st.session_state.wizard_step
+    config = st.session_state.wizard_config
 
-    # Pipeline mode selection
-    col1, col2 = st.columns(2)
-    with col1:
-        discovery_button = st.button(
-            "🔍 Discover Topics (Stages 1-5)",
-            type="secondary",
-            use_container_width=True,
-            disabled=not website_url,
-            help="Run topic discovery only (FREE, no research)"
-        )
-    with col2:
-        full_pipeline_button = st.button(
-            "🚀 Full Pipeline (Stages 1-6)",
-            type="primary",
-            use_container_width=True,
-            disabled=not website_url,
-            help=f"Discover + Research top {config['max_topics_to_research']} topics"
+    # ===== STEP 1: Configure & Preview =====
+    if current_step == 1:
+        wizard_progress_indicator(1, 3)
+        st.markdown("## 🌐 Configure & Preview")
+
+        step_explanation(
+            title="Configure Your Automation",
+            what_well_do=[
+                "Analyze your website to extract keywords, themes, and brand tone",
+                "Research your competitors and identify market trends",
+                "Discover 50+ relevant topics using 5 different collectors",
+                "Validate and score topics to find the best ones"
+            ],
+            why="Understanding your business and market helps us generate highly relevant, targeted content that resonates with your audience."
         )
 
-    # Process buttons
-    if (discovery_button or full_pipeline_button) and website_url:
-        # Check API keys
-        required_keys = ["GEMINI_API_KEY"]
-        if config["enable_tavily"]:
-            required_keys.append("TAVILY_API_KEY")
-
-        missing_keys = [key for key in required_keys if not os.getenv(key)]
-        if missing_keys:
-            st.error(f"❌ Missing API keys: {', '.join(missing_keys)}")
-            return
-
-        # Run pipeline
         st.divider()
-        st.header("⚙️ Pipeline Processing")
-        progress_container = st.container()
 
-        try:
-            result = asyncio.run(
-                run_pipeline_async(
-                    website_url,
-                    config,
-                    progress_container,
-                    run_full_pipeline=full_pipeline_button
-                )
+        # Configuration Form
+        with st.form("wizard_step1_form"):
+            st.markdown("### Website & Business Info")
+
+            website_url = st.text_input(
+                "Website URL *",
+                placeholder="https://your-website.com",
+                help="Your business website - we'll analyze it to understand your niche"
             )
-            st.session_state.pipeline_result = result
-            st.session_state.researched_articles = result.get("articles", []) if full_pipeline_button else None
 
-        except Exception as e:
-            st.error(f"❌ Pipeline failed: {str(e)}")
-            st.exception(e)
+            col1, col2 = st.columns(2)
+            with col1:
+                market = st.text_input(
+                    "Market *",
+                    value=config.get("market", "Germany"),
+                    help="Target market (e.g., Germany, USA, France)"
+                )
+                vertical = st.text_input(
+                    "Vertical *",
+                    value=config.get("vertical", "PropTech"),
+                    help="Industry vertical (e.g., PropTech, SaaS, Healthcare)"
+                )
 
-    # Display results
-    if st.session_state.pipeline_result:
+            with col2:
+                domain = st.text_input(
+                    "Domain *",
+                    value=config.get("domain", "SaaS"),
+                    help="Business domain (e.g., SaaS, E-commerce, B2B)"
+                )
+                language = st.selectbox(
+                    "Language *",
+                    ["de", "en", "fr", "es"],
+                    index=["de", "en", "fr", "es"].index(config.get("language", "de")),
+                    help="Content language"
+                )
+
+            st.divider()
+            st.markdown("### Research Settings")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                max_topics = st.slider(
+                    "Topics to Research",
+                    min_value=1,
+                    max_value=50,
+                    value=config.get("max_topics_to_research", 10),
+                    help="Number of topics to research in Step 3"
+                )
+
+            with col2:
+                enable_tavily = st.checkbox(
+                    "Enable Tavily Fallback",
+                    value=config.get("enable_tavily", True),
+                    help="Automatic fallback if Gemini rate-limited (+$0.02)"
+                )
+
+            enable_images = st.checkbox(
+                "Generate images for articles",
+                value=config.get("enable_images", False),
+                help="Add +$0.076/topic for AI-generated images"
+            )
+
+            st.divider()
+
+            # Cost Preview
+            cost_preview(max_topics, enable_images, enable_tavily)
+
+            # Submit button
+            submitted = st.form_submit_button(
+                "✅ Start Topic Discovery",
+                type="primary",
+                use_container_width=True
+            )
+
+            if submitted:
+                if not website_url:
+                    st.error("❌ Please enter a website URL")
+                elif not market or not vertical or not domain:
+                    st.error("❌ Please fill in all required fields")
+                else:
+                    # Save config
+                    st.session_state.wizard_config = {
+                        "website_url": website_url,
+                        "market": market,
+                        "vertical": vertical,
+                        "domain": domain,
+                        "language": language,
+                        "max_topics_to_research": max_topics,
+                        "enable_tavily": enable_tavily,
+                        "enable_images": enable_images
+                    }
+                    save_pipeline_config(st.session_state.wizard_config)
+                    st.session_state.wizard_step = 2
+                    st.rerun()
+
+    # ===== STEP 2: Discover Topics =====
+    elif current_step == 2:
+        wizard_progress_indicator(2, 3)
+        st.markdown("## 🔍 Discover Topics")
+
+        step_explanation(
+            title="Topic Discovery Process",
+            what_well_do=[
+                "Extract keywords from your website (Stage 1 - FREE)",
+                "Research competitors and market trends (Stage 2 - FREE)",
+                "Consolidate and deduplicate keywords (Stage 3 - FREE)",
+                "Generate 50+ topic candidates (Stage 4 - FREE)",
+                "Validate and score topics (Stage 5 - FREE)"
+            ],
+            why="This FREE discovery process finds the best topics before spending on research, saving you 60% on costs."
+        )
+
         st.divider()
-        result = st.session_state.pipeline_result
 
-        # Show topics
-        if result.get("topics"):
-            st.header("📋 Results")
+        # Show configuration summary
+        st.markdown("### 📋 Configuration")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.caption(f"**Website**: {config.get('website_url', 'N/A')}")
+            st.caption(f"**Market**: {config.get('market', 'N/A')}")
+        with col2:
+            st.caption(f"**Vertical**: {config.get('vertical', 'N/A')}")
+            st.caption(f"**Domain**: {config.get('domain', 'N/A')}")
+        with col3:
+            st.caption(f"**Language**: {config.get('language', 'N/A')}")
+            st.caption(f"**Max Topics**: {config.get('max_topics_to_research', 10)}")
 
-            if result["mode"] == "discovery_only":
-                # Allow topic selection for research
-                selected_topics = render_topics_table(result["topics"])
+        st.divider()
 
-                if selected_topics:
-                    st.divider()
-                    research_button = st.button(
-                        f"🔬 Research {len(selected_topics)} Selected Topics",
+        # Run discovery if not already done
+        if st.session_state.discovered_topics is None:
+            if st.button("🚀 Run Topic Discovery (FREE)", type="primary", use_container_width=True):
+                # Check API keys
+                required_keys = ["GEMINI_API_KEY"]
+                if config.get("enable_tavily", True):
+                    required_keys.append("TAVILY_API_KEY")
+
+                missing_keys = [key for key in required_keys if not os.getenv(key)]
+                if missing_keys:
+                    st.error(f"❌ Missing API keys: {', '.join(missing_keys)}")
+                    st.info("💡 Add these keys to your .env file to continue")
+                else:
+                    progress_container = st.container()
+
+                    try:
+                        result = asyncio.run(
+                            run_pipeline_async(
+                                config["website_url"],
+                                config,
+                                progress_container,
+                                run_full_pipeline=False  # Discovery only
+                            )
+                        )
+                        st.session_state.discovered_topics = result.get("topics", [])
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"❌ Discovery failed: {str(e)}")
+                        st.exception(e)
+        else:
+            # Show discovered topics
+            st.success(f"✅ Discovered {len(st.session_state.discovered_topics)} topics")
+
+            st.markdown("### 📋 Select Topics to Research")
+            st.caption(f"Choose up to {config.get('max_topics_to_research', 10)} topics for deep research ($0.01/topic)")
+
+            # Topic selection
+            selected_topics = []
+            for i, topic_data in enumerate(st.session_state.discovered_topics):
+                col1, col2, col3 = st.columns([1, 8, 2])
+
+                with col1:
+                    selected = st.checkbox("", key=f"topic_select_{i}", value=False)
+                    if selected:
+                        selected_topics.append(topic_data)
+
+                with col2:
+                    st.text(topic_data["topic"])
+
+                with col3:
+                    score = topic_data.get("score", 0.0)
+                    if score > 0:
+                        st.caption(f"Score: {score:.2f}")
+                    else:
+                        st.caption("Raw")
+
+            st.divider()
+
+            # Action buttons
+            col1, col2 = st.columns([2, 1])
+
+            with col1:
+                if len(selected_topics) > 0:
+                    research_cost = len(selected_topics) * 0.01
+                    if config.get("enable_images"):
+                        research_cost += len(selected_topics) * 0.076
+
+                    if st.button(
+                        f"🔬 Research {len(selected_topics)} Topics (${research_cost:.2f})",
                         type="primary",
                         use_container_width=True
+                    ):
+                        st.session_state.selected_topics = selected_topics
+                        st.session_state.wizard_step = 3
+                        st.rerun()
+                else:
+                    st.button(
+                        "🔬 Research Selected Topics",
+                        type="primary",
+                        use_container_width=True,
+                        disabled=True,
+                        help="Select at least one topic to continue"
                     )
 
-                    if research_button:
-                        progress_container = st.container()
-                        try:
-                            articles = asyncio.run(
-                                research_selected_topics_async(
-                                    selected_topics,
-                                    config,
-                                    progress_container
-                                )
-                            )
-                            st.session_state.researched_articles = articles
-                            st.rerun()
+            with col2:
+                if st.button("← Back to Config", use_container_width=True):
+                    st.session_state.wizard_step = 1
+                    st.rerun()
 
-                        except Exception as e:
-                            st.error(f"❌ Research failed: {str(e)}")
-                            st.exception(e)
+    # ===== STEP 3: Research & Generate =====
+    elif current_step == 3:
+        wizard_progress_indicator(3, 3)
+        st.markdown("## 🔬 Research & Generate")
 
-            else:
-                # Full pipeline - show all topics
-                st.success(f"✅ Discovered {len(result['topics'])} topics")
-                with st.expander("📋 View All Topics"):
-                    for i, topic in enumerate(result["topics"], 1):
-                        st.caption(f"{i}. {topic['topic']} (Score: {topic.get('score', 0.0):.2f})")
+        step_explanation(
+            title="Deep Research Process",
+            what_well_do=[
+                "Search 5+ sources for each topic (Tavily, SearXNG, Gemini, RSS, News)",
+                "Rank and rerank results using advanced algorithms",
+                "Extract key passages using BM25 + LLM",
+                "Generate 1500+ word articles with inline citations",
+                "Create AI images if enabled (hero + supporting)"
+            ],
+            why="Deep research ensures your content is accurate, comprehensive, and backed by credible sources."
+        )
 
-        # Show researched articles
-        if st.session_state.researched_articles:
+        st.divider()
+
+        # Show selected topics summary
+        st.markdown("### 📋 Selected Topics")
+        for i, topic in enumerate(st.session_state.selected_topics, 1):
+            st.caption(f"{i}. {topic['topic']}")
+
+        research_cost = len(st.session_state.selected_topics) * 0.01
+        if config.get("enable_images"):
+            research_cost += len(st.session_state.selected_topics) * 0.076
+
+        st.metric("Total Research Cost", f"${research_cost:.2f}")
+
+        st.divider()
+
+        # Run research if not already done
+        if st.session_state.researched_articles is None:
+            if st.button("🚀 Start Deep Research", type="primary", use_container_width=True):
+                progress_container = st.container()
+
+                try:
+                    articles = asyncio.run(
+                        research_selected_topics_async(
+                            st.session_state.selected_topics,
+                            config,
+                            progress_container
+                        )
+                    )
+                    st.session_state.researched_articles = articles
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"❌ Research failed: {str(e)}")
+                    st.exception(e)
+        else:
+            # Show researched articles
+            st.success(f"✅ Research Complete! Generated {len(st.session_state.researched_articles)} articles")
+
             st.divider()
             render_articles(st.session_state.researched_articles, config)
 
-        # Clear results button
-        if st.button("🗑️ Clear Results", use_container_width=True):
-            st.session_state.pipeline_result = None
-            st.session_state.researched_articles = None
-            st.rerun()
+            st.divider()
+
+            # Navigation buttons
+            col1, col2 = st.columns(2)
+
+            with col1:
+                if st.button("🔄 Start Over", use_container_width=True):
+                    # Reset wizard
+                    st.session_state.wizard_step = 1
+                    st.session_state.discovered_topics = None
+                    st.session_state.selected_topics = []
+                    st.session_state.researched_articles = None
+                    st.rerun()
+
+            with col2:
+                if st.button("← Back to Topics", use_container_width=True):
+                    st.session_state.wizard_step = 2
+                    st.session_state.researched_articles = None
+                    st.rerun()
