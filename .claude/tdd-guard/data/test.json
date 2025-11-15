@@ -1,166 +1,286 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/ui/test_dashboard.py",
+      "moduleId": "tests/unit/test_competitors_sync.py",
       "tests": [
         {
-          "name": "test_load_project_config_when_file_exists",
-          "fullName": "tests/ui/test_dashboard.py::TestProjectConfigLoading::test_load_project_config_when_file_exists",
+          "name": "test_init_with_valid_params",
+          "fullName": "tests/unit/test_competitors_sync.py::TestCompetitorsSyncInitialization::test_init_with_valid_params",
           "state": "passed"
         },
         {
-          "name": "test_load_project_config_when_file_missing",
-          "fullName": "tests/ui/test_dashboard.py::TestProjectConfigLoading::test_load_project_config_when_file_missing",
+          "name": "test_init_without_database_id",
+          "fullName": "tests/unit/test_competitors_sync.py::TestCompetitorsSyncInitialization::test_init_without_database_id",
           "state": "passed"
         },
         {
-          "name": "test_load_project_config_with_all_fields",
-          "fullName": "tests/ui/test_dashboard.py::TestProjectConfigLoading::test_load_project_config_with_all_fields",
+          "name": "test_init_with_empty_token",
+          "fullName": "tests/unit/test_competitors_sync.py::TestCompetitorsSyncInitialization::test_init_with_empty_token",
           "state": "passed"
         },
         {
-          "name": "test_calculate_stats_with_empty_cache",
-          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_with_empty_cache",
+          "name": "test_init_with_whitespace_token",
+          "fullName": "tests/unit/test_competitors_sync.py::TestCompetitorsSyncInitialization::test_init_with_whitespace_token",
           "state": "passed"
         },
         {
-          "name": "test_calculate_stats_with_blog_posts",
-          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_with_blog_posts",
+          "name": "test_build_properties_with_full_competitor",
+          "fullName": "tests/unit/test_competitors_sync.py::TestBuildProperties::test_build_properties_with_full_competitor",
           "state": "passed"
         },
         {
-          "name": "test_calculate_stats_with_social_posts",
-          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_with_social_posts",
+          "name": "test_build_properties_with_minimal_competitor",
+          "fullName": "tests/unit/test_competitors_sync.py::TestBuildProperties::test_build_properties_with_minimal_competitor",
           "state": "passed"
         },
         {
-          "name": "test_calculate_stats_status_breakdown",
-          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_status_breakdown",
+          "name": "test_build_properties_truncates_long_description",
+          "fullName": "tests/unit/test_competitors_sync.py::TestBuildProperties::test_build_properties_truncates_long_description",
           "state": "passed"
         },
         {
-          "name": "test_calculate_stats_with_missing_word_count",
-          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_with_missing_word_count",
+          "name": "test_build_properties_maps_posting_frequency",
+          "fullName": "tests/unit/test_competitors_sync.py::TestBuildProperties::test_build_properties_maps_posting_frequency",
           "state": "passed"
         },
         {
-          "name": "test_calculate_stats_cost_calculation_accuracy",
-          "fullName": "tests/ui/test_dashboard.py::TestStatisticsCalculation::test_calculate_stats_cost_calculation_accuracy",
+          "name": "test_sync_competitor_creates_new_page",
+          "fullName": "tests/unit/test_competitors_sync.py::TestSyncCompetitor::test_sync_competitor_creates_new_page",
           "state": "passed"
         },
         {
-          "name": "test_recent_posts_sorted_by_date",
-          "fullName": "tests/ui/test_dashboard.py::TestRecentActivityDisplay::test_recent_posts_sorted_by_date",
+          "name": "test_sync_competitor_without_database_id_raises_error",
+          "fullName": "tests/unit/test_competitors_sync.py::TestSyncCompetitor::test_sync_competitor_without_database_id_raises_error",
           "state": "passed"
         },
         {
-          "name": "test_recent_posts_limit_to_five",
-          "fullName": "tests/ui/test_dashboard.py::TestRecentActivityDisplay::test_recent_posts_limit_to_five",
+          "name": "test_sync_competitor_handles_notion_api_error",
+          "fullName": "tests/unit/test_competitors_sync.py::TestSyncCompetitor::test_sync_competitor_handles_notion_api_error",
           "state": "passed"
         },
         {
-          "name": "test_recent_posts_include_notion_url",
-          "fullName": "tests/ui/test_dashboard.py::TestRecentActivityDisplay::test_recent_posts_include_notion_url",
+          "name": "test_sync_batch_syncs_all_competitors",
+          "fullName": "tests/unit/test_competitors_sync.py::TestSyncBatch::test_sync_batch_syncs_all_competitors",
           "state": "passed"
         },
         {
-          "name": "test_posts_display_with_missing_metadata",
-          "fullName": "tests/ui/test_dashboard.py::TestRecentActivityDisplay::test_posts_display_with_missing_metadata",
+          "name": "test_sync_batch_with_empty_list",
+          "fullName": "tests/unit/test_competitors_sync.py::TestSyncBatch::test_sync_batch_with_empty_list",
           "state": "passed"
         },
         {
-          "name": "test_average_words_per_post_calculation",
-          "fullName": "tests/ui/test_dashboard.py::TestDashboardMetrics::test_average_words_per_post_calculation",
+          "name": "test_sync_batch_skip_errors_continues_on_failure",
+          "fullName": "tests/unit/test_competitors_sync.py::TestSyncBatch::test_sync_batch_skip_errors_continues_on_failure",
           "state": "passed"
         },
         {
-          "name": "test_cost_per_post_metric",
-          "fullName": "tests/ui/test_dashboard.py::TestDashboardMetrics::test_cost_per_post_metric",
+          "name": "test_sync_batch_without_skip_errors_raises_on_failure",
+          "fullName": "tests/unit/test_competitors_sync.py::TestSyncBatch::test_sync_batch_without_skip_errors_raises_on_failure",
           "state": "passed"
         },
         {
-          "name": "test_monthly_target_calculation",
-          "fullName": "tests/ui/test_dashboard.py::TestDashboardMetrics::test_monthly_target_calculation",
+          "name": "test_get_statistics_returns_correct_counts",
+          "fullName": "tests/unit/test_competitors_sync.py::TestGetStatistics::test_get_statistics_returns_correct_counts",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/test_keywords_sync.py",
+      "tests": [
+        {
+          "name": "test_init_with_valid_params",
+          "fullName": "tests/unit/test_keywords_sync.py::TestKeywordsSyncInitialization::test_init_with_valid_params",
           "state": "passed"
         },
         {
-          "name": "test_progress_bar_percentage",
-          "fullName": "tests/ui/test_dashboard.py::TestDashboardMetrics::test_progress_bar_percentage",
+          "name": "test_init_without_database_id",
+          "fullName": "tests/unit/test_keywords_sync.py::TestKeywordsSyncInitialization::test_init_without_database_id",
           "state": "passed"
         },
         {
-          "name": "test_system_info_research_model",
-          "fullName": "tests/ui/test_dashboard.py::TestSystemInformation::test_system_info_research_model",
+          "name": "test_init_with_empty_token",
+          "fullName": "tests/unit/test_keywords_sync.py::TestKeywordsSyncInitialization::test_init_with_empty_token",
           "state": "passed"
         },
         {
-          "name": "test_system_info_writing_model_cost",
-          "fullName": "tests/ui/test_dashboard.py::TestSystemInformation::test_system_info_writing_model_cost",
+          "name": "test_build_properties_with_primary_keyword",
+          "fullName": "tests/unit/test_keywords_sync.py::TestBuildKeywordProperties::test_build_properties_with_primary_keyword",
           "state": "passed"
         },
         {
-          "name": "test_system_info_language",
-          "fullName": "tests/ui/test_dashboard.py::TestSystemInformation::test_system_info_language",
+          "name": "test_build_properties_with_secondary_keyword",
+          "fullName": "tests/unit/test_keywords_sync.py::TestBuildKeywordProperties::test_build_properties_with_secondary_keyword",
           "state": "passed"
         },
         {
-          "name": "test_sync_rate_display",
-          "fullName": "tests/ui/test_dashboard.py::TestSystemInformation::test_sync_rate_display",
+          "name": "test_build_properties_with_long_tail_keyword",
+          "fullName": "tests/unit/test_keywords_sync.py::TestBuildKeywordProperties::test_build_properties_with_long_tail_keyword",
           "state": "passed"
         },
         {
-          "name": "test_quick_action_generate_content_available",
-          "fullName": "tests/ui/test_dashboard.py::TestQuickActions::test_quick_action_generate_content_available",
+          "name": "test_build_properties_normalizes_competition_levels",
+          "fullName": "tests/unit/test_keywords_sync.py::TestBuildKeywordProperties::test_build_properties_normalizes_competition_levels",
           "state": "passed"
         },
         {
-          "name": "test_quick_action_browse_content_available",
-          "fullName": "tests/ui/test_dashboard.py::TestQuickActions::test_quick_action_browse_content_available",
+          "name": "test_build_properties_normalizes_intent",
+          "fullName": "tests/unit/test_keywords_sync.py::TestBuildKeywordProperties::test_build_properties_normalizes_intent",
           "state": "passed"
         },
         {
-          "name": "test_quick_action_settings_available",
-          "fullName": "tests/ui/test_dashboard.py::TestQuickActions::test_quick_action_settings_available",
+          "name": "test_sync_keyword_creates_new_page",
+          "fullName": "tests/unit/test_keywords_sync.py::TestSyncKeyword::test_sync_keyword_creates_new_page",
           "state": "passed"
         },
         {
-          "name": "test_tip_for_no_posts",
-          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_no_posts",
+          "name": "test_sync_keyword_without_database_id_raises_error",
+          "fullName": "tests/unit/test_keywords_sync.py::TestSyncKeyword::test_sync_keyword_without_database_id_raises_error",
           "state": "passed"
         },
         {
-          "name": "test_tip_for_few_posts",
-          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_few_posts",
+          "name": "test_sync_keyword_handles_notion_api_error",
+          "fullName": "tests/unit/test_keywords_sync.py::TestSyncKeyword::test_sync_keyword_handles_notion_api_error",
           "state": "passed"
         },
         {
-          "name": "test_tip_for_high_weekly_posts",
-          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_high_weekly_posts",
+          "name": "test_sync_keyword_set_syncs_all_types",
+          "fullName": "tests/unit/test_keywords_sync.py::TestSyncKeywordSet::test_sync_keyword_set_syncs_all_types",
           "state": "passed"
         },
         {
-          "name": "test_tip_for_missing_keywords",
-          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_missing_keywords",
+          "name": "test_sync_keyword_set_with_empty_result",
+          "fullName": "tests/unit/test_keywords_sync.py::TestSyncKeywordSet::test_sync_keyword_set_with_empty_result",
           "state": "passed"
         },
         {
-          "name": "test_tip_for_unsynced_content",
-          "fullName": "tests/ui/test_dashboard.py::TestTipsAndRecommendations::test_tip_for_unsynced_content",
+          "name": "test_sync_keyword_set_skip_errors_continues_on_failure",
+          "fullName": "tests/unit/test_keywords_sync.py::TestSyncKeywordSet::test_sync_keyword_set_skip_errors_continues_on_failure",
           "state": "passed"
         },
         {
-          "name": "test_dashboard_with_complete_data",
-          "fullName": "tests/ui/test_dashboard.py::TestIntegrationScenarios::test_dashboard_with_complete_data",
+          "name": "test_get_statistics_returns_correct_counts",
+          "fullName": "tests/unit/test_keywords_sync.py::TestGetStatistics::test_get_statistics_returns_correct_counts",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/unit/test_opportunity_scorer.py",
+      "tests": [
+        {
+          "name": "test_init_with_default_weights",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestOpportunityScorerInitialization::test_init_with_default_weights",
           "state": "passed"
         },
         {
-          "name": "test_dashboard_with_no_configuration",
-          "fullName": "tests/ui/test_dashboard.py::TestIntegrationScenarios::test_dashboard_with_no_configuration",
+          "name": "test_init_with_custom_weights",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestOpportunityScorerInitialization::test_init_with_custom_weights",
           "state": "passed"
         },
         {
-          "name": "test_dashboard_performance_metrics",
-          "fullName": "tests/ui/test_dashboard.py::TestIntegrationScenarios::test_dashboard_performance_metrics",
+          "name": "test_init_with_invalid_weights_raises_error",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestOpportunityScorerInitialization::test_init_with_invalid_weights_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_seo_opportunity_high_volume_low_difficulty",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestSEOOpportunityScore::test_seo_opportunity_high_volume_low_difficulty",
+          "state": "passed"
+        },
+        {
+          "name": "test_seo_opportunity_low_volume_high_difficulty",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestSEOOpportunityScore::test_seo_opportunity_low_volume_high_difficulty",
+          "state": "passed"
+        },
+        {
+          "name": "test_seo_opportunity_formula",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestSEOOpportunityScore::test_seo_opportunity_formula",
+          "state": "passed"
+        },
+        {
+          "name": "test_gap_score_with_high_gaps",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestGapScore::test_gap_score_with_high_gaps",
+          "state": "passed"
+        },
+        {
+          "name": "test_gap_score_with_low_gaps",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestGapScore::test_gap_score_with_low_gaps",
+          "state": "passed"
+        },
+        {
+          "name": "test_gap_score_with_no_gaps",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestGapScore::test_gap_score_with_no_gaps",
+          "state": "passed"
+        },
+        {
+          "name": "test_intent_alignment_transactional",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestIntentAlignment::test_intent_alignment_transactional",
+          "state": "passed"
+        },
+        {
+          "name": "test_intent_alignment_commercial",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestIntentAlignment::test_intent_alignment_commercial",
+          "state": "passed"
+        },
+        {
+          "name": "test_intent_alignment_informational",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestIntentAlignment::test_intent_alignment_informational",
+          "state": "passed"
+        },
+        {
+          "name": "test_intent_alignment_navigational",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestIntentAlignment::test_intent_alignment_navigational",
+          "state": "passed"
+        },
+        {
+          "name": "test_trending_momentum_up",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestTrendingMomentum::test_trending_momentum_up",
+          "state": "passed"
+        },
+        {
+          "name": "test_trending_momentum_not_trending",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestTrendingMomentum::test_trending_momentum_not_trending",
+          "state": "passed"
+        },
+        {
+          "name": "test_trending_momentum_no_trending_data",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestTrendingMomentum::test_trending_momentum_no_trending_data",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_opportunity_score_high",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestCalculateOpportunityScore::test_calculate_opportunity_score_high",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_opportunity_score_low",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestCalculateOpportunityScore::test_calculate_opportunity_score_low",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_opportunity_score_returns_correct_range",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestCalculateOpportunityScore::test_calculate_opportunity_score_returns_correct_range",
+          "state": "passed"
+        },
+        {
+          "name": "test_explain_opportunity_returns_recommendation",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestExplainOpportunity::test_explain_opportunity_returns_recommendation",
+          "state": "passed"
+        },
+        {
+          "name": "test_explain_opportunity_handles_api_error",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestExplainOpportunity::test_explain_opportunity_handles_api_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_custom_score_with_custom_weights",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestCalculateCustomScore::test_calculate_custom_score_with_custom_weights",
+          "state": "passed"
+        },
+        {
+          "name": "test_calculate_custom_score_validates_weights",
+          "fullName": "tests/unit/test_opportunity_scorer.py::TestCalculateCustomScore::test_calculate_custom_score_validates_weights",
           "state": "passed"
         }
       ]

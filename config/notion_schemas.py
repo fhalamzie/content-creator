@@ -413,6 +413,73 @@ TOPICS_SCHEMA = {
     }
 }
 
+# ==================== 7. Keywords Database ====================
+
+KEYWORDS_SCHEMA = {
+    "title": "Keywords",
+    "properties": {
+        "Keyword": {
+            "title": {}  # The keyword/phrase
+        },
+        "Search Volume": {
+            "rich_text": {}  # Volume estimate (e.g., "10K-100K/month")
+        },
+        "Competition": {
+            "select": {
+                "options": [
+                    {"name": "Low", "color": "green"},
+                    {"name": "Medium", "color": "yellow"},
+                    {"name": "High", "color": "red"}
+                ]
+            }
+        },
+        "Difficulty": {
+            "number": {
+                "format": "number"  # 0-100 scale
+            }
+        },
+        "Intent": {
+            "select": {
+                "options": [
+                    {"name": "Informational", "color": "blue"},
+                    {"name": "Commercial", "color": "yellow"},
+                    {"name": "Transactional", "color": "green"},
+                    {"name": "Navigational", "color": "purple"}
+                ]
+            }
+        },
+        "Relevance": {
+            "number": {
+                "format": "number"  # 0-1 scale
+            }
+        },
+        "Source Topic": {
+            "rich_text": {}  # The topic this keyword came from
+        },
+        "Opportunity Score": {
+            "number": {
+                "format": "number"  # 0-100 scale (AI-calculated)
+            }
+        },
+        "Keyword Type": {
+            "select": {
+                "options": [
+                    {"name": "Primary", "color": "blue"},
+                    {"name": "Secondary", "color": "green"},
+                    {"name": "Long-tail", "color": "purple"},
+                    {"name": "Question", "color": "yellow"}
+                ]
+            }
+        },
+        "Research Date": {
+            "date": {}
+        },
+        "Created": {
+            "date": {}
+        }
+    }
+}
+
 # ==================== Schema Registry ====================
 
 ALL_SCHEMAS = {
@@ -421,7 +488,8 @@ ALL_SCHEMAS = {
     "social_posts": SOCIAL_POSTS_SCHEMA,
     "research_data": RESEARCH_DATA_SCHEMA,
     "competitors": COMPETITORS_SCHEMA,
-    "topics": TOPICS_SCHEMA
+    "topics": TOPICS_SCHEMA,
+    "keywords": KEYWORDS_SCHEMA
 }
 
 
@@ -430,7 +498,7 @@ def get_schema(database_name: str) -> dict:
     Get schema for a specific database.
 
     Args:
-        database_name: Database name (projects, blog_posts, social_posts, research_data, competitors, topics)
+        database_name: Database name (projects, blog_posts, social_posts, research_data, competitors, topics, keywords)
 
     Returns:
         Schema dict with 'title' and 'properties'

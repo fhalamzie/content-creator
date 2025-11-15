@@ -43,6 +43,24 @@ CACHE_DIR = Path(__file__).parent.parent.parent.parent / "cache"
 CONFIG_FILE = CACHE_DIR / "topic_research_config.json"
 
 
+def get_opportunity_badge(score: float) -> str:
+    """
+    Get color-coded badge for opportunity score.
+
+    Args:
+        score: Opportunity score (0-100)
+
+    Returns:
+        Formatted badge string with emoji
+    """
+    if score >= 70:
+        return f"🟢 {score:.0f}/100"
+    elif score >= 40:
+        return f"🟡 {score:.0f}/100"
+    else:
+        return f"🔴 {score:.0f}/100"
+
+
 def load_research_config():
     """Load topic research configuration."""
     if CONFIG_FILE.exists():
@@ -823,9 +841,10 @@ def render_competitor_analysis_tab():
         with tab5:
             st.json(result)
 
-        # Export button
+        # Export and Sync buttons
         st.divider()
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
+
         with col1:
             if st.button("📤 Export to Quick Create", use_container_width=True):
                 # Store for Quick Create integration
@@ -839,6 +858,44 @@ def render_competitor_analysis_tab():
                 st.success("✅ Exported to Quick Create! Navigate to Quick Create to use these insights.")
 
         with col2:
+            if st.button("💾 Sync to Notion", use_container_width=True, key="sync_competitors_btn"):
+                # Sync competitors to Notion
+                import os
+                from src.notion_integration.competitors_sync import CompetitorsSync
+
+                notion_token = os.getenv("NOTION_TOKEN")
+                database_ids_path = "cache/database_ids.json"
+
+                if not notion_token:
+                    st.error("❌ Notion token not found. Please set NOTION_TOKEN in your .env file.")
+                else:
+                    try:
+                        # Load database ID
+                        import json
+                        with open(database_ids_path, 'r') as f:
+                            db_ids = json.load(f)
+                        competitor_db_id = db_ids.get('databases', {}).get('competitors')
+
+                        if not competitor_db_id:
+                            st.error("❌ Competitors database ID not found. Please run setup_notion.py first.")
+                        else:
+                            # Initialize sync
+                            with st.spinner(f"Syncing {len(competitors)} competitors to Notion..."):
+                                sync = CompetitorsSync(notion_token=notion_token, database_id=competitor_db_id)
+
+                                # Sync batch
+                                results = sync.sync_batch(competitors, skip_errors=True)
+
+                                # Show statistics
+                                stats = sync.get_statistics()
+                                if stats['failed_syncs'] == 0:
+                                    st.success(f"✅ Successfully synced {stats['total_synced']} competitors to Notion!")
+                                else:
+                                    st.warning(f"⚠️ Synced {stats['total_synced']} competitors, {stats['failed_syncs']} failed.")
+                    except Exception as e:
+                        st.error(f"❌ Sync failed: {str(e)}")
+
+        with col3:
             if st.button("🗑️ Clear Results", use_container_width=True):
                 st.session_state.competitor_result = None
                 st.session_state.competitor_topic = None
@@ -983,7 +1040,34 @@ def render_keyword_research_tab():
             )
 
             progress_bar.progress(90)
-            status_text.text("Research complete! Displaying results...")
+            status_text.text("Calculating opportunity scores...")
+
+            # Calculate opportunity scores for all keywords
+            from src.scoring.opportunity_scorer import OpportunityScorer
+
+            scorer = OpportunityScorer()
+            content_gaps = []  # No competitor data in this tab
+            trending_topics = result.get('search_trends', {}).get('trending_up', [])
+
+            # Add opportunity scores to keywords
+            if result.get('primary_keyword'):
+                primary_kw = result['primary_keyword']
+                primary_kw['opportunity_score'] = scorer.calculate_opportunity_score(
+                    primary_kw, content_gaps, trending_topics
+                )
+                primary_kw['opportunity_explanation'] = scorer.explain_opportunity(
+                    primary_kw, primary_kw['opportunity_score'], content_gaps, trending_topics
+                )
+
+            for kw in result.get('secondary_keywords', []):
+                kw['opportunity_score'] = scorer.calculate_opportunity_score(
+                    kw, content_gaps, trending_topics
+                )
+
+            for kw in result.get('long_tail_keywords', []):
+                kw['opportunity_score'] = scorer.calculate_opportunity_score(
+                    kw, content_gaps, trending_topics
+                )
 
             # Store in session state
             st.session_state.keyword_result = result
@@ -1049,7 +1133,7 @@ def render_keyword_research_tab():
         with tab1:
             st.markdown("### Primary Keyword")
             if primary:
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3, col4, col5 = st.columns(5)
                 with col1:
                     st.metric("Keyword", primary.get('keyword', 'N/A'))
                 with col2:
@@ -1058,8 +1142,18 @@ def render_keyword_research_tab():
                     st.metric("Competition", primary.get('competition', 'Medium'))
                 with col4:
                     st.metric("Difficulty", f"{primary.get('difficulty', 50)}/100")
+                with col5:
+                    # Opportunity Score with color-coded badge
+                    opp_score = primary.get('opportunity_score', 0)
+                    badge = get_opportunity_badge(opp_score)
+                    st.metric("Opportunity", badge)
 
                 st.markdown(f"**Search Intent:** {primary.get('intent', 'Informational')}")
+
+                # AI-powered opportunity explanation
+                if primary.get('opportunity_explanation'):
+                    with st.expander("💡 AI Opportunity Analysis", expanded=True):
+                        st.info(primary['opportunity_explanation'])
 
                 if recommendation:
                     st.info(f"💡 **Recommendation:** {recommendation}")
@@ -1073,12 +1167,14 @@ def render_keyword_research_tab():
                 import pandas as pd
                 df_data = []
                 for kw in secondary:
+                    opp_score = kw.get('opportunity_score', 0)
                     df_data.append({
                         "Keyword": kw.get('keyword', ''),
                         "Search Volume": kw.get('search_volume', 'Unknown'),
                         "Competition": kw.get('competition', 'Medium'),
                         "Difficulty": f"{kw.get('difficulty', 50)}/100",
-                        "Relevance": f"{kw.get('relevance', 50)}%"
+                        "Relevance": f"{kw.get('relevance', 50)}%",
+                        "Opportunity": get_opportunity_badge(opp_score)
                     })
                 df = pd.DataFrame(df_data)
                 st.dataframe(df, use_container_width=True, hide_index=True)
@@ -1092,11 +1188,13 @@ def render_keyword_research_tab():
                 import pandas as pd
                 df_data = []
                 for kw in long_tail:
+                    opp_score = kw.get('opportunity_score', 0)
                     df_data.append({
                         "Keyword": kw.get('keyword', ''),
                         "Search Volume": kw.get('search_volume', 'Unknown'),
                         "Competition": kw.get('competition', 'Low'),
-                        "Difficulty": f"{kw.get('difficulty', 30)}/100"
+                        "Difficulty": f"{kw.get('difficulty', 30)}/100",
+                        "Opportunity": get_opportunity_badge(opp_score)
                     })
                 df = pd.DataFrame(df_data)
                 st.dataframe(df, use_container_width=True, hide_index=True)
@@ -1122,11 +1220,12 @@ def render_keyword_research_tab():
         with tab6:
             st.json(result)
 
-        # Export button
+        # Export and Sync buttons
         st.divider()
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
+
         with col1:
-            if st.button("📤 Export to Quick Create", use_container_width=True):
+            if st.button("📤 Export to Quick Create", use_container_width=True, key="export_keywords_btn"):
                 # Store for Quick Create integration
                 st.session_state.imported_keyword_research = {
                     "primary_keyword": primary,
@@ -1139,7 +1238,51 @@ def render_keyword_research_tab():
                 st.success("✅ Exported to Quick Create! Navigate to Quick Create to use these keywords.")
 
         with col2:
-            if st.button("🗑️ Clear Results", use_container_width=True):
+            if st.button("💾 Sync to Notion", use_container_width=True, key="sync_keywords_btn"):
+                # Sync keywords to Notion
+                import os
+                from src.notion_integration.keywords_sync import KeywordsSync
+
+                notion_token = os.getenv("NOTION_TOKEN")
+                database_ids_path = "cache/database_ids.json"
+
+                if not notion_token:
+                    st.error("❌ Notion token not found. Please set NOTION_TOKEN in your .env file.")
+                else:
+                    try:
+                        # Load database ID
+                        import json
+                        with open(database_ids_path, 'r') as f:
+                            db_ids = json.load(f)
+                        keywords_db_id = db_ids.get('databases', {}).get('keywords')
+
+                        if not keywords_db_id:
+                            st.warning("⚠️ Keywords database ID not found in cache/database_ids.json")
+                            st.info("Please create the 'Keywords' database in Notion and add its ID to cache/database_ids.json as 'keywords': 'your-database-id-here'")
+                        else:
+                            # Initialize sync
+                            total_keywords = 1 + len(secondary) + len(long_tail)  # primary + secondary + long-tail
+                            with st.spinner(f"Syncing {total_keywords} keywords to Notion..."):
+                                sync = KeywordsSync(notion_token=notion_token, database_id=keywords_db_id)
+
+                                # Sync keyword set (primary + secondary + long-tail)
+                                sync_result = sync.sync_keyword_set(
+                                    research_result=result,
+                                    source_topic=seed_keyword,
+                                    skip_errors=True
+                                )
+
+                                # Show statistics
+                                stats = sync.get_statistics()
+                                if stats['failed_syncs'] == 0:
+                                    st.success(f"✅ Successfully synced {sync_result['total']} keywords to Notion! (Primary: {sync_result['primary']}, Secondary: {sync_result['secondary']}, Long-tail: {sync_result['long_tail']})")
+                                else:
+                                    st.warning(f"⚠️ Synced {sync_result['total']} keywords, {sync_result.get('failed', 0)} failed.")
+                    except Exception as e:
+                        st.error(f"❌ Sync failed: {str(e)}")
+
+        with col3:
+            if st.button("🗑️ Clear Results", use_container_width=True, key="clear_keywords_btn"):
                 st.session_state.keyword_result = None
                 st.session_state.keyword_seed = None
                 st.rerun()

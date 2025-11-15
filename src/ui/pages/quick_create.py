@@ -218,15 +218,71 @@ def render():
 
     # Check for exported research data from Research Lab
     exported_topic = None
+    competitor_insights = None
+    imported_keywords = None
+
+    # Tab 1: Topic Research import
     if "export_to_quick_create" in st.session_state:
         exported_data = st.session_state.export_to_quick_create
         exported_topic = exported_data.get("topic", "")
 
-        st.success("✅ **Research Imported!** Topic pre-filled from Research Lab")
+        st.success("✅ **Topic Research Imported!** Topic pre-filled from Research Lab")
         st.info(f"📊 **Topic**: {exported_topic}")
 
-        if st.button("🗑️ Clear Imported Data"):
+        if st.button("🗑️ Clear Topic Research", key="clear_research"):
             del st.session_state.export_to_quick_create
+            st.rerun()
+
+        st.divider()
+
+    # Tab 2: Competitor Analysis import
+    if "imported_competitor_insights" in st.session_state:
+        competitor_insights = st.session_state.imported_competitor_insights
+        num_competitors = len(competitor_insights.get("competitors", []))
+        num_gaps = len(competitor_insights.get("content_gaps", []))
+
+        st.success(f"✅ **Competitor Insights Imported!** {num_competitors} competitors, {num_gaps} content gaps identified")
+
+        # Show content gaps as suggestions
+        with st.expander("📊 **View Content Gaps**", expanded=False):
+            for gap in competitor_insights.get("content_gaps", [])[:5]:  # Show top 5
+                st.markdown(f"- {gap}")
+
+            if num_gaps > 5:
+                st.caption(f"... and {num_gaps - 5} more gaps")
+
+        if st.button("🗑️ Clear Competitor Insights", key="clear_competitors"):
+            del st.session_state.imported_competitor_insights
+            st.rerun()
+
+        st.divider()
+
+    # Tab 3: Keyword Research import (to be implemented in Phase 2.2)
+    if "imported_keyword_research" in st.session_state:
+        imported_keywords = st.session_state.imported_keyword_research
+
+        primary_kw = imported_keywords.get("primary_keyword", {}).get("keyword", "N/A")
+        num_secondary = len(imported_keywords.get("secondary_keywords", []))
+        num_long_tail = len(imported_keywords.get("long_tail_keywords", []))
+
+        st.success(f"✅ **Keywords Imported!** Primary: '{primary_kw}', {num_secondary} secondary, {num_long_tail} long-tail")
+
+        # Show keywords as suggestions
+        with st.expander("🔑 **View All Keywords**", expanded=False):
+            st.markdown(f"**Primary**: {primary_kw}")
+
+            if num_secondary > 0:
+                st.markdown("**Secondary**:")
+                for kw in imported_keywords.get("secondary_keywords", [])[:5]:
+                    st.markdown(f"- {kw.get('keyword', '')}")
+
+            if num_long_tail > 0:
+                st.markdown("**Long-tail**:")
+                for kw in imported_keywords.get("long_tail_keywords", [])[:3]:
+                    st.markdown(f"- {kw.get('keyword', '')}")
+
+        if st.button("🗑️ Clear Keywords", key="clear_keywords"):
+            del st.session_state.imported_keyword_research
             st.rerun()
 
         st.divider()
