@@ -2,9 +2,33 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 057: Research Lab UI Polish - Opportunity Score Display (2025-11-16)
+
+**UI ENHANCEMENT (0.5 hours)** - Opportunity score display in keyword tables with color-coded badges, AI explanations, 100% complete
+
+**Objective**: Surface opportunity scores in Research Lab Tab 3 (Keyword Research) UI.
+
+**Solutions**:
+- ✅ **Badge Helper Function** - `get_opportunity_badge()` with color thresholds (🟢 ≥70, 🟡 40-69, 🔴 <40)
+- ✅ **Primary Keyword Tab** - Added 5th metric column (Opportunity) + expandable "💡 AI Opportunity Analysis" section
+- ✅ **Secondary Keywords Table** - Added Opportunity column with color badges, sortable pandas DataFrame
+- ✅ **Long-tail Keywords Table** - Added Opportunity column with color badges, sortable pandas DataFrame
+
+**Features**: Color-coded visual feedback, AI-generated explanations (2-3 sentences), clear opportunity ranking at-a-glance.
+
+**Impact**: Users can now see which keywords offer the best opportunities before content creation, complete Research Lab Phases 1-3 (85% total progress).
+
+**Files**: 1 modified (topic_research.py +42 lines, 1,272 total)
+
+**Testing**: 54 unit tests passing (0.89s), programmatic verification (20 keywords scored), no runtime errors.
+
+**See**: [Full details](docs/sessions/057-research-lab-ui-polish-opportunity-scores.md)
+
+---
+
 ## Session 056: Research Lab Notion Sync + Opportunity Scoring (2025-11-16)
 
-**NEW FEATURE (7 hours, 80% complete)** - Notion sync for Tabs 2 & 3, Quick Create imports, AI-powered opportunity scoring, 54 tests, $0.00 cost
+**NEW FEATURE (7 hours, 100% complete)** - Notion sync for Tabs 2 & 3, Quick Create imports, AI-powered opportunity scoring, 54 tests, $0.00 cost
 
 **Objective**: Add Notion integration, Quick Create pre-fill, and keyword opportunity scoring to Research Lab.
 
