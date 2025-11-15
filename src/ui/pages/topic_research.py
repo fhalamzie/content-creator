@@ -841,6 +841,10 @@ def render_competitor_analysis_tab():
         with tab5:
             st.json(result)
 
+        # Competitor Comparison Matrix (3 views)
+        from src.ui.components.competitor_matrix import render_competitor_matrix
+        render_competitor_matrix(result)
+
         # Export and Sync buttons
         st.divider()
         col1, col2, col3 = st.columns(3)
