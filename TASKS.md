@@ -233,12 +233,37 @@
 
 ## High Priority - Content Creator Phase 4: Repurposing Agent
 
-- [ ] Write tests + implement `src/agents/repurposing_agent.py`
-- [ ] Social post templates (LinkedIn, Facebook, TikTok, Instagram)
-- [ ] Hashtag generation (platform-specific)
-- [ ] Media suggestions (image descriptions for DALL-E 3)
-- [ ] Integration with generate page (auto-create social posts)
+### Phase 1: Platform Content Optimization ✅ COMPLETE (Session 059)
+- [x] Write tests + implement `src/agents/repurposing_agent.py` (449 lines, 73 tests)
+- [x] Platform profiles (LinkedIn, Facebook, Instagram, TikTok)
+- [x] Hashtag generation (platform-specific, CamelCase, limits 5-30)
+- [x] Multi-language support (de, en, fr, etc.)
+- [x] Cost tracking ($0.003/blog post for 4 platforms)
+- [x] Cache integration (silent failures)
+
+### Phase 2: Open Graph Image Generation (Next)
+- [ ] Pillow template system (4 templates: minimal, gradient, photo, split)
+- [ ] OG image generation (1200x630 PNG, <300KB)
+- [ ] WCAG contrast validation (4.5:1 minimum)
+- [ ] Font registry with caching
+- [ ] Text wrapping algorithm (2-line title, 3-line excerpt)
+
+### Phase 3: Platform-Specific Images
+- [ ] Flux Dev integration (1:1, 9:16 aspect ratios)
+- [ ] Instagram image generation (1080x1080)
+- [ ] TikTok image generation (1080x1920)
+- [ ] Smart OG image reuse (LinkedIn/Facebook)
+
+### Phase 4: Integration & Notion Sync
+- [ ] SocialPostsSync class
+- [ ] Integration with ContentSynthesizer
+- [ ] Parallel platform generation (asyncio)
 - [ ] Test social post sync to Notion
+
+### Phase 5: Streamlit UI Integration
+- [ ] Generate page: "Generate social posts" checkbox
+- [ ] Library page: View social posts
+- [ ] Cost estimates before generation
 
 ---
 

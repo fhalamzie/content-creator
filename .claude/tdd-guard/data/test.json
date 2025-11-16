@@ -1,251 +1,366 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/test_competitor_matrix.py",
+      "moduleId": "tests/unit/agents/test_repurposing_agent.py",
       "tests": [
         {
-          "name": "test_prepare_strategy_table_basic",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestStrategyComparisonDataPreparation::test_prepare_strategy_table_basic",
+          "name": "test_init_with_api_key_succeeds",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_with_api_key_succeeds",
           "state": "passed"
         },
         {
-          "name": "test_prepare_strategy_table_values",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestStrategyComparisonDataPreparation::test_prepare_strategy_table_values",
+          "name": "test_init_without_api_key_raises_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_without_api_key_raises_error",
           "state": "passed"
         },
         {
-          "name": "test_prepare_strategy_table_social_count",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestStrategyComparisonDataPreparation::test_prepare_strategy_table_social_count",
+          "name": "test_init_with_cache_dir_creates_cache_manager",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_with_cache_dir_creates_cache_manager",
           "state": "passed"
         },
         {
-          "name": "test_prepare_strategy_table_empty_competitors",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestStrategyComparisonDataPreparation::test_prepare_strategy_table_empty_competitors",
+          "name": "test_init_without_cache_dir_no_cache_manager",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_without_cache_dir_no_cache_manager",
           "state": "passed"
         },
         {
-          "name": "test_prepare_coverage_matrix_basic",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestCoverageHeatmapDataPreparation::test_prepare_coverage_matrix_basic",
+          "name": "test_init_loads_prompt_template",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_loads_prompt_template",
           "state": "passed"
         },
         {
-          "name": "test_prepare_coverage_matrix_values",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestCoverageHeatmapDataPreparation::test_prepare_coverage_matrix_values",
+          "name": "test_init_raises_error_if_template_load_fails",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_raises_error_if_template_load_fails",
           "state": "passed"
         },
         {
-          "name": "test_prepare_coverage_matrix_all_topics",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestCoverageHeatmapDataPreparation::test_prepare_coverage_matrix_all_topics",
+          "name": "test_generate_linkedin_content",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_generate_linkedin_content",
           "state": "passed"
         },
         {
-          "name": "test_prepare_coverage_matrix_empty_competitors",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestCoverageHeatmapDataPreparation::test_prepare_coverage_matrix_empty_competitors",
+          "name": "test_generate_facebook_content",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_generate_facebook_content",
           "state": "passed"
         },
         {
-          "name": "test_prepare_gap_matrix_basic",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestGapAnalysisMatrixDataPreparation::test_prepare_gap_matrix_basic",
+          "name": "test_generate_instagram_content",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_generate_instagram_content",
           "state": "passed"
         },
         {
-          "name": "test_prepare_gap_matrix_gap_detection",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestGapAnalysisMatrixDataPreparation::test_prepare_gap_matrix_gap_detection",
+          "name": "test_generate_tiktok_content",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_generate_tiktok_content",
           "state": "passed"
         },
         {
-          "name": "test_prepare_gap_matrix_empty_gaps",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestGapAnalysisMatrixDataPreparation::test_prepare_gap_matrix_empty_gaps",
+          "name": "test_content_truncated_if_exceeds_character_limit",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_content_truncated_if_exceeds_character_limit",
           "state": "passed"
         },
         {
-          "name": "test_export_to_csv_basic",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestCSVExport::test_export_to_csv_basic",
+          "name": "test_base_agent_generate_failure_raises_repurposing_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_base_agent_generate_failure_raises_repurposing_error",
           "state": "passed"
         },
         {
-          "name": "test_export_to_csv_content",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestCSVExport::test_export_to_csv_content",
+          "name": "test_unexpected_error_wrapped_in_repurposing_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_unexpected_error_wrapped_in_repurposing_error",
           "state": "passed"
         },
         {
-          "name": "test_export_to_csv_empty_dataframe",
-          "fullName": "tests/unit/test_competitor_matrix.py::TestCSVExport::test_export_to_csv_empty_dataframe",
+          "name": "test_generate_hashtags_from_keywords",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_generate_hashtags_from_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_linkedin_hashtag_limit_5",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_linkedin_hashtag_limit_5",
+          "state": "passed"
+        },
+        {
+          "name": "test_facebook_hashtag_limit_3",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_facebook_hashtag_limit_3",
+          "state": "passed"
+        },
+        {
+          "name": "test_instagram_hashtag_limit_30",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_instagram_hashtag_limit_30",
+          "state": "passed"
+        },
+        {
+          "name": "test_tiktok_hashtag_limit_5",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_tiktok_hashtag_limit_5",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_keywords_returns_empty_hashtags",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_empty_keywords_returns_empty_hashtags",
+          "state": "passed"
+        },
+        {
+          "name": "test_hashtags_have_hash_prefix",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_hashtags_have_hash_prefix",
+          "state": "passed"
+        },
+        {
+          "name": "test_multi_word_keyword_becomes_camelcase",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_multi_word_keyword_becomes_camelcase",
+          "state": "passed"
+        },
+        {
+          "name": "test_generate_all_platforms",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_generate_all_platforms",
+          "state": "passed"
+        },
+        {
+          "name": "test_generate_single_platform",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_generate_single_platform",
+          "state": "passed"
+        },
+        {
+          "name": "test_result_structure_contains_required_keys",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_result_structure_contains_required_keys",
+          "state": "passed"
+        },
+        {
+          "name": "test_character_count_calculation",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_character_count_calculation",
+          "state": "passed"
+        },
+        {
+          "name": "test_invalid_platform_raises_value_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_invalid_platform_raises_value_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_empty_platforms_list_raises_value_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_empty_platforms_list_raises_value_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_missing_blog_post_keys_raises_value_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_missing_blog_post_keys_raises_value_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_cost_calculation_across_platforms",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_cost_calculation_across_platforms",
+          "state": "passed"
+        },
+        {
+          "name": "test_cache_integration_called_when_save_to_cache_true",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_cache_integration_called_when_save_to_cache_true",
+          "state": "passed"
+        },
+        {
+          "name": "test_cache_not_called_when_save_to_cache_false",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_cache_not_called_when_save_to_cache_false",
+          "state": "passed"
+        },
+        {
+          "name": "test_cache_failure_doesnt_fail_generation",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_cache_failure_doesnt_fail_generation",
+          "state": "passed"
+        },
+        {
+          "name": "test_all_platforms_failed_raises_repurposing_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_all_platforms_failed_raises_repurposing_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_partial_platform_failure_returns_successful_results",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_partial_platform_failure_returns_successful_results",
+          "state": "passed"
+        },
+        {
+          "name": "test_hashtags_included_in_results",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_hashtags_included_in_results",
+          "state": "passed"
+        },
+        {
+          "name": "test_prompt_contains_platform_name",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_platform_name",
+          "state": "passed"
+        },
+        {
+          "name": "test_prompt_contains_blog_title",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_blog_title",
+          "state": "passed"
+        },
+        {
+          "name": "test_prompt_contains_excerpt",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_excerpt",
+          "state": "passed"
+        },
+        {
+          "name": "test_prompt_contains_keywords",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_prompt_contains_platform_config_values",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_platform_config_values",
+          "state": "passed"
+        },
+        {
+          "name": "test_prompt_contains_multiple_brand_tones",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_multiple_brand_tones",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_template_file_exists",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestLoadPromptTemplate::test_load_template_file_exists",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_template_file_not_found_raises_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestLoadPromptTemplate::test_load_template_file_not_found_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_load_template_read_error_raises_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestLoadPromptTemplate::test_load_template_read_error_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_agent_error_on_base_generate_wrapped",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_agent_error_on_base_generate_wrapped",
+          "state": "passed"
+        },
+        {
+          "name": "test_multiple_platform_errors_listed_in_message",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_multiple_platform_errors_listed_in_message",
+          "state": "passed"
+        },
+        {
+          "name": "test_invalid_blog_post_keys_detailed_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_invalid_blog_post_keys_detailed_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_invalid_platforms_error_lists_valid_options",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_invalid_platforms_error_lists_valid_options",
+          "state": "passed"
+        },
+        {
+          "name": "test_none_api_key_raises_error",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_none_api_key_raises_error",
+          "state": "passed"
+        },
+        {
+          "name": "test_result_cost_is_float",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_result_cost_is_float",
+          "state": "passed"
+        },
+        {
+          "name": "test_result_character_count_is_int",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_result_character_count_is_int",
+          "state": "passed"
+        },
+        {
+          "name": "test_result_hashtags_is_list",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_result_hashtags_is_list",
+          "state": "passed"
+        },
+        {
+          "name": "test_result_tokens_is_dict",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_result_tokens_is_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_tokens_has_total_key",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_tokens_has_total_key",
+          "state": "passed"
+        },
+        {
+          "name": "test_single_character_content",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_single_character_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_zero_cost_response",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_zero_cost_response",
+          "state": "passed"
+        },
+        {
+          "name": "test_whitespace_in_content",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_whitespace_in_content",
+          "state": "passed"
+        },
+        {
+          "name": "test_special_characters_in_keywords",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_special_characters_in_keywords",
+          "state": "passed"
+        },
+        {
+          "name": "test_unicode_content_character_count",
+          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_unicode_content_character_count",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "tests/ui/test_research_lab_tabs.py",
+      "moduleId": "tests/integration/agents/test_repurposing_integration.py",
       "tests": [
         {
-          "name": "test_api_key_validation_missing_key",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_api_key_validation_missing_key",
+          "name": "test_cache_integration_saves_to_disk",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_cache_integration_saves_to_disk",
           "state": "passed"
         },
         {
-          "name": "test_api_key_validation_key_exists",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_api_key_validation_key_exists",
+          "name": "test_cache_integration_failure_doesnt_block",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_cache_integration_failure_doesnt_block",
           "state": "passed"
         },
         {
-          "name": "test_competitor_agent_initialization",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_competitor_agent_initialization",
+          "name": "test_brand_tone_propagation",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_brand_tone_propagation",
           "state": "passed"
         },
         {
-          "name": "test_competitor_result_structure",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_competitor_result_structure",
+          "name": "test_cost_tracking_accuracy",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_cost_tracking_accuracy",
           "state": "passed"
         },
         {
-          "name": "test_competitor_empty_results_handling",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_competitor_empty_results_handling",
+          "name": "test_batch_generation_order",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_batch_generation_order",
           "state": "passed"
         },
         {
-          "name": "test_session_state_storage",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_session_state_storage",
+          "name": "test_platform_specific_prompts",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_platform_specific_prompts",
           "state": "passed"
         },
         {
-          "name": "test_export_to_quick_create",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_export_to_quick_create",
+          "name": "test_german_content_generation",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_german_content_generation",
           "state": "passed"
         },
         {
-          "name": "test_competitor_metrics_calculation",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_competitor_metrics_calculation",
+          "name": "test_metadata_includes_character_count",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_metadata_includes_character_count",
           "state": "passed"
         },
         {
-          "name": "test_competitor_max_value_slider",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_competitor_max_value_slider",
+          "name": "test_empty_platforms_raises_error",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_empty_platforms_raises_error",
           "state": "passed"
         },
         {
-          "name": "test_language_options",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCompetitorAnalysisTab::test_language_options",
+          "name": "test_missing_blog_post_keys_raises_error",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_missing_blog_post_keys_raises_error",
           "state": "passed"
         },
         {
-          "name": "test_keyword_agent_initialization",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_keyword_agent_initialization",
+          "name": "test_invalid_platform_raises_error",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_invalid_platform_raises_error",
           "state": "passed"
         },
         {
-          "name": "test_keyword_result_structure",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_keyword_result_structure",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_metrics_calculation",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_keyword_metrics_calculation",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_count_slider_validation",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_keyword_count_slider_validation",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_difficulty_range",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_keyword_difficulty_range",
-          "state": "passed"
-        },
-        {
-          "name": "test_search_intent_values",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_search_intent_values",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_session_state_storage",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_keyword_session_state_storage",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_export_to_quick_create",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_keyword_export_to_quick_create",
-          "state": "passed"
-        },
-        {
-          "name": "test_optional_target_audience_field",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_optional_target_audience_field",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_empty_results_handling",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestKeywordResearchTab::test_keyword_empty_results_handling",
-          "state": "passed"
-        },
-        {
-          "name": "test_competitor_research_error_handling",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestErrorHandling::test_competitor_research_error_handling",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_research_error_handling",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestErrorHandling::test_keyword_research_error_handling",
-          "state": "passed"
-        },
-        {
-          "name": "test_empty_topic_validation_competitor",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestErrorHandling::test_empty_topic_validation_competitor",
-          "state": "passed"
-        },
-        {
-          "name": "test_empty_topic_validation_keyword",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestErrorHandling::test_empty_topic_validation_keyword",
-          "state": "passed"
-        },
-        {
-          "name": "test_missing_api_key_detection",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestErrorHandling::test_missing_api_key_detection",
-          "state": "passed"
-        },
-        {
-          "name": "test_competitor_analysis_cost",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCostEstimates::test_competitor_analysis_cost",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_research_cost",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCostEstimates::test_keyword_research_cost",
-          "state": "passed"
-        },
-        {
-          "name": "test_competitor_time_estimate",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCostEstimates::test_competitor_time_estimate",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_time_estimate",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestCostEstimates::test_keyword_time_estimate",
-          "state": "passed"
-        },
-        {
-          "name": "test_competitor_data_flattening",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestDataTransformations::test_competitor_data_flattening",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_table_data_structure",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestDataTransformations::test_keyword_table_data_structure",
-          "state": "passed"
-        },
-        {
-          "name": "test_question_list_formatting",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestDataTransformations::test_question_list_formatting",
-          "state": "passed"
-        },
-        {
-          "name": "test_competitor_analysis_full_workflow",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestIntegrationScenarios::test_competitor_analysis_full_workflow",
-          "state": "passed"
-        },
-        {
-          "name": "test_keyword_research_full_workflow",
-          "fullName": "tests/ui/test_research_lab_tabs.py::TestIntegrationScenarios::test_keyword_research_full_workflow",
+          "name": "test_hashtag_generation_respects_platform_limits",
+          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_hashtag_generation_respects_platform_limits",
           "state": "passed"
         }
       ]

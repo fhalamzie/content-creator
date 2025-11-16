@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "data_source": {
+    "Tantivy": {
+      "path": ".codanna/index/tantivy",
+      "doc_count": 11076,
+      "timestamp": 1763281714
+    }
+  },
+  "symbol_count": 8112,
+  "file_count": 174,
+  "last_modified": 1763281714,
+  "indexed_paths": [
+    "/home/projects/content-creator/src",
+    "/home/projects/content-creator/tests"
+  ]
+}
