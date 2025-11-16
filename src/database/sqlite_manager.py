@@ -802,6 +802,159 @@ class SQLiteManager:
 
             return [self._row_to_topic(row) for row in rows]
 
+    def find_related_topics(
+        self,
+        topic_id: str,
+        limit: int = 5,
+        min_similarity: float = 0.2
+    ) -> List[tuple[Topic, float]]:
+        """
+        Find related topics using keyword similarity.
+
+        Uses Jaccard similarity on title keywords to find semantically related topics.
+        Only returns topics that have research reports (research_report IS NOT NULL).
+
+        Args:
+            topic_id: Topic ID to find related topics for
+            limit: Maximum number of related topics to return (default: 5)
+            min_similarity: Minimum similarity score (0.0-1.0, default: 0.2)
+
+        Returns:
+            List of (Topic, similarity_score) tuples, ordered by similarity descending
+
+        Example:
+            >>> related = db.find_related_topics("proptech-trends-2025", limit=3)
+            >>> for topic, score in related:
+            ...     print(f"{topic.title}: {score:.2f}")
+            PropTech Investment Strategies: 0.45
+            Real Estate Technology: 0.38
+            Smart Building Automation: 0.32
+        """
+        # Get source topic
+        source_topic = self.get_topic(topic_id)
+        if not source_topic:
+            logger.warning("source_topic_not_found", topic_id=topic_id)
+            return []
+
+        # Extract keywords from source topic title
+        source_keywords = self._extract_keywords(source_topic.title)
+
+        logger.info(
+            "finding_related_topics",
+            topic_id=topic_id,
+            source_keywords=len(source_keywords),
+            limit=limit
+        )
+
+        # Get all topics with research reports (excluding source topic)
+        with self._get_connection(readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(
+                """
+                SELECT * FROM topics
+                WHERE id != ? AND research_report IS NOT NULL AND research_report != ''
+                """,
+                (topic_id,)
+            )
+            rows = cursor.fetchall()
+
+        # Calculate similarity scores
+        scored_topics = []
+        for row in rows:
+            candidate_topic = self._row_to_topic(row)
+            candidate_keywords = self._extract_keywords(candidate_topic.title)
+
+            # Calculate Jaccard similarity: |A ∩ B| / |A ∪ B|
+            similarity = self._jaccard_similarity(source_keywords, candidate_keywords)
+
+            if similarity >= min_similarity:
+                scored_topics.append((candidate_topic, similarity))
+
+        # Sort by similarity descending
+        scored_topics.sort(key=lambda x: x[1], reverse=True)
+
+        # Return top N
+        result = scored_topics[:limit]
+
+        logger.info(
+            "found_related_topics",
+            topic_id=topic_id,
+            total_candidates=len(rows),
+            matched_topics=len(scored_topics),
+            returned_topics=len(result)
+        )
+
+        return result
+
+    def _extract_keywords(self, text: str) -> set:
+        """
+        Extract keywords from text for similarity comparison.
+
+        Converts to lowercase, removes common German/English stop words,
+        splits on whitespace and special characters.
+
+        Args:
+            text: Text to extract keywords from
+
+        Returns:
+            Set of normalized keywords
+        """
+        # Common stop words (German + English)
+        stop_words = {
+            # German
+            'der', 'die', 'das', 'und', 'oder', 'in', 'von', 'zu', 'mit',
+            'für', 'auf', 'im', 'an', 'am', 'dem', 'den', 'des', 'ein', 'eine',
+            'ist', 'sind', 'werden', 'wurde', 'haben', 'hat', 'bei', 'nach',
+            # English
+            'the', 'and', 'or', 'in', 'of', 'to', 'with', 'for', 'on', 'at',
+            'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had',
+            'by', 'from', 'a', 'an',
+            # Common numbers
+            '2024', '2025', '2026'
+        }
+
+        # Normalize to lowercase
+        text = text.lower()
+
+        # Remove special characters, keep alphanumeric and spaces
+        import re
+        text = re.sub(r'[^\w\s-]', ' ', text)
+
+        # Split into words
+        words = text.split()
+
+        # Filter stop words and short words
+        keywords = {
+            word for word in words
+            if len(word) > 2 and word not in stop_words
+        }
+
+        return keywords
+
+    def _jaccard_similarity(self, set_a: set, set_b: set) -> float:
+        """
+        Calculate Jaccard similarity between two sets.
+
+        Formula: |A ∩ B| / |A ∪ B|
+
+        Args:
+            set_a: First set
+            set_b: Second set
+
+        Returns:
+            Similarity score (0.0-1.0)
+        """
+        if not set_a or not set_b:
+            return 0.0
+
+        intersection = len(set_a & set_b)
+        union = len(set_a | set_b)
+
+        if union == 0:
+            return 0.0
+
+        return intersection / union
+
     # === Transaction Support ===
 
     @contextmanager

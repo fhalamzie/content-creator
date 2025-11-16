@@ -19,6 +19,7 @@ from typing import Dict, Any, List, Optional
 
 from src.agents.base_agent import BaseAgent, AgentError
 from src.cache_manager import CacheManager
+from src.synthesis.cross_topic_synthesizer import CrossTopicSynthesizer
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,9 @@ class WritingAgent(BaseAgent):
         self,
         api_key: str,
         language: str = "de",
-        cache_dir: Optional[str] = None
+        cache_dir: Optional[str] = None,
+        db_path: str = "data/topics.db",
+        enable_synthesis: bool = True
     ):
         """
         Initialize WritingAgent.
@@ -66,6 +69,8 @@ class WritingAgent(BaseAgent):
             api_key: OpenRouter API key
             language: Content language (default: de)
             cache_dir: Optional cache directory
+            db_path: Path to SQLite database (default: data/topics.db)
+            enable_synthesis: Enable cross-topic synthesis (default: True)
 
         Raises:
             WritingError: If initialization fails
@@ -74,18 +79,30 @@ class WritingAgent(BaseAgent):
         super().__init__(agent_type="writing", api_key=api_key)
 
         self.language = language
+        self.enable_synthesis = enable_synthesis
 
         # Initialize cache manager if cache_dir provided
         self.cache_manager = None
         if cache_dir:
             self.cache_manager = CacheManager(cache_dir=cache_dir)
 
+        # Initialize cross-topic synthesizer
+        self.synthesizer = None
+        if enable_synthesis:
+            try:
+                self.synthesizer = CrossTopicSynthesizer(db_path=db_path)
+                logger.info("cross_topic_synthesis_enabled", db_path=db_path)
+            except Exception as e:
+                logger.warning(f"failed_to_initialize_synthesizer: {e}, synthesis disabled")
+                self.synthesizer = None
+
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
 
         logger.info(
             f"WritingAgent initialized: language={language}, "
-            f"cache_enabled={cache_dir is not None}"
+            f"cache_enabled={cache_dir is not None}, "
+            f"synthesis_enabled={self.synthesizer is not None}"
         )
 
     def _load_prompt_template(self) -> str:
@@ -121,7 +138,9 @@ class WritingAgent(BaseAgent):
         target_audience: str = "Business professionals",
         primary_keyword: Optional[str] = None,
         secondary_keywords: Optional[List[str]] = None,
-        save_to_cache: bool = False
+        save_to_cache: bool = False,
+        topic_id: Optional[str] = None,
+        enable_synthesis: Optional[bool] = None
     ) -> Dict[str, Any]:
         """
         Generate German blog post.
@@ -134,6 +153,8 @@ class WritingAgent(BaseAgent):
             primary_keyword: Primary SEO keyword
             secondary_keywords: Secondary SEO keywords
             save_to_cache: Save to cache (default: False)
+            topic_id: Optional topic ID for synthesis lookup (default: None)
+            enable_synthesis: Override synthesis setting for this call (default: None, uses instance setting)
 
         Returns:
             Dict with:
@@ -143,6 +164,7 @@ class WritingAgent(BaseAgent):
                 - tokens: Token usage stats
                 - cost: Estimated cost
                 - cache_path: (if save_to_cache=True)
+                - synthesis: (if synthesis enabled) Dict with related topics and unique angles
 
         Raises:
             WritingError: If generation fails
@@ -161,6 +183,7 @@ class WritingAgent(BaseAgent):
         # Prepare prompt variables
         research_summary = ""
         keywords_str = ""
+        synthesis_result = None
 
         if research_data:
             # Check if deep research article is available (from cache)
@@ -178,6 +201,34 @@ class WritingAgent(BaseAgent):
 
             keywords_list = research_data.get('keywords', [])
             keywords_str = ", ".join(keywords_list)
+
+        # Add cross-topic synthesis if enabled
+        use_synthesis = enable_synthesis if enable_synthesis is not None else self.enable_synthesis
+        if use_synthesis and self.synthesizer and topic_id:
+            try:
+                logger.info("fetching_cross_topic_synthesis", topic_id=topic_id)
+                related_context = self.synthesizer.get_related_context_for_writing(
+                    topic_id=topic_id,
+                    max_related=3
+                )
+
+                if related_context:
+                    # Append synthesis to research summary
+                    research_summary += f"\n\n---\n\n{related_context}"
+                    logger.info("cross_topic_synthesis_added", topic_id=topic_id)
+
+                    # Get full synthesis for metadata
+                    synthesis_result = self.synthesizer.synthesize_related_topics(
+                        topic=topic,
+                        topic_id=topic_id,
+                        max_related=3
+                    )
+                else:
+                    logger.info("no_related_topics_for_synthesis", topic_id=topic_id)
+
+            except Exception as e:
+                logger.warning(f"synthesis_failed: {e}, continuing without synthesis")
+                synthesis_result = None
 
         # Override with explicit keywords if provided
         if primary_keyword:
@@ -229,6 +280,10 @@ class WritingAgent(BaseAgent):
             'tokens': result['tokens'],
             'cost': result['cost']
         }
+
+        # Add synthesis if available
+        if synthesis_result:
+            response['synthesis'] = synthesis_result
 
         # Save to cache if requested
         if save_to_cache and self.cache_manager:

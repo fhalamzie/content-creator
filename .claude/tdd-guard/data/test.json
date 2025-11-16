@@ -1,66 +1,146 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/test_research_cache.py",
+      "moduleId": "tests/unit/synthesis/test_cross_topic_synthesizer.py",
       "tests": [
         {
-          "name": "test_simple_slug",
-          "fullName": "tests/test_research_cache.py::TestSlugify::test_simple_slug",
+          "name": "test_synthesizer_initialization",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesizer_initialization",
           "state": "passed"
         },
         {
-          "name": "test_german_umlauts",
-          "fullName": "tests/test_research_cache.py::TestSlugify::test_german_umlauts",
+          "name": "test_synthesize_with_related_topics",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesize_with_related_topics",
           "state": "passed"
         },
         {
-          "name": "test_special_characters",
-          "fullName": "tests/test_research_cache.py::TestSlugify::test_special_characters",
+          "name": "test_synthesize_with_no_related_topics",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesize_with_no_related_topics",
           "state": "passed"
         },
         {
-          "name": "test_max_length",
-          "fullName": "tests/test_research_cache.py::TestSlugify::test_max_length",
+          "name": "test_synthesize_respects_max_related_limit",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesize_respects_max_related_limit",
           "state": "passed"
         },
         {
-          "name": "test_save_and_load_research",
-          "fullName": "tests/test_research_cache.py::TestResearchCache::test_save_and_load_research",
+          "name": "test_extract_insights",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_extract_insights",
           "state": "passed"
         },
         {
-          "name": "test_load_nonexistent_research",
-          "fullName": "tests/test_research_cache.py::TestResearchCache::test_load_nonexistent_research",
+          "name": "test_extract_insights_no_report",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_extract_insights_no_report",
           "state": "passed"
         },
         {
-          "name": "test_update_existing_research",
-          "fullName": "tests/test_research_cache.py::TestResearchCache::test_update_existing_research",
+          "name": "test_identify_common_themes",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_identify_common_themes",
           "state": "passed"
         },
         {
-          "name": "test_save_without_config",
-          "fullName": "tests/test_research_cache.py::TestResearchCache::test_save_without_config",
+          "name": "test_identify_themes_no_related_topics",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_identify_themes_no_related_topics",
           "state": "passed"
         },
         {
-          "name": "test_delete_research",
-          "fullName": "tests/test_research_cache.py::TestResearchCache::test_delete_research",
-          "state": "failed",
-          "errors": [
-            {
-              "message": "tests/test_research_cache.py:206: in test_delete_research\n    assert deleted_count == 1\nE   assert 0 == 1"
-            }
-          ]
-        },
-        {
-          "name": "test_save_load_with_file_db",
-          "fullName": "tests/test_research_cache.py::TestIntegration::test_save_load_with_file_db",
+          "name": "test_identify_themes_returns_top_5",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_identify_themes_returns_top_5",
           "state": "passed"
         },
         {
-          "name": "test_concurrent_access",
-          "fullName": "tests/test_research_cache.py::TestIntegration::test_concurrent_access",
+          "name": "test_generate_unique_angles",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_generate_unique_angles",
+          "state": "passed"
+        },
+        {
+          "name": "test_generate_unique_angles_no_related_topics",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_generate_unique_angles_no_related_topics",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_synthesis_summary",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_create_synthesis_summary",
+          "state": "passed"
+        },
+        {
+          "name": "test_create_synthesis_summary_empty_input",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_create_synthesis_summary_empty_input",
+          "state": "passed"
+        },
+        {
+          "name": "test_suggest_anchor_text_short_title",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_suggest_anchor_text_short_title",
+          "state": "passed"
+        },
+        {
+          "name": "test_suggest_anchor_text_long_title",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_suggest_anchor_text_long_title",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_related_context_for_writing",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_get_related_context_for_writing",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_related_context_for_writing_no_related",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_get_related_context_for_writing_no_related",
+          "state": "passed"
+        },
+        {
+          "name": "test_synthesis_with_min_similarity_threshold",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesis_with_min_similarity_threshold",
+          "state": "passed"
+        },
+        {
+          "name": "test_synthesis_error_handling",
+          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesis_error_handling",
+          "state": "passed"
+        }
+      ]
+    },
+    {
+      "moduleId": "tests/test_integration/test_cross_topic_synthesis.py",
+      "tests": [
+        {
+          "name": "test_find_related_topics_integration",
+          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_find_related_topics_integration",
+          "state": "passed"
+        },
+        {
+          "name": "test_keyword_similarity_calculation",
+          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_keyword_similarity_calculation",
+          "state": "passed"
+        },
+        {
+          "name": "test_cross_topic_synthesis_integration",
+          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_cross_topic_synthesis_integration",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_related_context_for_writing_integration",
+          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_get_related_context_for_writing_integration",
+          "state": "passed"
+        },
+        {
+          "name": "test_synthesis_with_no_related_topics_integration",
+          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_synthesis_with_no_related_topics_integration",
+          "state": "passed"
+        },
+        {
+          "name": "test_research_cache_integration",
+          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_research_cache_integration",
+          "state": "passed"
+        },
+        {
+          "name": "test_similarity_threshold_filtering",
+          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_similarity_threshold_filtering",
+          "state": "passed"
+        },
+        {
+          "name": "test_synthesis_performance",
+          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_synthesis_performance",
           "state": "passed"
         }
       ]
