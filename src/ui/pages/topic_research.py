@@ -642,10 +642,8 @@ def render_competitor_analysis_tab():
             base_cost=0.0
         )
     with col2:
-        time_estimate(
-            duration_seconds=15,
-            description="Typically 10-20 seconds"
-        )
+        # Competitor analysis: ~10-20 seconds (Gemini API with search grounding)
+        st.caption("⏱️ **Time**: ~10-20 seconds")
 
     st.divider()
 
@@ -936,10 +934,8 @@ def render_keyword_research_tab():
             base_cost=0.0
         )
     with col2:
-        time_estimate(
-            duration_seconds=12,
-            description="Typically 10-15 seconds"
-        )
+        # Keyword research: ~10-15 seconds (Gemini API with search grounding)
+        st.caption("⏱️ **Time**: ~10-15 seconds")
 
     st.divider()
 
