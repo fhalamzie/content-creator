@@ -260,6 +260,11 @@ class SQLiteManager:
                     -- Research reference
                     research_topic_id TEXT,
 
+                    -- Cluster (Hub + Spoke strategy for topical authority)
+                    cluster_id TEXT,
+                    cluster_role TEXT DEFAULT 'Standalone',  -- Hub, Spoke, or Standalone
+                    internal_links TEXT,  -- JSON array of suggested links [{title, slug, anchor_text, context}]
+
                     -- Notion sync
                     notion_id TEXT,
                     notion_synced_at TIMESTAMP,
@@ -314,6 +319,7 @@ class SQLiteManager:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_created_at ON blog_posts(created_at DESC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_cluster_id ON blog_posts(cluster_id)")
 
             # Indexes for social posts
             conn.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_blog_post_id ON social_posts(blog_post_id)")
@@ -327,6 +333,44 @@ class SQLiteManager:
                 conn.close()
 
         logger.info("schema_created", tables=["documents", "topics", "research_reports", "blog_posts", "social_posts"])
+
+        # Run migrations for existing databases
+        self._run_migrations()
+
+    def _run_migrations(self):
+        """
+        Run database migrations for existing databases.
+
+        Adds columns if they don't exist (safe for new and existing databases).
+        """
+        # Use persistent connection for in-memory databases
+        if self._persistent_conn:
+            conn = self._persistent_conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+            self._apply_pragmas(conn)
+
+        try:
+            cursor = conn.cursor()
+
+            # Migration 1: Add cluster fields to blog_posts table
+            # Check if cluster_id column exists
+            cursor.execute("PRAGMA table_info(blog_posts)")
+            columns = {row[1] for row in cursor.fetchall()}
+
+            if 'cluster_id' not in columns:
+                logger.info("migration_adding_cluster_fields")
+                cursor.execute("ALTER TABLE blog_posts ADD COLUMN cluster_id TEXT")
+                cursor.execute("ALTER TABLE blog_posts ADD COLUMN cluster_role TEXT DEFAULT 'Standalone'")
+                cursor.execute("ALTER TABLE blog_posts ADD COLUMN internal_links TEXT")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_cluster_id ON blog_posts(cluster_id)")
+                conn.commit()
+                logger.info("migration_cluster_fields_added")
+
+        finally:
+            # Only close if not using persistent connection
+            if not self._persistent_conn:
+                conn.close()
 
     @contextmanager
     def _get_connection(self, readonly: bool = False):

@@ -1,146 +1,141 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/synthesis/test_cross_topic_synthesizer.py",
+      "moduleId": "tests/unit/test_cluster_manager.py",
       "tests": [
         {
-          "name": "test_synthesizer_initialization",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesizer_initialization",
+          "name": "test_cluster_plan_creation",
+          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_plan_creation",
           "state": "passed"
         },
         {
-          "name": "test_synthesize_with_related_topics",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesize_with_related_topics",
+          "name": "test_cluster_plan_to_dict",
+          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_plan_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_synthesize_with_no_related_topics",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesize_with_no_related_topics",
+          "name": "test_cluster_plan_from_dict",
+          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_plan_from_dict",
           "state": "passed"
         },
         {
-          "name": "test_synthesize_respects_max_related_limit",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesize_respects_max_related_limit",
+          "name": "test_internal_link_creation",
+          "fullName": "tests/unit/test_cluster_manager.py::test_internal_link_creation",
           "state": "passed"
         },
         {
-          "name": "test_extract_insights",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_extract_insights",
+          "name": "test_internal_link_to_dict",
+          "fullName": "tests/unit/test_cluster_manager.py::test_internal_link_to_dict",
           "state": "passed"
         },
         {
-          "name": "test_extract_insights_no_report",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_extract_insights_no_report",
+          "name": "test_internal_link_from_dict",
+          "fullName": "tests/unit/test_cluster_manager.py::test_internal_link_from_dict",
           "state": "passed"
         },
         {
-          "name": "test_identify_common_themes",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_identify_common_themes",
+          "name": "test_cluster_manager_initialization",
+          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_manager_initialization",
           "state": "passed"
         },
         {
-          "name": "test_identify_themes_no_related_topics",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_identify_themes_no_related_topics",
+          "name": "test_create_cluster_plan_valid",
+          "fullName": "tests/unit/test_cluster_manager.py::test_create_cluster_plan_valid",
           "state": "passed"
         },
         {
-          "name": "test_identify_themes_returns_top_5",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_identify_themes_returns_top_5",
+          "name": "test_create_cluster_plan_invalid_spoke_count",
+          "fullName": "tests/unit/test_cluster_manager.py::test_create_cluster_plan_invalid_spoke_count",
           "state": "passed"
         },
         {
-          "name": "test_generate_unique_angles",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_generate_unique_angles",
+          "name": "test_get_cluster_articles_with_hub_and_spokes",
+          "fullName": "tests/unit/test_cluster_manager.py::test_get_cluster_articles_with_hub_and_spokes",
           "state": "passed"
         },
         {
-          "name": "test_generate_unique_angles_no_related_topics",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_generate_unique_angles_no_related_topics",
+          "name": "test_get_cluster_articles_no_hub",
+          "fullName": "tests/unit/test_cluster_manager.py::test_get_cluster_articles_no_hub",
           "state": "passed"
         },
         {
-          "name": "test_create_synthesis_summary",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_create_synthesis_summary",
+          "name": "test_extract_main_keyword",
+          "fullName": "tests/unit/test_cluster_manager.py::test_extract_main_keyword",
           "state": "passed"
         },
         {
-          "name": "test_create_synthesis_summary_empty_input",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_create_synthesis_summary_empty_input",
+          "name": "test_get_cluster_stats_complete",
+          "fullName": "tests/unit/test_cluster_manager.py::test_get_cluster_stats_complete",
           "state": "passed"
         },
         {
-          "name": "test_suggest_anchor_text_short_title",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_suggest_anchor_text_short_title",
+          "name": "test_get_cluster_stats_partial",
+          "fullName": "tests/unit/test_cluster_manager.py::test_get_cluster_stats_partial",
           "state": "passed"
         },
         {
-          "name": "test_suggest_anchor_text_long_title",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_suggest_anchor_text_long_title",
+          "name": "test_suggest_internal_links_spoke_to_hub",
+          "fullName": "tests/unit/test_cluster_manager.py::test_suggest_internal_links_spoke_to_hub",
           "state": "passed"
         },
         {
-          "name": "test_get_related_context_for_writing",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_get_related_context_for_writing",
+          "name": "test_cluster_plan_json_roundtrip",
+          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_plan_json_roundtrip",
           "state": "passed"
         },
         {
-          "name": "test_get_related_context_for_writing_no_related",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_get_related_context_for_writing_no_related",
-          "state": "passed"
-        },
-        {
-          "name": "test_synthesis_with_min_similarity_threshold",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesis_with_min_similarity_threshold",
-          "state": "passed"
-        },
-        {
-          "name": "test_synthesis_error_handling",
-          "fullName": "tests/unit/synthesis/test_cross_topic_synthesizer.py::test_synthesis_error_handling",
+          "name": "test_internal_link_without_cluster",
+          "fullName": "tests/unit/test_cluster_manager.py::test_internal_link_without_cluster",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "tests/test_integration/test_cross_topic_synthesis.py",
+      "moduleId": "tests/integration/test_cluster_manager_integration.py",
       "tests": [
         {
-          "name": "test_find_related_topics_integration",
-          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_find_related_topics_integration",
+          "name": "test_create_and_retrieve_cluster_plan",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_create_and_retrieve_cluster_plan",
           "state": "passed"
         },
         {
-          "name": "test_keyword_similarity_calculation",
-          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_keyword_similarity_calculation",
+          "name": "test_cluster_with_real_articles",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_cluster_with_real_articles",
           "state": "passed"
         },
         {
-          "name": "test_cross_topic_synthesis_integration",
-          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_cross_topic_synthesis_integration",
+          "name": "test_cluster_stats_real_database",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_cluster_stats_real_database",
           "state": "passed"
         },
         {
-          "name": "test_get_related_context_for_writing_integration",
-          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_get_related_context_for_writing_integration",
+          "name": "test_internal_link_suggestions_real_database",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_internal_link_suggestions_real_database",
           "state": "passed"
         },
         {
-          "name": "test_synthesis_with_no_related_topics_integration",
-          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_synthesis_with_no_related_topics_integration",
+          "name": "test_empty_cluster",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_empty_cluster",
           "state": "passed"
         },
         {
-          "name": "test_research_cache_integration",
-          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_research_cache_integration",
+          "name": "test_multiple_clusters",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_multiple_clusters",
           "state": "passed"
         },
         {
-          "name": "test_similarity_threshold_filtering",
-          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_similarity_threshold_filtering",
+          "name": "test_standalone_articles_not_in_cluster",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_standalone_articles_not_in_cluster",
           "state": "passed"
         },
         {
-          "name": "test_synthesis_performance",
-          "fullName": "tests/test_integration/test_cross_topic_synthesis.py::test_synthesis_performance",
+          "name": "test_cluster_plan_validation",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_cluster_plan_validation",
+          "state": "passed"
+        },
+        {
+          "name": "test_get_cluster_articles_with_content",
+          "fullName": "tests/integration/test_cluster_manager_integration.py::test_get_cluster_articles_with_content",
           "state": "passed"
         }
       ]

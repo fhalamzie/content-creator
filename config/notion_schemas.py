@@ -125,6 +125,21 @@ BLOG_POSTS_SCHEMA = {
         "Slug": {
             "rich_text": {}  # URL-friendly slug
         },
+        "Cluster ID": {
+            "rich_text": {}  # Cluster identifier (e.g., "proptech-automation-2025")
+        },
+        "Cluster Role": {
+            "select": {
+                "options": [
+                    {"name": "Hub", "color": "blue"},     # Pillar content (3000 words)
+                    {"name": "Spoke", "color": "green"},  # Supporting content (1500-2500 words)
+                    {"name": "Standalone", "color": "gray"}  # Not part of cluster
+                ]
+            }
+        },
+        "Internal Links": {
+            "rich_text": {}  # JSON array of suggested internal links [{title, slug, anchor_text, context}]
+        },
         "Created": {
             "date": {}
         }

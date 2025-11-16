@@ -20,6 +20,8 @@ from typing import Dict, Any, List, Optional
 from src.agents.base_agent import BaseAgent, AgentError
 from src.cache_manager import CacheManager
 from src.synthesis.cross_topic_synthesizer import CrossTopicSynthesizer
+from src.synthesis.cluster_manager import ClusterManager
+from src.database.sqlite_manager import SQLiteManager
 
 logger = logging.getLogger(__name__)
 
@@ -80,21 +82,41 @@ class WritingAgent(BaseAgent):
 
         self.language = language
         self.enable_synthesis = enable_synthesis
+        self.db_path = db_path
 
         # Initialize cache manager if cache_dir provided
         self.cache_manager = None
         if cache_dir:
             self.cache_manager = CacheManager(cache_dir=cache_dir)
 
+        # Initialize SQLite manager for cluster operations
+        self.db_manager = None
+        try:
+            self.db_manager = SQLiteManager(db_path=db_path)
+            logger.info("sqlite_manager_initialized", db_path=db_path)
+        except Exception as e:
+            logger.warning(f"failed_to_initialize_db_manager: {e}")
+            self.db_manager = None
+
         # Initialize cross-topic synthesizer
         self.synthesizer = None
-        if enable_synthesis:
+        if enable_synthesis and self.db_manager:
             try:
-                self.synthesizer = CrossTopicSynthesizer(db_path=db_path)
-                logger.info("cross_topic_synthesis_enabled", db_path=db_path)
+                self.synthesizer = CrossTopicSynthesizer(self.db_manager)
+                logger.info("cross_topic_synthesis_enabled")
             except Exception as e:
                 logger.warning(f"failed_to_initialize_synthesizer: {e}, synthesis disabled")
                 self.synthesizer = None
+
+        # Initialize cluster manager
+        self.cluster_manager = None
+        if self.db_manager:
+            try:
+                self.cluster_manager = ClusterManager(self.db_manager)
+                logger.info("cluster_manager_enabled")
+            except Exception as e:
+                logger.warning(f"failed_to_initialize_cluster_manager: {e}, clustering disabled")
+                self.cluster_manager = None
 
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
@@ -102,7 +124,8 @@ class WritingAgent(BaseAgent):
         logger.info(
             f"WritingAgent initialized: language={language}, "
             f"cache_enabled={cache_dir is not None}, "
-            f"synthesis_enabled={self.synthesizer is not None}"
+            f"synthesis_enabled={self.synthesizer is not None}, "
+            f"cluster_enabled={self.cluster_manager is not None}"
         )
 
     def _load_prompt_template(self) -> str:
@@ -140,7 +163,9 @@ class WritingAgent(BaseAgent):
         secondary_keywords: Optional[List[str]] = None,
         save_to_cache: bool = False,
         topic_id: Optional[str] = None,
-        enable_synthesis: Optional[bool] = None
+        enable_synthesis: Optional[bool] = None,
+        cluster_id: Optional[str] = None,
+        cluster_role: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generate German blog post.
@@ -155,16 +180,19 @@ class WritingAgent(BaseAgent):
             save_to_cache: Save to cache (default: False)
             topic_id: Optional topic ID for synthesis lookup (default: None)
             enable_synthesis: Override synthesis setting for this call (default: None, uses instance setting)
+            cluster_id: Optional cluster ID for Hub + Spoke strategy (default: None)
+            cluster_role: Optional cluster role: "Hub", "Spoke", or "Standalone" (default: None)
 
         Returns:
             Dict with:
                 - content: Generated blog post markdown
-                - metadata: Dict with topic, brand_voice, language, word_count
+                - metadata: Dict with topic, brand_voice, language, word_count, cluster_id, cluster_role
                 - seo: Dict with meta_description, alt_texts, internal_links
                 - tokens: Token usage stats
                 - cost: Estimated cost
                 - cache_path: (if save_to_cache=True)
                 - synthesis: (if synthesis enabled) Dict with related topics and unique angles
+                - internal_link_suggestions: (if cluster enabled) List of suggested internal links
 
         Raises:
             WritingError: If generation fails
@@ -230,6 +258,51 @@ class WritingAgent(BaseAgent):
                 logger.warning(f"synthesis_failed: {e}, continuing without synthesis")
                 synthesis_result = None
 
+        # Add cluster context if enabled
+        internal_link_suggestions = []
+        if cluster_id and self.cluster_manager:
+            try:
+                logger.info("fetching_cluster_context", cluster_id=cluster_id, cluster_role=cluster_role)
+
+                # Get cluster articles
+                cluster_articles = self.cluster_manager.get_cluster_articles(cluster_id)
+
+                # Build cluster context
+                cluster_context = f"\n\n--- CLUSTER CONTEXT (Hub + Spoke SEO Strategy) ---\n\n"
+                cluster_context += f"This article is part of the '{cluster_id}' content cluster.\n"
+                cluster_context += f"Role: {cluster_role or 'Standalone'}\n\n"
+
+                if cluster_articles["hub"]:
+                    hub = cluster_articles["hub"]
+                    cluster_context += f"Hub Article: {hub['title']}\n"
+
+                if cluster_articles["spokes"]:
+                    cluster_context += f"\nRelated Spoke Articles ({len(cluster_articles['spokes'])}):\n"
+                    for spoke in cluster_articles["spokes"]:
+                        cluster_context += f"- {spoke['title']}\n"
+
+                cluster_context += "\nInternal Linking Instructions:\n"
+                cluster_context += "- Link naturally to related articles in the cluster\n"
+                cluster_context += "- Use descriptive anchor text (not 'click here')\n"
+                cluster_context += "- Spokes should link to the Hub article\n"
+                cluster_context += "- Hub should link to all Spoke articles\n"
+
+                # Append to research summary
+                research_summary += cluster_context
+                logger.info("cluster_context_added", cluster_id=cluster_id)
+
+                # Generate internal link suggestions
+                if topic_id:
+                    internal_link_suggestions = self.cluster_manager.suggest_internal_links(
+                        topic_id=topic_id,
+                        cluster_id=cluster_id,
+                        max_links=5
+                    )
+                    logger.info("internal_links_suggested", count=len(internal_link_suggestions))
+
+            except Exception as e:
+                logger.warning(f"cluster_context_failed: {e}, continuing without cluster context")
+
         # Override with explicit keywords if provided
         if primary_keyword:
             primary_kw = primary_keyword
@@ -274,7 +347,9 @@ class WritingAgent(BaseAgent):
                 'brand_voice': brand_voice,
                 'target_audience': target_audience,
                 'language': self.language,
-                'word_count': word_count
+                'word_count': word_count,
+                'cluster_id': cluster_id,
+                'cluster_role': cluster_role
             },
             'seo': seo_data,
             'tokens': result['tokens'],
@@ -284,6 +359,12 @@ class WritingAgent(BaseAgent):
         # Add synthesis if available
         if synthesis_result:
             response['synthesis'] = synthesis_result
+
+        # Add internal link suggestions if available
+        if internal_link_suggestions:
+            response['internal_link_suggestions'] = [
+                link.to_dict() for link in internal_link_suggestions
+            ]
 
         # Save to cache if requested
         if save_to_cache and self.cache_manager:

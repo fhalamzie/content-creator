@@ -15,7 +15,7 @@ Pattern: Cross-reference synthesis (RankCraft-AI pattern)
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
 from src.database.sqlite_manager import SQLiteManager
@@ -50,15 +50,19 @@ class CrossTopicSynthesizer:
         print(synthesis['unique_angles'])
     """
 
-    def __init__(self, db_path: str = "data/topics.db"):
+    def __init__(self, db_path_or_manager: Union[str, SQLiteManager] = "data/topics.db"):
         """
         Initialize synthesizer.
 
         Args:
-            db_path: Path to SQLite database (default: data/topics.db)
+            db_path_or_manager: Path to SQLite database OR SQLiteManager instance (default: data/topics.db)
         """
-        self.db_manager = SQLiteManager(db_path=db_path)
-        logger.info("cross_topic_synthesizer_initialized", db_path=db_path)
+        if isinstance(db_path_or_manager, SQLiteManager):
+            self.db_manager = db_path_or_manager
+            logger.info("cross_topic_synthesizer_initialized_with_manager")
+        else:
+            self.db_manager = SQLiteManager(db_path=db_path_or_manager)
+            logger.info("cross_topic_synthesizer_initialized", db_path=db_path_or_manager)
 
     def synthesize_related_topics(
         self,
