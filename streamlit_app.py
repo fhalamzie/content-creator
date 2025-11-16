@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Import pages
-from ui.pages import dashboard, generate, content_browser, settings, topic_research, pipeline_automation, quick_create, logo_showcase
+from ui.pages import dashboard, generate, content_browser, settings, topic_research, pipeline_automation, quick_create, logo_showcase, brand_assets
 from src.utils.logger import setup_logging
 
 
@@ -44,6 +44,7 @@ def render_sidebar():
             "🎯 Pipeline Automation": "Pipeline Automation",
             "🔬 Research Lab": "Topic Research",
             "📚 Content Browser": "Content Browser",
+            "🎨 Brand Assets": "Brand Assets",
             "🏠 Logo Showcase": "Logo Showcase",
             "🔧 Settings": "Settings"
         }
@@ -100,6 +101,8 @@ def main():
         topic_research.render()
     elif page == "Content Browser":
         content_browser.render()
+    elif page == "Brand Assets":
+        brand_assets.render()
     elif page == "Logo Showcase":
         logo_showcase.render()
     elif page == "Settings":
