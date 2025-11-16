@@ -334,9 +334,10 @@ Return ONLY valid JSON (no markdown fences)."""
                 "required": ["keywords", "tags", "themes", "tone", "setting", "niche", "domain"]
             }
 
-            # Generate analysis
+            # Generate analysis (wrap synchronous call for async context)
             logger.info("analyzing_with_gemini", url=website_url)
-            result_raw = gemini_agent.generate(
+            result_raw = await asyncio.to_thread(
+                gemini_agent.generate,
                 prompt=analysis_prompt,
                 response_schema=response_schema
             )
