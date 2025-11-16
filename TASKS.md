@@ -247,17 +247,40 @@ Pick ONE direction for Session 067+:
 
 ## Backlog
 
-### Universal Topic Research Agent - Phase 2
-- [ ] SERP Top 10 analyzer (DuckDuckGo)
-- [ ] Content scoring algorithm (0-100 scale)
-- [ ] Keyword density + variations analysis
-- [ ] Readability scoring (textstat)
-- [ ] Entity coverage analysis
-- [ ] Topic authority detection (LLM-based clustering)
-- [ ] Content gap analysis (competitors vs ours)
-- [ ] Difficulty scoring (personalized)
-- [ ] Internal linking suggestions
-- [ ] Performance tracking setup
+### Universal Topic Research Agent - Phase 2 ⭐ IN PROGRESS (Session 072+)
+
+**Phase 2A: SERP Analysis Foundation** ✅ COMPLETE (Session 072)
+- [x] SERP Top 10 analyzer (DuckDuckGo integration)
+- [x] Database schema (serp_results table + 4 indexes)
+- [x] Historical tracking (snapshots over time)
+- [x] Domain authority estimation (heuristic)
+- [x] Snapshot comparison (detect ranking changes)
+- [x] Comprehensive tests (38 tests passing)
+
+**Phase 2B: Content Scoring** (Next session, 2-3 hours)
+- [ ] Fetch & parse HTML from top-ranking URLs
+- [ ] Calculate quality score (0-100 scale):
+  - [ ] Word count analysis (15%)
+  - [ ] Readability scoring - textstat Flesch-Kincaid (20%)
+  - [ ] Keyword optimization (20%)
+  - [ ] Structure quality - H1/H2, lists, images (15%)
+  - [ ] Entity coverage analysis (15%)
+  - [ ] Freshness scoring (15%)
+- [ ] Add content_scores table
+- [ ] Create ContentScorer class
+- [ ] Comprehensive tests (20+ tests)
+
+**Phase 2C: Difficulty Scoring** (2 hours)
+- [ ] Calculate personalized difficulty (0-100, easy→hard)
+- [ ] Factors: avg content score (40%), domain authority (30%), length requirements (20%), freshness (10%)
+- [ ] Return actionable recommendations (target word count, key topics)
+- [ ] Comprehensive tests
+
+**Phase 2D: Integration & UI** (2-3 hours)
+- [ ] Integrate with HybridResearchOrchestrator
+- [ ] Update Notion schemas (difficulty_score, content_score fields)
+- [ ] Add Research Lab UI tab for SERP analysis
+- [ ] Performance tracking dashboard
 
 ### Universal Topic Research Agent - Phase 3
 - [ ] Postgres migration (keep SQLite for dev)
@@ -345,14 +368,14 @@ None currently blocking. All critical bugs resolved in sessions 024-041.
 - **SaaS Migration**: [TARGET_ARCHITECTURE.md](TARGET_ARCHITECTURE.md) (production architecture)
 
 **Recent Sessions** (Last 5):
+- Session 072: SERP Analysis Foundation (DuckDuckGo, historical tracking, 38 tests)
+- Session 071: Source Intelligence Integration (30-50% cost savings, 25 tests)
+- Session 070: Source Intelligence Cache (E-E-A-T quality scoring, 35 tests)
+- Session 069: Hub + Spoke Strategy (topical clusters, internal linking, 26 tests)
 - Session 068: Cross-Topic Synthesis (unique insights, zero cost, 27 tests)
-- Session 067: SQLite Performance Optimization (60K RPS, readonly connections, benchmarks)
-- Session 066: Multilingual RSS Implementation (adaptive 70/30 ratio)
-- Session 065: RSS Feed Integration (1,037 feeds + UI toggle)
-- Session 064: Pipeline Stage 2 Async Fix (run_in_executor)
 
 **Full History**: See [CHANGELOG.md](CHANGELOG.md) and [docs/sessions/](docs/sessions/)
 
 ---
 
-**Last Updated**: Session 068
+**Last Updated**: Session 072

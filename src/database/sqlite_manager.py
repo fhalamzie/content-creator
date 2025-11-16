@@ -364,13 +364,40 @@ class SQLiteManager:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_sources_freshness ON sources(last_fetched_at DESC)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_sources_stale ON sources(is_stale)")
 
+            # SERP results table (SERP analysis for content intelligence)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS serp_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    topic_id TEXT NOT NULL,
+                    search_query TEXT NOT NULL,
+
+                    -- SERP position data
+                    position INTEGER NOT NULL,  -- 1-10
+                    url TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    snippet TEXT,
+                    domain TEXT NOT NULL,
+
+                    -- Metadata
+                    searched_at TIMESTAMP NOT NULL,
+
+                    FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
+                )
+            """)
+
+            # Indexes for SERP results
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_serp_topic_id ON serp_results(topic_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_serp_query ON serp_results(search_query)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_serp_searched_at ON serp_results(searched_at DESC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_serp_domain ON serp_results(domain)")
+
             conn.commit()
         finally:
             # Only close if not using persistent connection
             if not self._persistent_conn:
                 conn.close()
 
-        logger.info("schema_created", tables=["documents", "topics", "research_reports", "blog_posts", "social_posts", "sources"])
+        logger.info("schema_created", tables=["documents", "topics", "research_reports", "blog_posts", "social_posts", "sources", "serp_results"])
 
         # Run migrations for existing databases
         self._run_migrations()
@@ -1036,6 +1063,383 @@ class SQLiteManager:
             return 0.0
 
         return intersection / union
+
+    # === SERP Results Operations ===
+
+    def save_serp_results(
+        self,
+        topic_id: str,
+        search_query: str,
+        results: List[dict]
+    ) -> int:
+        """
+        Save SERP results for a topic.
+
+        Args:
+            topic_id: Topic ID to associate results with
+            search_query: Search query used
+            results: List of SERP results, each containing:
+                - position: int (1-10)
+                - url: str
+                - title: str
+                - snippet: str (optional)
+                - domain: str
+
+        Returns:
+            Number of results saved
+
+        Example:
+            >>> results = [
+            ...     {
+            ...         "position": 1,
+            ...         "url": "https://example.com/article",
+            ...         "title": "PropTech Trends 2025",
+            ...         "snippet": "The future of real estate technology...",
+            ...         "domain": "example.com"
+            ...     },
+            ...     ...
+            ... ]
+            >>> count = db.save_serp_results("proptech-trends-2025", "PropTech trends", results)
+        """
+        if not results:
+            logger.warning("no_serp_results_to_save", topic_id=topic_id, query=search_query)
+            return 0
+
+        searched_at = datetime.utcnow().isoformat()
+
+        with self._get_connection() as conn:
+            for result in results:
+                conn.execute(
+                    """
+                    INSERT INTO serp_results (
+                        topic_id, search_query, position, url, title, snippet, domain, searched_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        topic_id,
+                        search_query,
+                        result["position"],
+                        result["url"],
+                        result["title"],
+                        result.get("snippet", ""),
+                        result["domain"],
+                        searched_at
+                    )
+                )
+            conn.commit()
+
+        logger.info(
+            "serp_results_saved",
+            topic_id=topic_id,
+            query=search_query,
+            count=len(results),
+            searched_at=searched_at
+        )
+
+        return len(results)
+
+    def get_serp_results(
+        self,
+        topic_id: str,
+        search_query: Optional[str] = None,
+        limit: Optional[int] = None
+    ) -> List[dict]:
+        """
+        Get SERP results for a topic.
+
+        Args:
+            topic_id: Topic ID
+            search_query: Optional search query to filter by
+            limit: Maximum number of results to return
+
+        Returns:
+            List of SERP results, each containing:
+                - id: int
+                - topic_id: str
+                - search_query: str
+                - position: int
+                - url: str
+                - title: str
+                - snippet: str
+                - domain: str
+                - searched_at: str (ISO timestamp)
+
+        Example:
+            >>> results = db.get_serp_results("proptech-trends-2025")
+            >>> print(f"Found {len(results)} SERP results")
+        """
+        with self._get_connection(readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+
+            if search_query:
+                if limit:
+                    cursor = conn.execute(
+                        """
+                        SELECT * FROM serp_results
+                        WHERE topic_id = ? AND search_query = ?
+                        ORDER BY searched_at DESC, position ASC
+                        LIMIT ?
+                        """,
+                        (topic_id, search_query, limit)
+                    )
+                else:
+                    cursor = conn.execute(
+                        """
+                        SELECT * FROM serp_results
+                        WHERE topic_id = ? AND search_query = ?
+                        ORDER BY searched_at DESC, position ASC
+                        """,
+                        (topic_id, search_query)
+                    )
+            else:
+                if limit:
+                    cursor = conn.execute(
+                        """
+                        SELECT * FROM serp_results
+                        WHERE topic_id = ?
+                        ORDER BY searched_at DESC, position ASC
+                        LIMIT ?
+                        """,
+                        (topic_id, limit)
+                    )
+                else:
+                    cursor = conn.execute(
+                        """
+                        SELECT * FROM serp_results
+                        WHERE topic_id = ?
+                        ORDER BY searched_at DESC, position ASC
+                        """,
+                        (topic_id,)
+                    )
+
+            rows = cursor.fetchall()
+
+        results = [
+            {
+                "id": row["id"],
+                "topic_id": row["topic_id"],
+                "search_query": row["search_query"],
+                "position": row["position"],
+                "url": row["url"],
+                "title": row["title"],
+                "snippet": row["snippet"],
+                "domain": row["domain"],
+                "searched_at": row["searched_at"]
+            }
+            for row in rows
+        ]
+
+        logger.info(
+            "serp_results_retrieved",
+            topic_id=topic_id,
+            query=search_query,
+            count=len(results)
+        )
+
+        return results
+
+    def get_latest_serp_snapshot(
+        self,
+        topic_id: str,
+        search_query: Optional[str] = None
+    ) -> Optional[dict]:
+        """
+        Get the most recent SERP snapshot for a topic.
+
+        Returns all results from the most recent search (up to 10 results).
+
+        Args:
+            topic_id: Topic ID
+            search_query: Optional search query to filter by
+
+        Returns:
+            Dict containing:
+                - searched_at: str (ISO timestamp)
+                - search_query: str
+                - results: List[dict] (up to 10 results)
+
+        Example:
+            >>> snapshot = db.get_latest_serp_snapshot("proptech-trends-2025")
+            >>> if snapshot:
+            ...     print(f"Latest snapshot from {snapshot['searched_at']}")
+            ...     print(f"Found {len(snapshot['results'])} results")
+        """
+        # First, get the most recent searched_at timestamp
+        with self._get_connection(readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+
+            if search_query:
+                cursor = conn.execute(
+                    """
+                    SELECT MAX(searched_at) as latest_search, search_query
+                    FROM serp_results
+                    WHERE topic_id = ? AND search_query = ?
+                    GROUP BY search_query
+                    """,
+                    (topic_id, search_query)
+                )
+            else:
+                cursor = conn.execute(
+                    """
+                    SELECT MAX(searched_at) as latest_search, search_query
+                    FROM serp_results
+                    WHERE topic_id = ?
+                    GROUP BY search_query
+                    ORDER BY latest_search DESC
+                    LIMIT 1
+                    """,
+                    (topic_id,)
+                )
+
+            row = cursor.fetchone()
+
+            if not row or not row["latest_search"]:
+                logger.info("no_serp_snapshot_found", topic_id=topic_id, query=search_query)
+                return None
+
+            latest_search = row["latest_search"]
+            query = row["search_query"]
+
+            # Get all results from that timestamp
+            cursor = conn.execute(
+                """
+                SELECT * FROM serp_results
+                WHERE topic_id = ? AND search_query = ? AND searched_at = ?
+                ORDER BY position ASC
+                """,
+                (topic_id, query, latest_search)
+            )
+
+            rows = cursor.fetchall()
+
+        results = [
+            {
+                "id": row["id"],
+                "position": row["position"],
+                "url": row["url"],
+                "title": row["title"],
+                "snippet": row["snippet"],
+                "domain": row["domain"]
+            }
+            for row in rows
+        ]
+
+        snapshot = {
+            "searched_at": latest_search,
+            "search_query": query,
+            "results": results
+        }
+
+        logger.info(
+            "latest_serp_snapshot_retrieved",
+            topic_id=topic_id,
+            query=query,
+            searched_at=latest_search,
+            count=len(results)
+        )
+
+        return snapshot
+
+    def get_serp_history(
+        self,
+        topic_id: str,
+        search_query: Optional[str] = None,
+        limit: int = 10
+    ) -> List[dict]:
+        """
+        Get historical SERP snapshots for trend analysis.
+
+        Groups results by searched_at timestamp to show how rankings changed over time.
+
+        Args:
+            topic_id: Topic ID
+            search_query: Optional search query to filter by
+            limit: Maximum number of snapshots to return (default: 10)
+
+        Returns:
+            List of snapshots, each containing:
+                - searched_at: str (ISO timestamp)
+                - search_query: str
+                - results: List[dict] (up to 10 results)
+
+        Example:
+            >>> history = db.get_serp_history("proptech-trends-2025", limit=5)
+            >>> for snapshot in history:
+            ...     print(f"Snapshot from {snapshot['searched_at']}: {len(snapshot['results'])} results")
+        """
+        with self._get_connection(readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+
+            # Get distinct timestamps
+            if search_query:
+                cursor = conn.execute(
+                    """
+                    SELECT DISTINCT searched_at, search_query
+                    FROM serp_results
+                    WHERE topic_id = ? AND search_query = ?
+                    ORDER BY searched_at DESC
+                    LIMIT ?
+                    """,
+                    (topic_id, search_query, limit)
+                )
+            else:
+                cursor = conn.execute(
+                    """
+                    SELECT DISTINCT searched_at, search_query
+                    FROM serp_results
+                    WHERE topic_id = ?
+                    ORDER BY searched_at DESC
+                    LIMIT ?
+                    """,
+                    (topic_id, limit)
+                )
+
+            timestamps = cursor.fetchall()
+
+        # For each timestamp, get all results
+        snapshots = []
+        for ts_row in timestamps:
+            searched_at = ts_row["searched_at"]
+            query = ts_row["search_query"]
+
+            with self._get_connection(readonly=True) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM serp_results
+                    WHERE topic_id = ? AND search_query = ? AND searched_at = ?
+                    ORDER BY position ASC
+                    """,
+                    (topic_id, query, searched_at)
+                )
+                rows = cursor.fetchall()
+
+            results = [
+                {
+                    "id": row["id"],
+                    "position": row["position"],
+                    "url": row["url"],
+                    "title": row["title"],
+                    "snippet": row["snippet"],
+                    "domain": row["domain"]
+                }
+                for row in rows
+            ]
+
+            snapshots.append({
+                "searched_at": searched_at,
+                "search_query": query,
+                "results": results
+            })
+
+        logger.info(
+            "serp_history_retrieved",
+            topic_id=topic_id,
+            query=search_query,
+            snapshots=len(snapshots)
+        )
+
+        return snapshots
 
     # === Transaction Support ===
 

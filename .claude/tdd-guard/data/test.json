@@ -1,136 +1,206 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/integration/test_source_cache_integration.py",
+      "moduleId": "tests/unit/test_serp_analyzer.py",
       "tests": [
         {
-          "name": "test_save_and_retrieve_source",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_save_and_retrieve_source",
+          "name": "test_extract_domain_basic",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_basic",
           "state": "passed"
         },
         {
-          "name": "test_update_existing_source",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_update_existing_source",
+          "name": "test_extract_domain_with_www",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_with_www",
           "state": "passed"
         },
         {
-          "name": "test_quality_scores_vary_by_domain",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_quality_scores_vary_by_domain",
+          "name": "test_extract_domain_with_subdomain",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_with_subdomain",
           "state": "passed"
         },
         {
-          "name": "test_freshness_tracking",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_freshness_tracking",
+          "name": "test_extract_domain_with_query_params",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_with_query_params",
           "state": "passed"
         },
         {
-          "name": "test_stale_detection",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_stale_detection",
+          "name": "test_extract_domain_empty_url",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_empty_url",
           "state": "passed"
         },
         {
-          "name": "test_mark_usage",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_mark_usage",
+          "name": "test_extract_domain_invalid_url",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_invalid_url",
           "state": "passed"
         },
         {
-          "name": "test_mark_usage_duplicate_topic",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_mark_usage_duplicate_topic",
+          "name": "test_estimate_authority_gov_domain",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_gov_domain",
           "state": "passed"
         },
         {
-          "name": "test_get_stale_sources",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_get_stale_sources",
+          "name": "test_estimate_authority_edu_domain",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_edu_domain",
           "state": "passed"
         },
         {
-          "name": "test_get_stats",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_get_stats",
+          "name": "test_estimate_authority_known_news_site",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_known_news_site",
           "state": "passed"
         },
         {
-          "name": "test_multiple_topics_same_source",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_multiple_topics_same_source",
+          "name": "test_estimate_authority_position_1_3",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_position_1_3",
           "state": "passed"
         },
         {
-          "name": "test_content_preview_truncation",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_content_preview_truncation",
+          "name": "test_estimate_authority_position_4_7",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_position_4_7",
           "state": "passed"
         },
         {
-          "name": "test_quality_score_recalculation",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_quality_score_recalculation",
+          "name": "test_estimate_authority_position_8_10",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_position_8_10",
           "state": "passed"
         },
         {
-          "name": "test_e_e_a_t_signals_completeness",
-          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_e_e_a_t_signals_completeness",
+          "name": "test_analyze_serp_basic",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_analyze_serp_basic",
+          "state": "passed"
+        },
+        {
+          "name": "test_analyze_serp_empty",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_analyze_serp_empty",
+          "state": "passed"
+        },
+        {
+          "name": "test_analyze_serp_calculates_averages",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_analyze_serp_calculates_averages",
+          "state": "passed"
+        },
+        {
+          "name": "test_analyze_serp_domain_authority",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_analyze_serp_domain_authority",
+          "state": "passed"
+        },
+        {
+          "name": "test_compare_snapshots_new_entrants",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_new_entrants",
+          "state": "passed"
+        },
+        {
+          "name": "test_compare_snapshots_dropouts",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_dropouts",
+          "state": "passed"
+        },
+        {
+          "name": "test_compare_snapshots_position_up",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_position_up",
+          "state": "passed"
+        },
+        {
+          "name": "test_compare_snapshots_position_down",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_position_down",
+          "state": "passed"
+        },
+        {
+          "name": "test_compare_snapshots_stable_urls",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_stable_urls",
+          "state": "passed"
+        },
+        {
+          "name": "test_results_to_dict",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_results_to_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_results_to_dict_empty",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_results_to_dict_empty",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_empty_query",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_search_empty_query",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_whitespace_query",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_search_whitespace_query",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_invalid_max_results_too_low",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_search_invalid_max_results_too_low",
+          "state": "passed"
+        },
+        {
+          "name": "test_search_invalid_max_results_too_high",
+          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_search_invalid_max_results_too_high",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "tests/integration/test_deep_researcher_caching.py",
+      "moduleId": "tests/integration/test_serp_integration.py",
       "tests": [
         {
-          "name": "test_caching_enabled_when_db_manager_provided",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_caching_enabled_when_db_manager_provided",
+          "name": "test_save_and_retrieve_serp_results",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_save_and_retrieve_serp_results",
           "state": "passed"
         },
         {
-          "name": "test_caching_disabled_when_db_manager_not_provided",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_caching_disabled_when_db_manager_not_provided",
+          "name": "test_save_empty_results",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_save_empty_results",
           "state": "passed"
         },
         {
-          "name": "test_sources_saved_to_cache_after_research",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_sources_saved_to_cache_after_research",
+          "name": "test_get_serp_results_by_query",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_serp_results_by_query",
           "state": "passed"
         },
         {
-          "name": "test_cache_hit_when_source_already_exists",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_cache_hit_when_source_already_exists",
+          "name": "test_get_serp_results_with_limit",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_serp_results_with_limit",
           "state": "passed"
         },
         {
-          "name": "test_multiple_topics_share_sources",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_multiple_topics_share_sources",
+          "name": "test_get_latest_serp_snapshot",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_latest_serp_snapshot",
           "state": "passed"
         },
         {
-          "name": "test_slugify_topic_generates_valid_ids",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_slugify_topic_generates_valid_ids",
+          "name": "test_get_latest_serp_snapshot_no_results",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_latest_serp_snapshot_no_results",
           "state": "passed"
         },
         {
-          "name": "test_cache_statistics_in_get_statistics",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_cache_statistics_in_get_statistics",
+          "name": "test_get_serp_history",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_serp_history",
           "state": "passed"
         },
         {
-          "name": "test_reset_statistics_clears_cache_stats",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_reset_statistics_clears_cache_stats",
+          "name": "test_get_serp_history_with_limit",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_serp_history_with_limit",
           "state": "passed"
         },
         {
-          "name": "test_cache_marks_usage_for_topics",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_cache_marks_usage_for_topics",
+          "name": "test_real_search_basic",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_real_search_basic",
+          "state": "skipped"
+        },
+        {
+          "name": "test_real_search_with_region",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_real_search_with_region",
           "state": "passed"
         },
         {
-          "name": "test_extract_source_context",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_extract_source_context",
+          "name": "test_full_workflow_search_analyze_save",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_full_workflow_search_analyze_save",
           "state": "passed"
         },
         {
-          "name": "test_caching_disabled_does_not_save_sources",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_caching_disabled_does_not_save_sources",
-          "state": "passed"
-        },
-        {
-          "name": "test_high_cache_hit_rate_scenario",
-          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_high_cache_hit_rate_scenario",
+          "name": "test_full_workflow_track_changes_over_time",
+          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_full_workflow_track_changes_over_time",
           "state": "passed"
         }
       ]
