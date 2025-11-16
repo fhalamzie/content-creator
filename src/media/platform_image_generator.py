@@ -35,7 +35,6 @@ Usage:
     # }
 """
 
-import logging
 import base64
 from typing import Dict, List, Optional
 from PIL import Image
@@ -43,8 +42,9 @@ import io
 
 from src.media.image_generator import ImageGenerator
 from src.media.og_image_generator import OGImageGenerator
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PlatformImageGenerator:

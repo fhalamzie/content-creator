@@ -360,10 +360,11 @@ class TestGenerateHashtags:
 class TestGenerateSocialPosts:
     """Test generate_social_posts method"""
 
-    def test_generate_all_platforms(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_generate_all_platforms(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test generation for all 4 platforms"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn", "Facebook", "Instagram", "TikTok"],
                 brand_tone=["Professional"]
@@ -373,10 +374,11 @@ class TestGenerateSocialPosts:
             platforms = [r['platform'] for r in results]
             assert set(platforms) == {"LinkedIn", "Facebook", "Instagram", "TikTok"}
 
-    def test_generate_single_platform(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_generate_single_platform(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test generation for single platform"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"],
                 brand_tone=["Professional"]
@@ -385,10 +387,11 @@ class TestGenerateSocialPosts:
             assert len(results) == 1
             assert results[0]['platform'] == "LinkedIn"
 
-    def test_result_structure_contains_required_keys(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_result_structure_contains_required_keys(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test result has all required keys"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
@@ -398,10 +401,11 @@ class TestGenerateSocialPosts:
             for key in required_keys:
                 assert key in result, f"Missing key: {key}"
 
-    def test_character_count_calculation(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_character_count_calculation(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test character count is calculated correctly"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
@@ -410,26 +414,29 @@ class TestGenerateSocialPosts:
             expected_count = len("Test content for platform optimization")
             assert result['character_count'] == expected_count
 
-    def test_invalid_platform_raises_value_error(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_invalid_platform_raises_value_error(self, repurposing_agent, sample_blog_post):
         """Test invalid platform raises ValueError"""
         with pytest.raises(ValueError) as exc_info:
-            repurposing_agent.generate_social_posts(
+            await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["InvalidPlatform"]
             )
         assert "Invalid platforms" in str(exc_info.value)
         assert "InvalidPlatform" in str(exc_info.value)
 
-    def test_empty_platforms_list_raises_value_error(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_empty_platforms_list_raises_value_error(self, repurposing_agent, sample_blog_post):
         """Test empty platforms list raises ValueError"""
         with pytest.raises(ValueError) as exc_info:
-            repurposing_agent.generate_social_posts(
+            await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=[]
             )
         assert "platforms list cannot be empty" in str(exc_info.value)
 
-    def test_missing_blog_post_keys_raises_value_error(self, repurposing_agent):
+    @pytest.mark.asyncio
+    async def test_missing_blog_post_keys_raises_value_error(self, repurposing_agent):
         """Test missing required blog_post keys raises ValueError"""
         incomplete_post = {
             "title": "Test",
@@ -438,14 +445,15 @@ class TestGenerateSocialPosts:
         }
 
         with pytest.raises(ValueError) as exc_info:
-            repurposing_agent.generate_social_posts(
+            await repurposing_agent.generate_social_posts(
                 blog_post=incomplete_post,
                 platforms=["LinkedIn"]
             )
         assert "missing required keys" in str(exc_info.value)
         assert "keywords" in str(exc_info.value) or "slug" in str(exc_info.value)
 
-    def test_cost_calculation_across_platforms(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_cost_calculation_across_platforms(self, repurposing_agent, sample_blog_post):
         """Test cost is calculated correctly across platforms"""
         response_with_cost = {
             'content': 'Test content',
@@ -454,7 +462,7 @@ class TestGenerateSocialPosts:
         }
 
         with patch.object(repurposing_agent, 'generate', return_value=response_with_cost):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn", "Facebook"]
             )
@@ -462,11 +470,12 @@ class TestGenerateSocialPosts:
             total_cost = sum(r['cost'] for r in results)
             assert total_cost == pytest.approx(0.001, rel=1e-5)
 
-    def test_cache_integration_called_when_save_to_cache_true(self, repurposing_agent_with_cache, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_cache_integration_called_when_save_to_cache_true(self, repurposing_agent_with_cache, sample_blog_post, base_agent_response):
         """Test cache.write_social_post is called when save_to_cache=True"""
         with patch.object(repurposing_agent_with_cache, 'generate', return_value=base_agent_response):
             with patch.object(repurposing_agent_with_cache.cache_manager, 'write_social_post') as mock_write:
-                results = repurposing_agent_with_cache.generate_social_posts(
+                results = await repurposing_agent_with_cache.generate_social_posts(
                     blog_post=sample_blog_post,
                     platforms=["LinkedIn"],
                     save_to_cache=True
@@ -478,11 +487,12 @@ class TestGenerateSocialPosts:
                 assert call_args[1]['slug'] == "proptech-zukunft"
                 assert call_args[1]['platform'] == "linkedin"
 
-    def test_cache_not_called_when_save_to_cache_false(self, repurposing_agent_with_cache, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_cache_not_called_when_save_to_cache_false(self, repurposing_agent_with_cache, sample_blog_post, base_agent_response):
         """Test cache is not called when save_to_cache=False"""
         with patch.object(repurposing_agent_with_cache, 'generate', return_value=base_agent_response):
             with patch.object(repurposing_agent_with_cache.cache_manager, 'write_social_post') as mock_write:
-                results = repurposing_agent_with_cache.generate_social_posts(
+                results = await repurposing_agent_with_cache.generate_social_posts(
                     blog_post=sample_blog_post,
                     platforms=["LinkedIn"],
                     save_to_cache=False
@@ -490,12 +500,13 @@ class TestGenerateSocialPosts:
 
                 mock_write.assert_not_called()
 
-    def test_cache_failure_doesnt_fail_generation(self, repurposing_agent_with_cache, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_cache_failure_doesnt_fail_generation(self, repurposing_agent_with_cache, sample_blog_post, base_agent_response):
         """Test cache errors don't cause generation to fail"""
         with patch.object(repurposing_agent_with_cache, 'generate', return_value=base_agent_response):
             with patch.object(repurposing_agent_with_cache.cache_manager, 'write_social_post', side_effect=Exception("Cache error")):
                 # Should not raise, cache failure is silent
-                results = repurposing_agent_with_cache.generate_social_posts(
+                results = await repurposing_agent_with_cache.generate_social_posts(
                     blog_post=sample_blog_post,
                     platforms=["LinkedIn"],
                     save_to_cache=True
@@ -504,17 +515,19 @@ class TestGenerateSocialPosts:
                 assert len(results) == 1
                 assert results[0]['platform'] == "LinkedIn"
 
-    def test_all_platforms_failed_raises_repurposing_error(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_all_platforms_failed_raises_repurposing_error(self, repurposing_agent, sample_blog_post):
         """Test RepurposingError raised when all platforms fail"""
         with patch.object(repurposing_agent, 'generate', side_effect=AgentError("API error")):
             with pytest.raises(RepurposingError) as exc_info:
-                repurposing_agent.generate_social_posts(
+                await repurposing_agent.generate_social_posts(
                     blog_post=sample_blog_post,
                     platforms=["LinkedIn", "Facebook"]
                 )
             assert "Failed to generate content for all platforms" in str(exc_info.value)
 
-    def test_partial_platform_failure_returns_successful_results(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_partial_platform_failure_returns_successful_results(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test partial failures return successful platform results"""
         # Mock generate to fail for Facebook, succeed for others
         def generate_side_effect(prompt):
@@ -523,7 +536,7 @@ class TestGenerateSocialPosts:
             return base_agent_response
 
         with patch.object(repurposing_agent, 'generate', side_effect=generate_side_effect):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn", "Facebook", "Instagram"]
             )
@@ -535,10 +548,11 @@ class TestGenerateSocialPosts:
             assert "Instagram" in platforms
             assert "Facebook" not in platforms
 
-    def test_hashtags_included_in_results(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_hashtags_included_in_results(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test hashtags are included in results"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
@@ -685,33 +699,36 @@ class TestErrorHandling:
                 )
             assert "Failed to generate" in str(exc_info.value)
 
-    def test_multiple_platform_errors_listed_in_message(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_multiple_platform_errors_listed_in_message(self, repurposing_agent, sample_blog_post):
         """Test RepurposingError lists all platform errors"""
         with patch.object(repurposing_agent, 'generate', side_effect=AgentError("API error")):
             with pytest.raises(RepurposingError) as exc_info:
-                repurposing_agent.generate_social_posts(
+                await repurposing_agent.generate_social_posts(
                     blog_post=sample_blog_post,
                     platforms=["LinkedIn", "Facebook"]
                 )
             error_msg = str(exc_info.value)
             assert "Failed to generate" in error_msg
 
-    def test_invalid_blog_post_keys_detailed_error(self, repurposing_agent):
+    @pytest.mark.asyncio
+    async def test_invalid_blog_post_keys_detailed_error(self, repurposing_agent):
         """Test error message lists all missing blog_post keys"""
         incomplete = {"title": "Test"}  # Missing excerpt, keywords, slug
 
         with pytest.raises(ValueError) as exc_info:
-            repurposing_agent.generate_social_posts(
+            await repurposing_agent.generate_social_posts(
                 blog_post=incomplete,
                 platforms=["LinkedIn"]
             )
         error_msg = str(exc_info.value)
         assert "missing required keys" in error_msg
 
-    def test_invalid_platforms_error_lists_valid_options(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_invalid_platforms_error_lists_valid_options(self, repurposing_agent, sample_blog_post):
         """Test error message includes list of valid platforms"""
         with pytest.raises(ValueError) as exc_info:
-            repurposing_agent.generate_social_posts(
+            await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["Twitter", "Snapchat"]
             )
@@ -736,50 +753,55 @@ class TestErrorHandling:
 class TestDataTypes:
     """Test data type correctness in responses"""
 
-    def test_result_cost_is_float(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_result_cost_is_float(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test cost field is a float"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
 
             assert isinstance(results[0]['cost'], float)
 
-    def test_result_character_count_is_int(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_result_character_count_is_int(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test character_count field is an integer"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
 
             assert isinstance(results[0]['character_count'], int)
 
-    def test_result_hashtags_is_list(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_result_hashtags_is_list(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test hashtags field is a list"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
 
             assert isinstance(results[0]['hashtags'], list)
 
-    def test_result_tokens_is_dict(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_result_tokens_is_dict(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test tokens field is a dictionary"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
 
             assert isinstance(results[0]['tokens'], dict)
 
-    def test_tokens_has_total_key(self, repurposing_agent, sample_blog_post, base_agent_response):
+    @pytest.mark.asyncio
+    async def test_tokens_has_total_key(self, repurposing_agent, sample_blog_post, base_agent_response):
         """Test tokens dict has 'total' key"""
         with patch.object(repurposing_agent, 'generate', return_value=base_agent_response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
@@ -795,7 +817,8 @@ class TestDataTypes:
 class TestEdgeCases:
     """Test edge cases and boundary conditions"""
 
-    def test_single_character_content(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_single_character_content(self, repurposing_agent, sample_blog_post):
         """Test handling of very short content"""
         response = {
             'content': 'x',
@@ -804,7 +827,7 @@ class TestEdgeCases:
         }
 
         with patch.object(repurposing_agent, 'generate', return_value=response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
@@ -812,7 +835,8 @@ class TestEdgeCases:
             assert len(results) == 1
             assert results[0]['character_count'] == 1
 
-    def test_zero_cost_response(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_zero_cost_response(self, repurposing_agent, sample_blog_post):
         """Test handling of zero cost"""
         response = {
             'content': 'Test content',
@@ -821,14 +845,15 @@ class TestEdgeCases:
         }
 
         with patch.object(repurposing_agent, 'generate', return_value=response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
 
             assert results[0]['cost'] == 0.0
 
-    def test_whitespace_in_content(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_whitespace_in_content(self, repurposing_agent, sample_blog_post):
         """Test content with leading/trailing whitespace is stripped"""
         response = {
             'content': '  Test content with spaces  ',
@@ -837,7 +862,7 @@ class TestEdgeCases:
         }
 
         with patch.object(repurposing_agent, 'generate', return_value=response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )
@@ -857,7 +882,8 @@ class TestEdgeCases:
         assert len(hashtags) > 0
         assert all(tag.startswith("#") for tag in hashtags)
 
-    def test_unicode_content_character_count(self, repurposing_agent, sample_blog_post):
+    @pytest.mark.asyncio
+    async def test_unicode_content_character_count(self, repurposing_agent, sample_blog_post):
         """Test character count with Unicode content"""
         unicode_content = "Öl überrascht Präsidenten" * 10  # German umlauts
         response = {
@@ -867,7 +893,7 @@ class TestEdgeCases:
         }
 
         with patch.object(repurposing_agent, 'generate', return_value=response):
-            results = repurposing_agent.generate_social_posts(
+            results = await repurposing_agent.generate_social_posts(
                 blog_post=sample_blog_post,
                 platforms=["LinkedIn"]
             )

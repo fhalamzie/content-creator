@@ -3,25 +3,27 @@ Social media content repurposing agent
 
 Generates platform-optimized posts from blog articles using Qwen3-Max.
 Supports LinkedIn, Facebook, Instagram, and TikTok with platform-specific
-tone, length, format, hashtags, and emoji usage.
+tone, length, format, hashtags, emoji usage, and images.
 
 Design Principles:
 - Platform-specific content optimization (tone, length, format)
+- Smart image generation (OG reuse for LinkedIn/Facebook, AI for Instagram/TikTok)
 - Batch generation for multiple platforms
-- Cost tracking per platform
+- Cost tracking per platform (text + images)
 - Cache integration (fail-safe)
-- German content generation
+- Multi-language content generation
 """
 
-import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 from src.agents.base_agent import BaseAgent, AgentError
 from src.agents.platform_profiles import get_platform_config, VALID_PLATFORMS
 from src.cache_manager import CacheManager
+from src.media.platform_image_generator import PlatformImageGenerator
+from src.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class RepurposingError(AgentError):
@@ -72,7 +74,8 @@ class RepurposingAgent(BaseAgent):
         self,
         api_key: str,
         cache_dir: Optional[str] = None,
-        custom_config: Optional[Dict] = None
+        custom_config: Optional[Dict] = None,
+        image_generator: Optional[PlatformImageGenerator] = None
     ):
         """
         Initialize RepurposingAgent
@@ -81,6 +84,7 @@ class RepurposingAgent(BaseAgent):
             api_key: OpenRouter API key
             cache_dir: Directory for caching (default: cache/)
             custom_config: Override agent config from models.yaml
+            image_generator: PlatformImageGenerator instance (optional)
 
         Raises:
             RepurposingError: If initialization fails
@@ -97,34 +101,41 @@ class RepurposingAgent(BaseAgent):
         if cache_dir:
             try:
                 self.cache_manager = CacheManager(cache_dir=cache_dir)
-                logger.info(f"Cache manager initialized: {cache_dir}")
+                logger.info("cache_manager_initialized", cache_dir=cache_dir)
             except Exception as e:
-                logger.warning(f"Failed to initialize cache manager: {e}")
+                logger.warning("cache_manager_init_failed", error=str(e))
+
+        # Initialize image generator (optional)
+        self.image_generator = image_generator
 
         # Load prompt template (language-agnostic)
         try:
             self.prompt_template = self._load_prompt_template()
-            logger.info("Prompt template loaded successfully (language-agnostic)")
+            logger.info("prompt_template_loaded", language_agnostic=True)
         except Exception as e:
             raise RepurposingError(f"Failed to load prompt template: {e}") from e
 
         logger.info(
-            f"RepurposingAgent initialized: "
-            f"model={self.model}, "
-            f"temperature={self.temperature}, "
-            f"max_tokens={self.max_tokens}"
+            "repurposing_agent_initialized",
+            model=self.model,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            has_image_generator=self.image_generator is not None
         )
 
-    def generate_social_posts(
+    async def generate_social_posts(
         self,
         blog_post: Dict[str, Any],
         platforms: List[str] = ["LinkedIn", "Facebook", "Instagram", "TikTok"],
         brand_tone: List[str] = ["Professional"],
         language: str = "de",
-        save_to_cache: bool = True
+        save_to_cache: bool = True,
+        generate_images: bool = False,
+        brand_color: str = "#1a73e8",
+        logo_path: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
-        Generate social posts for multiple platforms
+        Generate social posts for multiple platforms (text + optional images)
 
         Args:
             blog_post: Dict with keys: title, excerpt, keywords (list), slug
@@ -132,6 +143,9 @@ class RepurposingAgent(BaseAgent):
             brand_tone: Brand voice settings (e.g., ["Professional", "Friendly"])
             language: Output language code (e.g., "de", "en", "fr") - default: "de"
             save_to_cache: Whether to save to cache/social_posts/
+            generate_images: Whether to generate platform images (default: False)
+            brand_color: Brand color hex code for OG images (default: #1a73e8)
+            logo_path: Path to logo file for OG images (optional)
 
         Returns:
             List of dicts, one per platform:
@@ -141,7 +155,12 @@ class RepurposingAgent(BaseAgent):
                     "content": "Post text...",
                     "hashtags": ["#PropTech", "#Innovation"],
                     "character_count": 450,
-                    "cost": 0.0008,
+                    "image": {  # Only if generate_images=True
+                        "url": "https://replicate.delivery/..." or "data:image/png;base64,...",
+                        "provider": "pillow" or "flux-dev",
+                        "cost": 0.0 or 0.003
+                    },
+                    "cost": 0.0008,  # Text cost + image cost
                     "tokens": {"prompt": 200, "completion": 150, "total": 350}
                 },
                 ...
@@ -172,10 +191,11 @@ class RepurposingAgent(BaseAgent):
             )
 
         logger.info(
-            f"Generating social posts: "
-            f"topic='{blog_post['title']}', "
-            f"platforms={platforms}, "
-            f"brand_tone={brand_tone}"
+            "social_posts_generation_started",
+            topic=blog_post['title'],
+            platforms=platforms,
+            brand_tone=brand_tone,
+            generate_images=generate_images
         )
 
         # Initialize results list
@@ -185,9 +205,9 @@ class RepurposingAgent(BaseAgent):
         # Generate content for each platform
         for platform in platforms:
             try:
-                logger.info(f"Generating content for {platform}...")
+                logger.info("generating_platform_content", platform=platform)
 
-                # Generate platform-specific content
+                # Generate platform-specific text content
                 result = self._generate_platform_content(
                     blog_post=blog_post,
                     platform=platform,
@@ -206,15 +226,64 @@ class RepurposingAgent(BaseAgent):
                 # Calculate character count
                 character_count = len(content)
 
+                # Initialize total cost (text only)
+                total_cost = result['cost']
+
                 # Build result dict
                 platform_result = {
                     'platform': platform,
                     'content': content,
                     'hashtags': hashtags,
                     'character_count': character_count,
-                    'cost': result['cost'],
+                    'cost': total_cost,
                     'tokens': result['tokens']
                 }
+
+                # Generate image if requested and generator available
+                if generate_images and self.image_generator:
+                    try:
+                        logger.info("generating_platform_image", platform=platform)
+
+                        image_result = await self.image_generator.generate_platform_image(
+                            platform=platform,
+                            topic=blog_post['title'],
+                            excerpt=blog_post['excerpt'],
+                            brand_tone=brand_tone,
+                            brand_color=brand_color,
+                            logo_path=logo_path,
+                            use_og_fallback=True
+                        )
+
+                        if image_result.get("success"):
+                            platform_result['image'] = {
+                                'url': image_result['url'],
+                                'provider': image_result['provider'],
+                                'cost': image_result['cost'],
+                                'size': image_result.get('size', {})
+                            }
+                            total_cost += image_result['cost']
+                            platform_result['cost'] = total_cost
+
+                            logger.info(
+                                "platform_image_generated",
+                                platform=platform,
+                                provider=image_result['provider'],
+                                cost=image_result['cost']
+                            )
+                        else:
+                            logger.warning(
+                                "platform_image_generation_failed",
+                                platform=platform,
+                                error=image_result.get('error', 'Unknown error')
+                            )
+
+                    except Exception as e:
+                        logger.error(
+                            "platform_image_generation_error",
+                            platform=platform,
+                            error=str(e)
+                        )
+                        # Continue without image (don't fail the whole post)
 
                 results.append(platform_result)
 
@@ -226,21 +295,27 @@ class RepurposingAgent(BaseAgent):
                             platform=platform.lower(),
                             content=content
                         )
-                        logger.info(f"Saved {platform} post to cache")
+                        logger.info("social_post_cached", platform=platform)
                     except Exception as e:
                         # Don't fail on cache errors
-                        logger.error(f"Failed to save {platform} post to cache: {e}")
+                        logger.error(
+                            "cache_write_failed",
+                            platform=platform,
+                            error=str(e)
+                        )
 
                 logger.info(
-                    f"Generated {platform} post: "
-                    f"{character_count} chars, "
-                    f"{len(hashtags)} hashtags, "
-                    f"cost=${result['cost']:.4f}"
+                    "platform_post_generated",
+                    platform=platform,
+                    character_count=character_count,
+                    hashtag_count=len(hashtags),
+                    has_image=generate_images and 'image' in platform_result,
+                    cost=total_cost
                 )
 
             except Exception as e:
                 error_msg = f"Failed to generate {platform} post: {e}"
-                logger.error(error_msg)
+                logger.error("platform_generation_failed", platform=platform, error=str(e))
                 errors.append(error_msg)
                 continue
 
@@ -252,9 +327,13 @@ class RepurposingAgent(BaseAgent):
 
         # Log summary
         total_cost = sum(r['cost'] for r in results)
+        total_images = sum(1 for r in results if 'image' in r)
         logger.info(
-            f"Generated {len(results)}/{len(platforms)} posts successfully. "
-            f"Total cost: ${total_cost:.4f}"
+            "social_posts_generation_complete",
+            success_count=len(results),
+            total_platforms=len(platforms),
+            total_images=total_images,
+            total_cost=total_cost
         )
 
         return results
