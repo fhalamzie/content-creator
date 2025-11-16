@@ -128,8 +128,12 @@ def load_pipeline_config():
         "domain": "SaaS",
         "language": "de",
         "enable_tavily": True,
-        "max_topics_to_research": 10,
-        "enable_images": False
+        "max_topics_to_research": 50,
+        "enable_images": False,
+        # Topic discovery collectors (language/region auto-detect from "language" field)
+        "enable_autocomplete": True,
+        "enable_trends": True,
+        "enable_rss": True
     }
 
 
@@ -158,7 +162,21 @@ async def run_pipeline_async(
     try:
         # Initialize orchestrator
         status_text.info("🔧 **Initializing**: Setting up pipeline orchestrator...")
-        orchestrator = HybridResearchOrchestrator(enable_tavily=config["enable_tavily"])
+
+        # Auto-detect topic discovery language/region from content language if not set
+        topic_lang = config.get("topic_discovery_language") or config.get("language", "en")
+        topic_region = config.get("topic_discovery_region") or {
+            "de": "DE", "en": "US", "fr": "FR", "es": "ES", "it": "IT"
+        }.get(topic_lang, "US")
+
+        orchestrator = HybridResearchOrchestrator(
+            enable_tavily=config["enable_tavily"],
+            enable_autocomplete=config.get("enable_autocomplete", True),
+            enable_trends=config.get("enable_trends", True),
+            enable_rss=config.get("enable_rss", True),
+            topic_discovery_language=topic_lang,
+            topic_discovery_region=topic_region
+        )
 
         # Prepare customer info
         customer_info = {
@@ -190,7 +208,11 @@ async def run_pipeline_async(
 
             # Extract topics from validation_data
             validated_topics_list = [
-                {"topic": st.topic, "score": st.total_score}
+                {
+                    "topic": st.topic,
+                    "score": st.total_score,
+                    "sources": st.metadata.sources if st.metadata.sources else [st.metadata.source]
+                }
                 for st in result["validation_data"]["scored_topics"]
             ]
 
@@ -220,7 +242,7 @@ async def run_pipeline_async(
 
             # Stage 1: Website Analysis
             progress_bar.progress(0.17)
-            status_text.info("**Stage 1/6**: Extracting keywords from website...")
+            status_text.info("**Stage 1/6**: 🌐 Analyzing website content and extracting keywords...")
             keywords_result = await orchestrator.extract_website_keywords(website_url)
 
             # Stage 2: Competitor Research
@@ -228,7 +250,7 @@ async def run_pipeline_async(
 
             # Check if user wants to skip competitor research
             if config.get("skip_competitor_research", False):
-                status_text.info("**Stage 2/6**: Skipping competitor research (user preference)...")
+                status_text.info("**Stage 2/6**: ⏭️ Skipping competitor research (user preference)")
                 competitors_result = {
                     "competitors": [],
                     "additional_keywords": [],
@@ -236,11 +258,16 @@ async def run_pipeline_async(
                     "cost": 0.0
                 }
             else:
-                status_text.info("**Stage 2/6**: Researching competitors (Gemini → Tavily fallback)...")
+                status_text.info("**Stage 2/6**: 🔍 Researching competitors using AI web search...")
+
+                # Add progress sub-steps for Stage 2
+                import time
+                stage2_start = time.time()
 
                 # Try Stage 2 with timeout protection
                 try:
                     import asyncio
+
                     # Set aggressive timeout (30s max for Stage 2)
                     competitors_result = await asyncio.wait_for(
                         orchestrator.research_competitors(
@@ -249,10 +276,14 @@ async def run_pipeline_async(
                         ),
                         timeout=30.0  # 30 second timeout
                     )
+
+                    # Show completion time
+                    stage2_duration = time.time() - stage2_start
+                    status_text.info(f"**Stage 2/6**: ✅ Completed in {stage2_duration:.1f}s")
                 except asyncio.TimeoutError:
                     status_text.warning(
-                        "⚠️ **Stage 2 Timeout**: Competitor research taking too long. "
-                        "Skipping to continue pipeline..."
+                        "⏱️ **Stage 2 Timeout** (30s exceeded) - Skipping competitor research. "
+                        "Pipeline will continue with website keywords only. This won't affect topic discovery."
                     )
                     competitors_result = {
                         "competitors": [],
@@ -263,8 +294,8 @@ async def run_pipeline_async(
                     }
                 except Exception as e:
                     status_text.warning(
-                        f"⚠️ **Stage 2 Error**: {str(e)}. "
-                        "Continuing with Stage 1 keywords only..."
+                        f"⚠️ **Stage 2 Failed**: {str(e)[:100]}\n\n"
+                        f"Don't worry! Continuing with website keywords only. Topic discovery will still work."
                     )
                     competitors_result = {
                         "competitors": [],
@@ -276,10 +307,8 @@ async def run_pipeline_async(
 
                 # Handle Stage 2 failure gracefully (e.g., Gemini rate limit)
                 if competitors_result.get("error"):
-                    status_text.warning(
-                        f"⚠️ **Stage 2 Warning**: {competitors_result['error']}. "
-                        "Continuing with Stage 1 keywords only..."
-                    )
+                    # Already showed warning above, just clear the error
+                    pass
                     # Use empty competitor data to continue pipeline
                     competitors_result = {
                         "competitors": [],
@@ -290,7 +319,7 @@ async def run_pipeline_async(
 
             # Stage 3: Consolidation
             progress_bar.progress(0.50)
-            status_text.info("**Stage 3/6**: Consolidating keywords and topics...")
+            status_text.info("**Stage 3/6**: 🔗 Merging keywords from website + competitors...")
             consolidated = orchestrator.consolidate_keywords_and_topics(
                 keywords_result,
                 competitors_result
@@ -298,15 +327,20 @@ async def run_pipeline_async(
 
             # Stage 4: Topic Discovery
             progress_bar.progress(0.67)
-            status_text.info("**Stage 4/6**: Discovering topics from 5 collectors...")
+            status_text.info("**Stage 4/6**: 💡 Discovering topics from collectors (LLM expansion, autocomplete, trends, Reddit, news)...")
             topics_result = await orchestrator.discover_topics_from_collectors(
                 consolidated["consolidated_keywords"],
-                consolidated["consolidated_tags"]
+                consolidated["consolidated_tags"],
+                max_topics_per_collector=10,
+                domain=config.get("domain", "General"),
+                vertical=config.get("vertical", "Research"),
+                market=config.get("market", "US"),
+                language=config.get("language", "en")
             )
 
             # Stage 5: Topic Validation
             progress_bar.progress(0.83)
-            status_text.info("**Stage 5/6**: Validating and scoring topics (60% cost savings)...")
+            status_text.info("**Stage 5/6**: ✅ Scoring and filtering topics (saves 60% on research costs)...")
             validation_result = orchestrator.validate_and_score_topics(
                 discovered_topics=topics_result["discovered_topics"],
                 topics_by_source=topics_result["topics_by_source"],
@@ -316,13 +350,17 @@ async def run_pipeline_async(
             )
             # scored_topics is List[ScoredTopic] - convert to dict format for display
             validated_topics = [
-                {"topic": st.topic, "score": st.total_score}
+                {
+                    "topic": st.topic,
+                    "score": st.total_score,
+                    "sources": st.metadata.sources if st.metadata.sources else [st.metadata.source]
+                }
                 for st in validation_result["scored_topics"]
             ]
 
             # If no topics passed validation, show top raw topics anyway
             if not validated_topics:
-                status_text.warning(f"⚠️ No topics passed threshold 0.3. Showing top {config['max_topics_to_research']} raw topics...")
+                status_text.warning(f"⚠️ **Low-quality topics detected** - Showing top {config['max_topics_to_research']} anyway. Consider adjusting your website or keywords.")
                 validated_topics = [
                     {"topic": topic, "score": 0.0}
                     for topic in topics_result["discovered_topics"][:config["max_topics_to_research"]]
@@ -338,7 +376,12 @@ async def run_pipeline_async(
                 col3.metric("Keywords Extracted", len(consolidated["consolidated_keywords"]))
                 col4.metric("Duration", f"{duration:.1f}s")
 
-            status_text.success(f"✅ **Topic Discovery Complete!** ({duration:.1f}s)")
+            status_text.success(
+                f"✅ **Topic Discovery Complete!** ({duration:.1f}s)\n\n"
+                f"📊 **Summary**: Analyzed website → Found {len(consolidated['consolidated_keywords'])} keywords → "
+                f"Discovered {topics_result['total_topics']} raw topics → Validated {len(validated_topics)} high-quality topics\n\n"
+                f"👇 **Next Step**: Select topics below to research (scroll down)"
+            )
 
             return {
                 "success": True,
@@ -367,7 +410,20 @@ async def research_selected_topics_async(
     status_text = progress_container.empty()
 
     try:
-        orchestrator = HybridResearchOrchestrator(enable_tavily=config["enable_tavily"])
+        # Auto-detect topic discovery language/region from content language if not set
+        topic_lang = config.get("topic_discovery_language") or config.get("language", "en")
+        topic_region = config.get("topic_discovery_region") or {
+            "de": "DE", "en": "US", "fr": "FR", "es": "ES", "it": "IT"
+        }.get(topic_lang, "US")
+
+        orchestrator = HybridResearchOrchestrator(
+            enable_tavily=config["enable_tavily"],
+            enable_autocomplete=config.get("enable_autocomplete", True),
+            enable_trends=config.get("enable_trends", True),
+            enable_rss=config.get("enable_rss", True),
+            topic_discovery_language=topic_lang,
+            topic_discovery_region=topic_region
+        )
 
         customer_info = {
             "market": config["market"],
@@ -387,7 +443,7 @@ async def research_selected_topics_async(
             article = await orchestrator.research_topic(
                 topic=topic["topic"],
                 config=customer_info,
-                enable_images=config.get("enable_images", False)
+                generate_images=config.get("enable_images", False)
             )
             articles.append(article)
 
@@ -543,11 +599,11 @@ def render():
             col1, col2 = st.columns(2)
             with col1:
                 max_topics = st.slider(
-                    "Topics to Research",
+                    "Topics to Display",
                     min_value=1,
                     max_value=50,
-                    value=config.get("max_topics_to_research", 10),
-                    help="Number of topics to research in Step 3"
+                    value=config.get("max_topics_to_research", 50),
+                    help="Number of topics to display and select from"
                 )
 
             with col2:
@@ -568,6 +624,54 @@ def render():
                 value=config.get("skip_competitor_research", False),
                 help="Skip Stage 2 to avoid Gemini API issues. Pipeline will use Stage 1 keywords only."
             )
+
+            # Advanced Topic Discovery Settings
+            with st.expander("⚙️ Advanced Topic Discovery Settings", expanded=False):
+                st.markdown("**Topic Collectors** (FREE)")
+                st.caption("Enable collectors to discover diverse, high-quality topics from multiple sources.")
+
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    enable_autocomplete = st.checkbox(
+                        "Google Autocomplete (Questions)",
+                        value=config.get("enable_autocomplete", True),
+                        help="Find questions people actually ask - high value, low noise (FREE)"
+                    )
+
+                with col2:
+                    enable_trends = st.checkbox(
+                        "Google Trends (Trending Topics)",
+                        value=config.get("enable_trends", True),
+                        help="Discover trending topics and related queries (FREE)"
+                    )
+
+                with col3:
+                    enable_rss = st.checkbox(
+                        "RSS Feeds (News & Blogs)",
+                        value=config.get("enable_rss", True),
+                        help="Collect topics from 1,037 RSS feeds + dynamic news feeds (FREE)"
+                    )
+
+                st.divider()
+                st.markdown("**Topic Discovery Region & Language**")
+                st.caption("Configure language and region for autocomplete and trends collectors.")
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    topic_discovery_language = st.selectbox(
+                        "Discovery Language",
+                        ["en", "de", "fr", "es", "it"],
+                        index=["en", "de", "fr", "es", "it"].index(config.get("topic_discovery_language", "en")),
+                        help="Language for topic discovery (autocomplete, trends)"
+                    )
+
+                with col2:
+                    topic_discovery_region = st.selectbox(
+                        "Discovery Region",
+                        ["US", "DE", "GB", "FR", "ES", "IT"],
+                        index=["US", "DE", "GB", "FR", "ES", "IT"].index(config.get("topic_discovery_region", "US")),
+                        help="Region for trend data (2-letter country code)"
+                    )
 
             st.divider()
 
@@ -597,7 +701,13 @@ def render():
                         "max_topics_to_research": max_topics,
                         "enable_tavily": enable_tavily,
                         "enable_images": enable_images,
-                        "skip_competitor_research": skip_competitor_research
+                        "skip_competitor_research": skip_competitor_research,
+                        # Topic discovery collectors
+                        "enable_autocomplete": enable_autocomplete,
+                        "enable_trends": enable_trends,
+                        "enable_rss": enable_rss,
+                        "topic_discovery_language": topic_discovery_language,
+                        "topic_discovery_region": topic_discovery_region
                     }
                     save_pipeline_config(st.session_state.wizard_config)
                     st.session_state.wizard_step = 2
@@ -614,10 +724,11 @@ def render():
                 "Extract keywords from your website (Stage 1 - FREE)",
                 "Research competitors and market trends (Stage 2 - FREE)",
                 "Consolidate and deduplicate keywords (Stage 3 - FREE)",
-                "Generate 50+ topic candidates (Stage 4 - FREE)",
+                "Discover sources with AI (Stage 3.5 - FREE): Suggest relevant subreddits, RSS feeds, topic angles",
+                "Collect from dynamic sources (Stage 4 - FREE): LLM expansion, autocomplete, trends, Reddit, news",
                 "Validate and score topics (Stage 5 - FREE)"
             ],
-            why="This FREE discovery process finds the best topics before spending on research, saving you 60% on costs."
+            why="This FREE discovery process uses AI to find relevant sources and generates 50+ diverse topic candidates before spending on research, saving you 60% on costs."
         )
 
         st.divider()
@@ -669,10 +780,16 @@ def render():
                         st.exception(e)
         else:
             # Show discovered topics
-            st.success(f"✅ Discovered {len(st.session_state.discovered_topics)} topics")
+            st.success(f"✅ **Topic Discovery Complete!** Found {len(st.session_state.discovered_topics)} high-quality topics")
 
-            st.markdown("### 📋 Select Topics to Research")
-            st.caption(f"Choose up to {config.get('max_topics_to_research', 10)} topics for deep research ($0.01/topic)")
+            st.markdown("---")
+            st.markdown("## 📋 Select Topics to Research")
+            st.info(
+                f"👇 **Action Required**: Check the boxes below to select topics for deep research.\n\n"
+                f"💰 **Cost**: $0.01 per topic (FREE discovery already done!)\n\n"
+                f"📊 **Max**: {config.get('max_topics_to_research', 10)} topics"
+            )
+            st.markdown("---")
 
             # Topic selection
             selected_topics = []
@@ -685,7 +802,27 @@ def render():
                         selected_topics.append(topic_data)
 
                 with col2:
-                    st.text(topic_data["topic"])
+                    # Display topic with source badges
+                    sources = topic_data.get("sources", [])
+                    if sources:
+                        # Create source badges with emoji icons
+                        source_icons = {
+                            "llm": "🤖",
+                            "reddit": "🔴",
+                            "trends": "📈",
+                            "autocomplete": "🔍",
+                            "keywords": "🔑",
+                            "tags": "🏷️",
+                            "news": "📰",
+                            "rss": "📡"
+                        }
+                        badges = " ".join([
+                            f"{source_icons.get(s.lower(), '•')} {s}"
+                            for s in sources[:3]  # Show max 3 sources
+                        ])
+                        st.markdown(f"**{topic_data['topic']}**  \n`{badges}`")
+                    else:
+                        st.text(topic_data["topic"])
 
                 with col3:
                     score = topic_data.get("score", 0.0)

@@ -56,6 +56,7 @@ class SQLiteManager:
         # For in-memory databases, create persistent connection
         if db_path == ':memory:':
             self._persistent_conn = sqlite3.connect(':memory:', check_same_thread=False)
+            self._apply_pragmas(self._persistent_conn)
             logger.info("created_persistent_in_memory_connection")
 
         # Create schema
@@ -63,14 +64,43 @@ class SQLiteManager:
 
         logger.info("sqlite_manager_initialized", db_path=str(self.db_path))
 
+    def _apply_pragmas(self, conn: sqlite3.Connection):
+        """
+        Apply performance PRAGMAs to a connection.
+
+        Based on: https://x.com/meln1k/status/1813314113705062774
+        These settings enable 60K RPS on a $5 VPS.
+        """
+        # 1. WAL mode: Reads don't block writes (and vice versa)
+        conn.execute("PRAGMA journal_mode = WAL")
+
+        # 2. Wait 5s for locks before SQLITE_BUSY errors
+        conn.execute("PRAGMA busy_timeout = 5000")
+
+        # 3. Sync less frequently (safe with WAL mode)
+        conn.execute("PRAGMA synchronous = NORMAL")
+
+        # 4. 20MB memory cache (-20000 = 20MB in KB)
+        conn.execute("PRAGMA cache_size = -20000")
+
+        # 5. Enable foreign keys (disabled by default for historical reasons)
+        conn.execute("PRAGMA foreign_keys = ON")
+
+        # 6. Store temp tables in RAM (huge performance boost)
+        conn.execute("PRAGMA temp_store = memory")
+
+        # Note: Do NOT use cache=shared (causes SQLITE_BUSY errors)
+
     def _create_schema(self):
         """Create database schema (idempotent)"""
         # Use persistent connection for in-memory databases
-        conn = self._persistent_conn if self._persistent_conn else sqlite3.connect(self.db_path)
+        if self._persistent_conn:
+            conn = self._persistent_conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+            self._apply_pragmas(conn)
 
         try:
-            conn.execute("PRAGMA foreign_keys = ON")
-            conn.execute("PRAGMA journal_mode = WAL")
 
             # Documents table
             conn.execute("""
@@ -202,21 +232,112 @@ class SQLiteManager:
                 )
             """)
 
+            # Blog posts table (single source of truth before Notion sync)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS blog_posts (
+                    id TEXT PRIMARY KEY,
+                    slug TEXT UNIQUE NOT NULL,
+                    title TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    excerpt TEXT,
+
+                    -- SEO
+                    meta_description TEXT,
+                    keywords TEXT,  -- JSON array
+                    primary_keyword TEXT,
+
+                    -- Content metadata
+                    word_count INTEGER,
+                    language TEXT DEFAULT 'de',
+                    brand_voice TEXT DEFAULT 'Professional',
+                    target_audience TEXT,
+
+                    -- Images
+                    hero_image_url TEXT,
+                    hero_image_alt TEXT,
+                    supporting_images TEXT,  -- JSON array
+
+                    -- Research reference
+                    research_topic_id TEXT,
+
+                    -- Notion sync
+                    notion_id TEXT,
+                    notion_synced_at TIMESTAMP,
+
+                    -- Status
+                    status TEXT DEFAULT 'draft',
+
+                    -- Timestamps
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    published_at TIMESTAMP,
+
+                    FOREIGN KEY (research_topic_id) REFERENCES topics(id) ON DELETE SET NULL
+                )
+            """)
+
+            # Social posts table (single source of truth before Notion sync)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS social_posts (
+                    id TEXT PRIMARY KEY,
+                    blog_post_id TEXT NOT NULL,
+                    platform TEXT NOT NULL,
+                    content TEXT NOT NULL,
+
+                    -- Media
+                    image_url TEXT,
+                    image_provider TEXT,  -- 'og' or 'ai'
+
+                    -- Metadata
+                    hashtags TEXT,  -- JSON array
+                    character_count INTEGER,
+                    language TEXT DEFAULT 'de',
+
+                    -- Notion sync
+                    notion_id TEXT,
+                    notion_synced_at TIMESTAMP,
+
+                    -- Status
+                    status TEXT DEFAULT 'draft',
+
+                    -- Timestamps
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    published_at TIMESTAMP,
+                    scheduled_at TIMESTAMP,
+
+                    FOREIGN KEY (blog_post_id) REFERENCES blog_posts(id) ON DELETE CASCADE
+                )
+            """)
+
+            # Indexes for blog posts
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_created_at ON blog_posts(created_at DESC)")
+
+            # Indexes for social posts
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_blog_post_id ON social_posts(blog_post_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_platform ON social_posts(platform)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_status ON social_posts(status)")
+
             conn.commit()
         finally:
             # Only close if not using persistent connection
             if not self._persistent_conn:
                 conn.close()
 
-        logger.info("schema_created", tables=["documents", "topics", "research_reports"])
+        logger.info("schema_created", tables=["documents", "topics", "research_reports", "blog_posts", "social_posts"])
 
     @contextmanager
-    def _get_connection(self):
+    def _get_connection(self, readonly: bool = False):
         """
-        Context manager for database connections
+        Context manager for database connections with performance optimizations.
 
         For in-memory databases, yields the persistent connection without closing.
         For file-based databases, creates a new connection and closes it on exit.
+
+        Args:
+            readonly: If True, open connection in read-only mode (allows concurrent reads)
 
         Yields:
             sqlite3.Connection
@@ -225,6 +346,9 @@ class SQLiteManager:
             # Use persistent connection for in-memory databases
             # Don't close it on exit
             try:
+                # Use BEGIN IMMEDIATE for write transactions (prevents SQLITE_BUSY)
+                if not readonly:
+                    self._persistent_conn.execute("BEGIN IMMEDIATE")
                 yield self._persistent_conn
                 self._persistent_conn.commit()
             except Exception:
@@ -232,8 +356,17 @@ class SQLiteManager:
                 raise
         else:
             # Create new connection for file-based databases
-            conn = sqlite3.connect(self.db_path)
+            # Apply performance PRAGMAs
+            uri = f"file:{self.db_path}?mode=ro" if readonly else f"file:{self.db_path}?mode=rwc"
+            conn = sqlite3.connect(uri, uri=True)
+
+            # Apply PRAGMAs for this connection (60K RPS optimization)
+            self._apply_pragmas(conn)
+
             try:
+                # Use BEGIN IMMEDIATE for write transactions
+                if not readonly:
+                    conn.execute("BEGIN IMMEDIATE")
                 yield conn
                 conn.commit()
             except Exception:
@@ -321,7 +454,7 @@ class SQLiteManager:
         Returns:
             Document if found, None otherwise
         """
-        with self._get_connection() as conn:
+        with self._get_connection(readonly=True) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM documents WHERE id = ?", (doc_id,)
@@ -416,7 +549,7 @@ class SQLiteManager:
         Returns:
             List of documents
         """
-        with self._get_connection() as conn:
+        with self._get_connection(readonly=True) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM documents WHERE status = ?", (status,)
@@ -436,7 +569,7 @@ class SQLiteManager:
         Returns:
             List of documents
         """
-        with self._get_connection() as conn:
+        with self._get_connection(readonly=True) as conn:
             conn.row_factory = sqlite3.Row
 
             if limit is not None:
@@ -462,7 +595,7 @@ class SQLiteManager:
         Returns:
             Document if found, None otherwise
         """
-        with self._get_connection() as conn:
+        with self._get_connection(readonly=True) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM documents WHERE content_hash = ?", (content_hash,)
@@ -485,7 +618,7 @@ class SQLiteManager:
         Returns:
             List of matching documents
         """
-        with self._get_connection() as conn:
+        with self._get_connection(readonly=True) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 """
@@ -571,7 +704,7 @@ class SQLiteManager:
         Returns:
             Topic if found, None otherwise
         """
-        with self._get_connection() as conn:
+        with self._get_connection(readonly=True) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM topics WHERE id = ?", (topic_id,)
@@ -641,7 +774,7 @@ class SQLiteManager:
         Returns:
             List of topics
         """
-        with self._get_connection() as conn:
+        with self._get_connection(readonly=True) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM topics WHERE status = ?", (status.value,)
@@ -660,7 +793,7 @@ class SQLiteManager:
         Returns:
             List of topics ordered by priority
         """
-        with self._get_connection() as conn:
+        with self._get_connection(readonly=True) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT * FROM topics ORDER BY priority DESC LIMIT ?", (limit,)

@@ -163,7 +163,19 @@ class WritingAgent(BaseAgent):
         keywords_str = ""
 
         if research_data:
-            research_summary = research_data.get('summary', '')
+            # Check if deep research article is available (from cache)
+            deep_article = research_data.get('article', '')
+
+            if deep_article:
+                # Use deep research article as context (2000+ words with citations)
+                # Extract first 1500 chars for summary (keep manageable)
+                research_summary = deep_article[:1500] + "\n\n[Deep research available - use inline citations]"
+                logger.info("using_deep_research_article", article_length=len(deep_article))
+            else:
+                # Use simple research summary
+                research_summary = research_data.get('summary', '')
+                logger.info("using_simple_research_summary")
+
             keywords_list = research_data.get('keywords', [])
             keywords_str = ", ".join(keywords_list)
 

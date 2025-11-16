@@ -363,8 +363,12 @@ class TopicValidator:
         # Filter by threshold
         filtered = [st for st in scored_topics if st.total_score >= threshold]
 
-        # Sort by score (descending)
-        filtered.sort(key=lambda st: st.total_score, reverse=True)
+        # Sort by score (descending), then by source diversity (more sources = better), then alphabetically
+        filtered.sort(key=lambda st: (
+            -st.total_score,  # Primary: Higher score first (negative for descending)
+            -len(st.metadata.sources),  # Secondary: More sources = better (tie-breaker)
+            st.topic.lower()  # Tertiary: Alphabetical (stable sort)
+        ))
 
         # Limit to top N
         if top_n is not None:

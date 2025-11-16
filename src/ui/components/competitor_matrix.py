@@ -108,13 +108,27 @@ def prepare_gap_matrix(
         return pd.DataFrame(index=content_gaps)
 
     # Create matrix with gaps as rows, competitors as columns
-    competitor_names = [comp.get("name", "Unknown") for comp in competitors]
+    # Ensure unique competitor names by using website domain if name is "Unknown"
+    competitor_names = []
+    for i, comp in enumerate(competitors):
+        name = comp.get("name", "Unknown")
+        if name == "Unknown":
+            # Extract domain from website URL
+            website = comp.get("website", "")
+            if website:
+                # Extract domain (e.g., "https://www.example.com" -> "example.com")
+                domain = website.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
+                name = domain
+            else:
+                name = f"Competitor {i+1}"
+        competitor_names.append(name)
+
     matrix_data = {name: [] for name in competitor_names}
 
     for gap in content_gaps:
         gap_lower = gap.lower()
 
-        for comp in competitors:
+        for i, comp in enumerate(competitors):
             # Check if competitor covers this gap (similarity check)
             comp_topics = comp.get("content_topics", [])
             comp_topics_lower = [topic.lower() for topic in comp_topics]
@@ -131,7 +145,7 @@ def prepare_gap_matrix(
                     covers_gap = True
                     break
 
-            comp_name = comp.get("name", "Unknown")
+            comp_name = competitor_names[i]
             matrix_data[comp_name].append(covers_gap)
 
     df = pd.DataFrame(matrix_data, index=content_gaps)

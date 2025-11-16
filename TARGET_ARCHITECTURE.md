@@ -304,6 +304,53 @@ CREATE TABLE api_usage (
 CREATE INDEX idx_api_usage_org_created ON api_usage(org_id, created_at DESC);
 ```
 
+### Pipeline Checkpoints (Inspired by ai-news-aggregator)
+
+**Pattern**: Each pipeline stage writes checkpoint to DB before advancing
+
+```sql
+CREATE TABLE pipeline_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    job_type VARCHAR(50) NOT NULL,          -- 'blog_post', 'topic_research'
+    current_stage VARCHAR(50) NOT NULL,     -- 'research', 'writing', 'images', 'social', 'notion'
+    status VARCHAR(50) DEFAULT 'pending',   -- 'pending', 'processing', 'completed', 'failed'
+
+    -- Checkpoints (NULL until stage completes)
+    research_data JSONB,
+    writing_data JSONB,
+    images_data JSONB,
+    social_data JSONB,
+
+    -- Progress
+    stages_completed VARCHAR[] DEFAULT '{}',
+    progress_percent INT DEFAULT 0,
+    total_cost_usd DECIMAL(10, 6) DEFAULT 0,
+
+    -- Error handling
+    error_message TEXT,
+    retry_count INT DEFAULT 0,
+
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_pipeline_jobs_org_stage ON pipeline_jobs(org_id, current_stage) WHERE status = 'pending';
+```
+
+**Benefits**:
+- Resume from last checkpoint on failure (saves $0.07-$0.10 per retry)
+- Query pipeline state: "Show all jobs stuck at writing stage"
+- Parallel processing: Multiple workers pick up pending jobs per stage
+- Real-time progress: 20% → 40% → 60% → 80% → 100%
+
+**Repository Methods**:
+- `create_pipeline_job()` - Start new job
+- `checkpoint_research()` - Save Stage 1, advance to Stage 2
+- `checkpoint_writing()` - Save Stage 2, advance to Stage 3
+- `get_jobs_by_stage(org_id, 'writing', 'pending')` - Resume processing
+- `retry_job(job_id)` - Reset to last checkpoint
+
 ---
 
 ## Logging & Observability
@@ -589,6 +636,10 @@ async def discover_topics_task(org_id: str, config: dict):
 - Analytics dashboard
 - Content calendar
 - Multi-language support
+- **Video Content Scraper** (YouTube, Vimeo) - Extract transcripts as research sources
+  - Pattern from ai-news-aggregator: `youtube-transcript-api` + digest generation
+  - Use case: Summarize industry videos into blog topics/citations
+  - Integration: Add to research sources alongside RSS/Tavily/SearXNG
 
 ### Phase 7: Scale
 - Microservices extraction (if >1000 users)
@@ -613,6 +664,10 @@ async def discover_topics_task(org_id: str, config: dict):
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-11-15 (Session 050)
+**Document Version**: 1.1
+**Last Updated**: 2025-11-16 (Session 065)
 **Status**: Approved - Ready for Implementation
+
+**Changelog**:
+- v1.1 (Session 065): Added pipeline checkpoints pattern + YouTube scraper integration
+- v1.0 (Session 050): Initial architecture design

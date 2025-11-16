@@ -108,7 +108,7 @@ class CompetitorResearchAgent(BaseAgent):
         save_to_cache: bool = False
     ) -> Dict[str, Any]:
         """
-        Perform competitor research on topic.
+        Perform competitor research on topic (SYNCHRONOUS - use research_competitors_async for async).
 
         Args:
             topic: Research topic or niche
@@ -173,6 +173,129 @@ class CompetitorResearchAgent(BaseAgent):
             raise CompetitorResearchError(
                 f"Competitor research failed: {e}"
             ) from e
+
+    async def research_competitors_async(
+        self,
+        topic: str,
+        language: str = "en",
+        max_competitors: int = 5,
+        include_content_analysis: bool = True,
+        save_to_cache: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Async version of research_competitors for use in Streamlit/async contexts.
+        Uses generate_async() to prevent deadlocks.
+        """
+        # Use the sync implementation but with async Gemini API
+        # Simplified: skip CLI, go straight to API with async
+        return await self._research_with_api_async(
+            topic, language, max_competitors, include_content_analysis, save_to_cache
+        )
+
+    async def _research_with_api_async(
+        self,
+        topic: str,
+        language: str,
+        max_competitors: int,
+        include_content_analysis: bool,
+        save_to_cache: bool
+    ) -> Dict[str, Any]:
+        """Async version of _research_with_api using generate_async()"""
+        # Validate input
+        if not topic or not topic.strip():
+            raise CompetitorResearchError("Topic is required")
+
+        topic = topic.strip()
+
+        logger.info(
+            f"Starting ASYNC competitor research: topic='{topic}', "
+            f"language={language}, max={max_competitors}"
+        )
+
+        # Call the sync _research_with_api but replace the Gemini call with async
+        language_map = {"de": "German", "en": "English", "es": "Spanish", "fr": "French"}
+        language_name = language_map.get(language, "English")
+
+        response_schema = {
+            "type": "object",
+            "properties": {
+                "competitors": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "website": {"type": "string"},
+                            "description": {"type": "string"},
+                            "social_handles": {
+                                "type": "object",
+                                "properties": {
+                                    "linkedin": {"type": "string"},
+                                    "twitter": {"type": "string"},
+                                    "facebook": {"type": "string"},
+                                    "instagram": {"type": "string"}
+                                }
+                            },
+                            "content_strategy": {
+                                "type": "object",
+                                "properties": {
+                                    "topics": {"type": "array", "items": {"type": "string"}},
+                                    "posting_frequency": {"type": "string"},
+                                    "content_types": {"type": "array", "items": {"type": "string"}},
+                                    "strengths": {"type": "array", "items": {"type": "string"}},
+                                    "weaknesses": {"type": "array", "items": {"type": "string"}}
+                                }
+                            }
+                        },
+                        "required": ["name", "website", "description"]
+                    }
+                },
+                "content_gaps": {"type": "array", "items": {"type": "string"}},
+                "trending_topics": {"type": "array", "items": {"type": "string"}},
+                "recommendation": {"type": "string"}
+            },
+            "required": ["competitors", "content_gaps", "trending_topics", "recommendation"]
+        }
+
+        system_prompt = (
+            f"You are a competitive intelligence analyst researching competitors "
+            f"in {language_name}. Use Google Search to find current, accurate information "
+            f"about competitors, their strategies, and market gaps."
+        )
+
+        content_hint = "\nInclude detailed content strategy analysis." if include_content_analysis else ""
+
+        user_prompt = (
+            f"Research topic: {topic}\n"
+            f"Find top {max_competitors} real competitors in this space.\n"
+            f"For each competitor, provide: company name, website, description, "
+            f"social media handles, and content strategy (topics, frequency, types, strengths, weaknesses).\n"
+            f"Also identify content gaps and trending topics in this niche.{content_hint}"
+        )
+
+        # Call Gemini API with grounding enabled (ASYNC version - prevents deadlock)
+        result = await self.gemini_agent.generate_async(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            response_schema=response_schema,
+            enable_grounding=True  # Enable Google Search
+        )
+
+        # Parse JSON from content
+        try:
+            data = json.loads(result['content'])
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON: {e}")
+            raise CompetitorResearchError(f"Invalid JSON response: {e}") from e
+
+        # Normalize and return
+        normalized = self._normalize_competitor_data(data)
+
+        # Save to cache if requested
+        if save_to_cache and self.cache_manager:
+            self._save_to_cache(topic, normalized)
+
+        return normalized
 
     def _research_with_cli(
         self,
@@ -331,7 +454,7 @@ class CompetitorResearchAgent(BaseAgent):
             f"Also identify content gaps and trending topics in this niche.{content_hint}"
         )
 
-        # Call Gemini API with grounding enabled
+        # Call Gemini API with grounding enabled (SYNC version)
         result = self.gemini_agent.generate(
             prompt=user_prompt,
             system_prompt=system_prompt,

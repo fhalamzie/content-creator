@@ -275,10 +275,11 @@ Search the web for current trending topics and return them as a structured list.
                 )
 
                 # Check for duplicates
-                if self.deduplicator.is_duplicate(doc.content):
+                if self.deduplicator.is_duplicate(doc):
                     logger.debug("Skipping duplicate trend", title=doc.title)
                     continue
 
+                self.deduplicator.add(doc)
                 documents.append(doc)
 
             self._stats['total_queries'] += 1
@@ -390,24 +391,47 @@ Search the web for current trending related queries."""
 
             # Create documents
             documents = []
+
+            # Handle Gemini returning simplified string arrays
+            # If queries_data is a single dict with 'queries' key, extract the array
+            if len(queries_data) == 1 and isinstance(queries_data[0], dict) and 'queries' in queries_data[0]:
+                logger.debug("Gemini returned nested queries structure, extracting array")
+                queries_data = queries_data[0]['queries']
+
             for query_data in queries_data:
+                # Handle both structured objects and simple strings
+                if isinstance(query_data, str):
+                    # Simple string response from Gemini
+                    query_text = query_data
+                    keyword_text = keywords[0] if keywords else 'N/A'
+                    relevance_score = 0
+                elif isinstance(query_data, dict):
+                    # Structured object response
+                    query_text = query_data.get('query', 'Unknown')
+                    keyword_text = query_data.get('keyword', keywords[0] if keywords else 'N/A')
+                    relevance_score = query_data.get('relevance', 0)
+                else:
+                    logger.warning("unexpected_query_data_type", type=type(query_data).__name__)
+                    continue
+
                 title_prefix = "Related query" if query_type == 'top' else "Rising query"
                 doc = self._create_document(
                     source="trends_related_queries",
-                    title=f"{title_prefix}: {query_data.get('query', 'Unknown')}",
-                    content=f"Related to: {query_data.get('keyword', 'N/A')}\nQuery: {query_data.get('query', 'Unknown')}\nRelevance: {query_data.get('relevance', 0)}",
+                    title=f"{title_prefix}: {query_text}",
+                    content=f"Related to: {keyword_text}\nQuery: {query_text}\nRelevance: {relevance_score}",
                     metadata={
-                        'parent_keyword': query_data.get('keyword', ''),
+                        'parent_keyword': keyword_text,
                         'query_type': query_type,
-                        'relevance': query_data.get('relevance', 0)
+                        'relevance': relevance_score
                     }
                 )
 
                 # Check for duplicates
-                if self.deduplicator.is_duplicate(doc.content):
+                if self.deduplicator.is_duplicate(doc):
                     logger.debug("Skipping duplicate query", query=doc.title)
                     continue
 
+                self.deduplicator.add(doc)
                 documents.append(doc)
 
             self._stats['total_queries'] += 1
@@ -569,19 +593,31 @@ Search the web for current trend data."""
                 enable_grounding=True
             )
 
-            # Extract response content
-            if 'content' in result and isinstance(result['content'], list):
-                return result['content']
-            elif 'content' in result:
-                # Single object, wrap in list
-                return [result['content']]
-            else:
-                # Try to find array in response
-                for key in result:
-                    if isinstance(result[key], list):
-                        return result[key]
+            # Extract and parse response content
+            if 'content' in result:
+                content = result['content']
 
-                raise TrendsCollectorError("No valid array found in Gemini response")
+                # If content is a string (JSON), parse it
+                if isinstance(content, str):
+                    try:
+                        content = json.loads(content)
+                    except json.JSONDecodeError:
+                        logger.warning("Failed to parse JSON content, returning as-is")
+
+                # If content is a list, return it
+                if isinstance(content, list):
+                    return content
+
+                # If content is a dict, wrap in list
+                if isinstance(content, dict):
+                    return [content]
+
+            # Try to find array in response
+            for key in result:
+                if isinstance(result[key], list):
+                    return result[key]
+
+            raise TrendsCollectorError("No valid array found in Gemini response")
 
         except GeminiAgentError as e:
             raise TrendsCollectorError(f"Gemini API error: {e}")
@@ -722,10 +758,11 @@ Search the web for current trend data."""
                 continue
 
             # Check for duplicates
-            if self.deduplicator.is_duplicate(doc.content):
+            if self.deduplicator.is_duplicate(doc):
                 logger.debug("Skipping duplicate (from cache)", title=doc.title)
                 continue
 
+            self.deduplicator.add(doc)
             documents.append(doc)
 
         return documents

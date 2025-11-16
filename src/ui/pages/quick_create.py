@@ -34,6 +34,8 @@ from src.notion_integration.sync_manager import SyncManager
 from src.notion_integration.social_posts_sync import SocialPostsSync
 from src.notion_integration.notion_client import NotionClient
 from src.cache_manager import CacheManager
+from src.utils.research_cache import load_research_from_cache, slugify
+from src.utils.content_cache import save_blog_post_to_db, save_social_posts_to_db
 
 # Import help components
 from src.ui.components.help import (
@@ -111,10 +113,25 @@ async def generate_content_async(
         st.session_state.progress = 0.3
         st.session_state.status = "🔍 Researching topic..."
 
-        research_data = research_agent.research(
-            topic=topic,
-            language=content_language
-        )
+        # Check cache first (reuse deep research from Hybrid Orchestrator)
+        cached_research = load_research_from_cache(topic)
+
+        if cached_research:
+            # Use cached deep research (FREE!)
+            st.session_state.status = "✨ Using cached deep research (FREE!)"
+            research_data = {
+                'sources': [{'url': url, 'title': '', 'snippet': ''} for url in cached_research.get('sources', [])],
+                'keywords': cached_research.get('keywords', []),
+                'summary': cached_research.get('summary', '')[:500],  # Use summary as research summary
+                'article': cached_research.get('research_article', '')  # Include full deep research
+            }
+        else:
+            # Fall back to simple research (if not in cache)
+            st.session_state.status = "🔍 Researching topic (not in cache)..."
+            research_data = research_agent.research(
+                topic=topic,
+                language=content_language
+            )
 
         # Stage 2: Writing (60%)
         st.session_state.progress = 0.6
@@ -217,9 +234,45 @@ async def generate_content_async(
             social_posts_cost = sum(p.get('cost', 0.0) for p in social_posts)
             total_cost += social_posts_cost
 
-        # Stage 5: Notion Sync (100%)
+        # Stage 5: Save to SQLite (95%) - Single source of truth
+        st.session_state.progress = 0.95
+        st.session_state.status = "💾 Saving to database..."
+
+        # Generate slug for database
+        slug = slugify(topic)
+
+        # Get research topic ID if available (link blog post to deep research)
+        research_topic_id = None
+        if cached_research:
+            research_topic_id = slug  # Same slug as research topic
+
+        # Save blog post to SQLite FIRST
+        blog_post_id = save_blog_post_to_db(
+            title=topic,
+            content=blog_result.get("content", ""),
+            metadata={
+                "word_count": word_count,
+                "language": content_language,
+                "brand_voice": config.get("brand_voice", "Professional"),
+                "target_audience": config.get("target_audience", ""),
+                "primary_keyword": topic,
+                "hero_image_alt": f"Hero image for {topic}"
+            },
+            hero_image_url=hero_image_url,
+            supporting_images=supporting_images,
+            research_topic_id=research_topic_id
+        )
+
+        # Save social posts to SQLite (if generated)
+        if social_posts:
+            save_social_posts_to_db(
+                blog_post_id=blog_post_id,
+                social_posts=social_posts
+            )
+
+        # Stage 6: Notion Sync (100%) - Editorial interface
         st.session_state.progress = 1.0
-        st.session_state.status = "📤 Syncing to Notion..."
+        st.session_state.status = "📤 Syncing to Notion (editorial UI)..."
 
         notion_client = NotionClient(token=notion_token)
         sync_manager = SyncManager(
@@ -227,12 +280,12 @@ async def generate_content_async(
             notion_client=notion_client
         )
 
-        # Get cache path
-        slug = topic.lower().replace(" ", "-")[:50]
+        # Get cache path (markdown still exists for backward compatibility)
         cache_path = cache_manager.cache_dir / "blog_posts" / f"{slug}.md"
 
         return {
             "success": True,
+            "blog_post_id": blog_post_id,
             "word_count": word_count,
             "cost": total_cost,
             "cache_path": str(cache_path),
@@ -240,7 +293,8 @@ async def generate_content_async(
             "supporting_images": supporting_images,
             "social_posts": social_posts,
             "social_posts_cost": social_posts_cost,
-            "content": blog_result.get("content", "")
+            "content": blog_result.get("content", ""),
+            "cached_research_used": cached_research is not None
         }
 
     except Exception as e:

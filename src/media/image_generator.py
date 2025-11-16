@@ -394,29 +394,44 @@ Topic: {topic}
    - Specific lenses: "85mm f/1.8", "50mm f/1.4", "24-70mm f/2.8"
    - Real settings: "f/2.8, ISO 400, 1/250s"
 
-3. **Active, Natural Language**:
+3. **CRITICAL - Photorealistic Humans** (when people are in the image):
+   - ALWAYS include "photorealistic portrait" or "real person photographed"
+   - Specify natural skin texture, realistic facial features
+   - NEVER use words that suggest artificiality (3D, CGI, render, illustration, plastic, synthetic, mannequin)
+   - Use portrait photography terms: "natural skin tones", "authentic expression", "documentary portrait style"
+
+4. **Active, Natural Language**:
    - Use action and movement words
    - Write as if describing to a human photographer
    - Avoid keyword stacking
 
-4. **Keep It Concise** (40-60 words):
+5. **Keep It Concise** (40-60 words):
    - Flux works best with focused, clear descriptions
    - Don't over-describe
    - One main style anchor only
 
-5. **If text is visible** (screens, signs, UI): specify "{target_language} text" or "{target_language} interface"
+6. **If text is visible** (screens, signs, UI, documents, papers, letters, forms, certificates): specify "{target_language} text" or "{target_language} document"
+   - Examples: "{target_language} document in hand", "{target_language} text on screen", "{target_language} sign in background"
 
 **EXAMPLE OUTPUTS** (Note the natural flow):
 
 1. "Close-up of water-damaged hardwood flooring showing warped planks and discoloration, captured in natural window light from the side creating dramatic shadows, shot on Canon EOS R5 with 50mm f/2.8 lens, sharp focus on wood grain texture, documentary editorial style"
 
-2. "Professional property manager consulting with tenant at modern office desk, natural golden hour sunlight streaming through window, captured with Sony A7R IV using 85mm f/1.8 lens for shallow depth of field, cinematic composition with emphasis on their engaged conversation"
+2. "Photorealistic portrait of professional property manager consulting with tenant at modern office desk, natural skin tones and authentic expressions, natural golden hour sunlight streaming through window, captured with Sony A7R IV using 85mm f/1.8 lens for shallow depth of field, documentary portrait style"
 
 3. "Modern smart home dashboard displaying on tablet screen with {target_language} interface, placed on minimalist desk in bright natural daylight, photographed with Nikon Z9 macro lens at f/4, clean composition with soft bokeh background"
+
+4. "Real person photographed reviewing a {target_language} document in hand with natural skin texture and realistic facial features, standing near bright office window with soft natural daylight, shot on Canon EOS R6 with 50mm f/2.0 lens creating shallow depth of field on the paper, authentic documentary portrait style"
 
 **YOUR TASK**:
 Create ONE concise prompt (40-60 words) following this structure:
 [Subject with action/state] → [Environment/background] → [Lighting description] → [Camera: specific model + lens + settings] → [One style anchor]
+
+**CRITICAL REMINDER**: If the image includes PEOPLE, you MUST:
+- Include "photorealistic portrait" or "real person photographed" in the prompt
+- Add "natural skin tones", "realistic facial features", or "authentic expression"
+- Use "documentary portrait style" or similar authentic photography descriptor
+- NEVER use: 3D, CGI, render, illustration, plastic, synthetic, mannequin, artificial
 
 Output ONLY the prompt in English, no explanations or quotes."""
 

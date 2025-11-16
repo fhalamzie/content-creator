@@ -89,13 +89,15 @@ def generate_content(topic: str, project_config: dict, progress_placeholder, sta
             status_placeholder.info("🔎 Analyzing competitors...")
             progress_placeholder.progress(0.1)
 
-            competitor_data = competitor_agent.research_competitors(
+            # ASYNC fix: Use asyncio.run() with async method to prevent deadlock
+            import asyncio
+            competitor_data = asyncio.run(competitor_agent.research_competitors_async(
                 topic=topic,
                 language=content_language,
                 max_competitors=5,
                 include_content_analysis=True,
                 save_to_cache=True
-            )
+            ))
         else:
             status_placeholder.info("⏩ Skipping competitor research...")
             progress_placeholder.progress(0.1)

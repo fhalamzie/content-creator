@@ -1,46 +1,66 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/e2e/test_repurposing_pipeline_e2e.py",
+      "moduleId": "tests/test_research_cache.py",
       "tests": [
         {
-          "name": "test_full_pipeline_blog_to_social_posts_text_only",
-          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_full_pipeline_blog_to_social_posts_text_only",
+          "name": "test_simple_slug",
+          "fullName": "tests/test_research_cache.py::TestSlugify::test_simple_slug",
           "state": "passed"
         },
         {
-          "name": "test_full_pipeline_with_images",
-          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_full_pipeline_with_images",
+          "name": "test_german_umlauts",
+          "fullName": "tests/test_research_cache.py::TestSlugify::test_german_umlauts",
           "state": "passed"
         },
         {
-          "name": "test_full_pipeline_with_notion_sync",
-          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_full_pipeline_with_notion_sync",
+          "name": "test_special_characters",
+          "fullName": "tests/test_research_cache.py::TestSlugify::test_special_characters",
           "state": "passed"
         },
         {
-          "name": "test_pipeline_partial_social_post_failure",
-          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_partial_social_post_failure",
+          "name": "test_max_length",
+          "fullName": "tests/test_research_cache.py::TestSlugify::test_max_length",
           "state": "passed"
         },
         {
-          "name": "test_pipeline_multilingual_support",
-          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_multilingual_support",
+          "name": "test_save_and_load_research",
+          "fullName": "tests/test_research_cache.py::TestResearchCache::test_save_and_load_research",
           "state": "passed"
         },
         {
-          "name": "test_pipeline_cost_breakdown",
-          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_cost_breakdown",
+          "name": "test_load_nonexistent_research",
+          "fullName": "tests/test_research_cache.py::TestResearchCache::test_load_nonexistent_research",
           "state": "passed"
         },
         {
-          "name": "test_pipeline_handles_missing_blog_data",
-          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_handles_missing_blog_data",
+          "name": "test_update_existing_research",
+          "fullName": "tests/test_research_cache.py::TestResearchCache::test_update_existing_research",
           "state": "passed"
         },
         {
-          "name": "test_pipeline_handles_invalid_platform",
-          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_handles_invalid_platform",
+          "name": "test_save_without_config",
+          "fullName": "tests/test_research_cache.py::TestResearchCache::test_save_without_config",
+          "state": "passed"
+        },
+        {
+          "name": "test_delete_research",
+          "fullName": "tests/test_research_cache.py::TestResearchCache::test_delete_research",
+          "state": "failed",
+          "errors": [
+            {
+              "message": "tests/test_research_cache.py:206: in test_delete_research\n    assert deleted_count == 1\nE   assert 0 == 1"
+            }
+          ]
+        },
+        {
+          "name": "test_save_load_with_file_db",
+          "fullName": "tests/test_research_cache.py::TestIntegration::test_save_load_with_file_db",
+          "state": "passed"
+        },
+        {
+          "name": "test_concurrent_access",
+          "fullName": "tests/test_research_cache.py::TestIntegration::test_concurrent_access",
           "state": "passed"
         }
       ]

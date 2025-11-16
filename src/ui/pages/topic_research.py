@@ -648,11 +648,11 @@ def render_competitor_analysis_tab():
     st.divider()
 
     # Input form
-    topic = st.text_input(
-        "Research Topic or Niche",
-        placeholder="e.g., property management software, sustainable fashion, AI content tools",
-        help="Your business topic or industry niche for competitor analysis",
-        key="competitor_topic"
+    website_url = st.text_input(
+        "Your Website URL",
+        placeholder="e.g., signcasa.de, notion.so, zapier.com",
+        help="Your website URL for competitor analysis",
+        key="competitor_website_url"
     )
 
     col1, col2, col3 = st.columns(3)
@@ -685,11 +685,11 @@ def render_competitor_analysis_tab():
 
     # What happens next
     what_happens_next([
-        "🔍 AI identifies top competitors in your niche using Google Search",
-        "📊 Analyzes their content strategy, topics, and social presence",
-        "🎯 Identifies content gaps and opportunities",
-        "📈 Finds trending topics in your market",
-        "💡 Provides strategic recommendations"
+        "🌐 AI analyzes your website to extract keywords and understand your niche",
+        "🔍 Identifies top competitors in your market using Google Search",
+        "📊 Analyzes their content strategy, topics, and posting patterns",
+        "🎯 Identifies content gaps and opportunities you can exploit",
+        "💡 Provides strategic recommendations and topic ideas"
     ])
 
     # Analysis button
@@ -701,7 +701,7 @@ def render_competitor_analysis_tab():
     )
 
     # Process analysis
-    if analyze_button and topic:
+    if analyze_button and website_url:
         # Check API key
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
@@ -713,34 +713,49 @@ def render_competitor_analysis_tab():
         status_text = st.empty()
 
         try:
-            # Initialize agent
-            status_text.text("Initializing competitor research agent...")
+            # Step 1: Extract keywords from website
+            status_text.text(f"📊 Analyzing website: {website_url}...")
             progress_bar.progress(10)
 
+            from src.orchestrator.hybrid_research_orchestrator import HybridResearchOrchestrator
+            orchestrator = HybridResearchOrchestrator()
+
+            import asyncio
+            keywords_result = asyncio.run(orchestrator.extract_website_keywords(website_url))
+
+            # Build topic from keywords
+            top_keywords = keywords_result.get("keywords", [])[:5]
+            topic = " ".join(top_keywords) if top_keywords else website_url
+
+            progress_bar.progress(25)
+            status_text.text("✅ Website analyzed! Researching competitors...")
+
+            # Step 2: Initialize competitor agent
             agent = CompetitorResearchAgent(
                 api_key=api_key,
                 use_cli=False,  # Use API with grounding (more reliable)
                 model="gemini-2.5-flash"
             )
 
-            # Run analysis
-            status_text.text(f"Analyzing competitors for '{topic}'...")
-            progress_bar.progress(30)
+            # Step 3: Run competitor analysis
+            status_text.text(f"🔍 Finding competitors for: {topic}...")
+            progress_bar.progress(40)
 
-            result = agent.research_competitors(
+            result = asyncio.run(agent.research_competitors_async(
                 topic=topic,
                 language=language,
                 max_competitors=max_competitors,
                 include_content_analysis=include_content_analysis,
                 save_to_cache=False
-            )
+            ))
 
             progress_bar.progress(90)
             status_text.text("Analysis complete! Displaying results...")
 
-            # Store in session state
+            # Store in session state (use different key to avoid widget conflict)
             st.session_state.competitor_result = result
-            st.session_state.competitor_topic = topic
+            st.session_state.competitor_analysis_topic = website_url
+            st.session_state.competitor_keywords = top_keywords
 
             progress_bar.progress(100)
             status_text.text("✅ Competitor analysis complete!")
@@ -899,7 +914,7 @@ def render_competitor_analysis_tab():
         with col3:
             if st.button("🗑️ Clear Results", use_container_width=True):
                 st.session_state.competitor_result = None
-                st.session_state.competitor_topic = None
+                st.session_state.competitor_analysis_topic = None
                 st.rerun()
 
 
@@ -1069,7 +1084,7 @@ def render_keyword_research_tab():
 
             # Store in session state
             st.session_state.keyword_result = result
-            st.session_state.keyword_seed = seed_keyword
+            st.session_state.keyword_research_seed = seed_keyword
 
             progress_bar.progress(100)
             status_text.text("✅ Keyword research complete!")
@@ -1097,7 +1112,7 @@ def render_keyword_research_tab():
     # Display results
     if st.session_state.get("keyword_result"):
         st.divider()
-        st.subheader(f"📊 Results for '{st.session_state.get('keyword_seed', 'Unknown')}'")
+        st.subheader(f"📊 Results for '{st.session_state.get('keyword_research_seed', 'Unknown')}'")
 
         result = st.session_state.keyword_result
         primary = result.get("primary_keyword", {})
@@ -1282,7 +1297,7 @@ def render_keyword_research_tab():
         with col3:
             if st.button("🗑️ Clear Results", use_container_width=True, key="clear_keywords_btn"):
                 st.session_state.keyword_result = None
-                st.session_state.keyword_seed = None
+                st.session_state.keyword_research_seed = None
                 st.rerun()
 
 

@@ -291,6 +291,159 @@ class GeminiAgent:
             logger.error(f"Gemini generation failed: {e}")
             raise GeminiAgentError(f"Generation failed: {e}") from e
 
+    async def generate_async(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        response_schema: Optional[Dict[str, Any]] = None,
+        enable_grounding: Optional[bool] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate text using Gemini API with optional grounding (ASYNC version).
+
+        Args:
+            prompt: User prompt
+            system_prompt: Optional system instructions
+            response_schema: JSON schema for structured output (JSON object schema)
+            enable_grounding: Override default grounding setting
+            temperature: Override default temperature
+            max_tokens: Override default max tokens
+
+        Returns:
+            Dict with:
+                - content: Generated text or structured JSON
+                - grounding_metadata: Citations and sources (if grounding enabled)
+                - tokens: Token usage
+                - cost: Estimated cost in USD
+
+        Raises:
+            GeminiAgentError: If generation fails
+        """
+        logger.info(
+            f"Generating with Gemini (ASYNC): model={self.model_name}, "
+            f"prompt_length={len(prompt)}, "
+            f"grounding={enable_grounding if enable_grounding is not None else self.enable_grounding}"
+        )
+
+        # Use overrides or defaults
+        use_grounding = enable_grounding if enable_grounding is not None else self.enable_grounding
+        temp = temperature if temperature is not None else self.temperature
+        tokens = max_tokens if max_tokens is not None else self.max_tokens
+
+        try:
+            # Build tools (grounding) - new SDK uses google_search
+            # NOTE: Gemini API doesn't support tools + JSON schema simultaneously
+            # WORKAROUND: Use grounding + JSON-in-prompt, then parse manually
+            tools = None
+            use_json_in_prompt = False
+
+            if use_grounding and response_schema:
+                # WORKAROUND: Request JSON in prompt instead of schema
+                logger.info(
+                    "grounding_with_json_workaround",
+                    message="Using grounding + JSON-in-prompt workaround (Gemini API limitation)"
+                )
+                tools = [types.Tool(google_search=types.GoogleSearch())]
+                use_json_in_prompt = True
+            elif use_grounding:
+                # Normal grounding without JSON schema
+                tools = [types.Tool(google_search=types.GoogleSearch())]
+
+            # Combine system prompt and user prompt
+            full_prompt = prompt
+            if system_prompt:
+                full_prompt = f"{system_prompt}\n\n{prompt}"
+
+            # Add JSON schema instructions to prompt (workaround)
+            if use_json_in_prompt and response_schema:
+                json_instructions = schema_to_json_prompt(response_schema)
+                full_prompt = f"{full_prompt}\n\n{json_instructions}"
+
+            # Build generation config (new SDK)
+            config = types.GenerateContentConfig(
+                temperature=temp,
+                max_output_tokens=tokens,
+                # Only use response_schema if NOT using JSON-in-prompt workaround
+                response_mime_type="application/json" if (response_schema and not use_json_in_prompt) else None,
+                response_schema=response_schema if not use_json_in_prompt else None,
+                tools=tools
+            )
+
+            # Generate content (ASYNC - new SDK API)
+            logger.info("gemini_api_call_starting_async", model=self.model_name, grounding=use_grounding)
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=full_prompt,
+                config=config
+            )
+            logger.info("gemini_api_call_completed_async", model=self.model_name)
+
+            # Extract content
+            content = response.text
+            logger.info("gemini_response_text_extracted", content_length=len(content) if content else 0)
+
+            if not content or not content.strip():
+                raise GeminiAgentError("Empty response from Gemini API")
+
+            # Extract grounding metadata FIRST (new SDK: in candidates[0])
+            # Do this before JSON parsing to ensure metadata is always available
+            grounding_metadata = None
+            if response.candidates and len(response.candidates) > 0:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'grounding_metadata') and candidate.grounding_metadata:
+                    grounding_metadata = self._extract_grounding_metadata(candidate.grounding_metadata)
+
+            # Parse JSON if using workaround
+            if use_json_in_prompt and response_schema:
+                logger.debug("parsing_json_from_grounded_response")
+                try:
+                    # Extract JSON from response (may have extra text)
+                    parsed_json = extract_json_from_text(content, response_schema)
+                    # Convert back to JSON string for consistency
+                    content = json.dumps(parsed_json, ensure_ascii=False)
+                    logger.info("json_parsed_successfully", keys=list(parsed_json.keys()))
+                except Exception as e:
+                    logger.error("json_parsing_failed", error=str(e), content_preview=content[:300])
+                    # Don't fail - return raw content and let caller handle it
+                    logger.warning("returning_raw_content_due_to_parse_error")
+
+            # Extract token usage
+            tokens_used = {
+                'prompt': response.usage_metadata.prompt_token_count if response.usage_metadata else 0,
+                'completion': response.usage_metadata.candidates_token_count if response.usage_metadata else 0,
+                'total': response.usage_metadata.total_token_count if response.usage_metadata else 0
+            }
+
+            # Calculate cost
+            cost = self._calculate_cost(
+                input_tokens=tokens_used['prompt'],
+                output_tokens=tokens_used['completion']
+            )
+
+            logger.info(
+                f"Generated successfully (ASYNC): "
+                f"tokens={tokens_used['total']}, "
+                f"cost=${cost:.4f}, "
+                f"grounded={grounding_metadata is not None}"
+            )
+
+            result = {
+                'content': content,
+                'tokens': tokens_used,
+                'cost': cost
+            }
+
+            if grounding_metadata:
+                result['grounding_metadata'] = grounding_metadata
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Gemini generation failed (ASYNC): {e}")
+            raise GeminiAgentError(f"Generation failed: {e}") from e
+
     def _extract_grounding_metadata(self, metadata) -> Dict[str, Any]:
         """
         Extract grounding metadata (sources, citations).

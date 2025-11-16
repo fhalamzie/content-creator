@@ -36,6 +36,7 @@ from src.orchestrator.cost_tracker import CostTracker, APIType
 from src.research.backends.exceptions import RateLimitError
 from src.research.backends.tavily_backend import TavilyBackend
 from src.database.sqlite_manager import SQLiteManager
+from src.utils.research_cache import save_research_to_cache
 from src.processors.deduplicator import Deduplicator
 from src.collectors.autocomplete_collector import AutocompleteCollector, ExpansionType
 from src.collectors.trends_collector import TrendsCollector
@@ -1875,6 +1876,20 @@ Return JSON:
             logger.info("synthesis_complete", word_count=synthesis_result.get("word_count", 0), image_cost=image_cost)
 
         duration = (datetime.now() - start_time).total_seconds()
+
+        # Save research to cache for reuse (if article generated)
+        if article and sources:
+            try:
+                topic_id = save_research_to_cache(
+                    topic=topic,
+                    research_article=article,
+                    sources=sources,
+                    config=config
+                )
+                logger.info("research_cached", topic_id=topic_id, word_count=len(article.split()))
+            except Exception as e:
+                logger.warning("failed_to_cache_research", topic=topic, error=str(e))
+                # Don't fail the pipeline if caching fails (non-critical)
 
         return {
             "topic": topic,
