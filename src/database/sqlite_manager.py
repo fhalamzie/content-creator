@@ -315,6 +315,38 @@ class SQLiteManager:
                 )
             """)
 
+            # Sources table (global source cache with quality tracking)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS sources (
+                    url TEXT PRIMARY KEY,
+                    domain TEXT NOT NULL,
+                    title TEXT,
+                    content_preview TEXT,  -- First 500 chars for quick relevance check
+
+                    -- Fetch tracking
+                    first_fetched_at TIMESTAMP NOT NULL,
+                    last_fetched_at TIMESTAMP NOT NULL,
+                    fetch_count INTEGER DEFAULT 1,
+
+                    -- Usage tracking (how many topics used this source)
+                    topic_ids TEXT,  -- JSON array of topic IDs
+                    usage_count INTEGER DEFAULT 0,
+
+                    -- Quality metrics (E-E-A-T signals)
+                    quality_score REAL DEFAULT 0.5,  -- 0-1 scale
+                    e_e_a_t_signals TEXT,  -- JSON: {domain_authority, publication_type, freshness_decay}
+
+                    -- Metadata
+                    author TEXT,
+                    published_at TIMESTAMP,
+
+                    -- Status
+                    is_stale BOOLEAN DEFAULT 0,  -- TRUE if > 7 days old
+
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # Indexes for blog posts
             conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_blog_posts_status ON blog_posts(status)")
@@ -326,13 +358,19 @@ class SQLiteManager:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_platform ON social_posts(platform)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_social_posts_status ON social_posts(status)")
 
+            # Indexes for sources
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sources_domain ON sources(domain)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sources_quality ON sources(quality_score DESC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sources_freshness ON sources(last_fetched_at DESC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sources_stale ON sources(is_stale)")
+
             conn.commit()
         finally:
             # Only close if not using persistent connection
             if not self._persistent_conn:
                 conn.close()
 
-        logger.info("schema_created", tables=["documents", "topics", "research_reports", "blog_posts", "social_posts"])
+        logger.info("schema_created", tables=["documents", "topics", "research_reports", "blog_posts", "social_posts", "sources"])
 
         # Run migrations for existing databases
         self._run_migrations()
