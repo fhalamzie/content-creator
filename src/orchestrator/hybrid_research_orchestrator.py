@@ -613,10 +613,11 @@ Return in strict JSON format matching the schema below."""
                 "required": ["competitors", "additional_keywords", "market_topics"]
             }
 
-            # Call Gemini API with grounding (synchronous method)
+            # Call Gemini API with grounding (synchronous method wrapped for async)
             logger.info("calling_gemini_api", grounding=True)
             try:
-                result_raw = self.gemini_agent.generate(
+                result_raw = await asyncio.to_thread(
+                    self.gemini_agent.generate,
                     prompt=prompt,
                     response_schema=response_schema
                 )
