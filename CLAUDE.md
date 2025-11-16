@@ -40,9 +40,10 @@ This project follows the global development guidelines from `~/.claude/CLAUDE.md
 Use `/init` to load:
 1. README.md - Project overview
 2. ARCHITECTURE.md - Current MVP architecture
-3. CHANGELOG.md - Recent work (Sessions 047-049: Image generation optimization)
+3. CHANGELOG.md - Recent work
 4. TASKS.md - Current priorities
-5. TARGET_ARCHITECTURE.md (optional) - Production SaaS plan
+
+**Optional**: TARGET_ARCHITECTURE.md - Production SaaS plan (read only when planning migration)
 
 ### Migration Strategy
 - Keep existing agents (research, writing, image generation)

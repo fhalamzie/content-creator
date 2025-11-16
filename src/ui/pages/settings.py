@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from ui.components.help import feature_explanation
 
 # Paths
-ENV_FILE = find_dotenv() or Path(__file__).parent.parent.parent.parent / ".env"
+ENV_FILE = Path(find_dotenv() or Path(__file__).parent.parent.parent.parent / ".env")
 CACHE_DIR = Path(__file__).parent.parent.parent.parent / "cache"
 CONFIG_FILE = CACHE_DIR / "project_config.json"
 

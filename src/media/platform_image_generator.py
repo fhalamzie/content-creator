@@ -36,6 +36,7 @@ Usage:
 """
 
 import base64
+import hashlib
 from typing import Dict, List, Optional
 from PIL import Image
 import io
@@ -250,7 +251,7 @@ class PlatformImageGenerator:
         platform: str
     ) -> Dict:
         """
-        Generate OG image using Pillow
+        Generate OG image using Pillow and upload to S3
 
         Args:
             topic: Blog post title
@@ -272,19 +273,69 @@ class PlatformImageGenerator:
                 logo_path=logo_path
             )
 
-            # Convert to base64 data URL for easy storage
-            b64_data = base64.b64encode(img_bytes).decode('utf-8')
-            data_url = f"data:image/png;base64,{b64_data}"
+            # Upload to S3 instead of storing base64
+            try:
+                from src.media.s3_uploader import get_s3_uploader
+                import re
 
-            logger.info(
-                "og_image_generated_for_platform",
-                platform=platform,
-                size_kb=len(img_bytes) / 1024
-            )
+                # Create slug from topic
+                slug = topic.lower()
+                replacements = {
+                    'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss',
+                    'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a',
+                    'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e',
+                    'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i',
+                    'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o',
+                    'ù': 'u', 'ú': 'u', 'û': 'u',
+                    'ñ': 'n', 'ç': 'c'
+                }
+                for char, replacement in replacements.items():
+                    slug = slug.replace(char, replacement)
+                slug = re.sub(r'[^\w\s-]', '', slug)
+                slug = re.sub(r'[\s_]+', '-', slug)
+                slug = re.sub(r'-+', '-', slug)
+                slug = slug.strip('-')
+
+                # Create structured path
+                user_id = "default"  # Single-user MVP
+                platform_lower = platform.lower()
+                filename = f"{user_id}/{slug}/platform/{platform_lower}_og.png"
+
+                # Convert to base64 for uploader
+                b64_data = base64.b64encode(img_bytes).decode('utf-8')
+                data_url = f"data:image/png;base64,{b64_data}"
+
+                # Upload to S3
+                uploader = get_s3_uploader()
+                s3_url = uploader.upload_base64_image(
+                    data_url,
+                    filename=filename,
+                    content_type="image/png"
+                )
+
+                logger.info(
+                    "og_image_uploaded_to_s3",
+                    platform=platform,
+                    s3_url=s3_url,
+                    path=filename,
+                    size_kb=len(img_bytes) / 1024
+                )
+
+                final_url = s3_url
+
+            except Exception as upload_error:
+                # Fallback to base64 if S3 upload fails
+                logger.warning(
+                    "s3_upload_failed_using_base64",
+                    platform=platform,
+                    error=str(upload_error)
+                )
+                b64_data = base64.b64encode(img_bytes).decode('utf-8')
+                final_url = f"data:image/png;base64,{b64_data}"
 
             return {
                 "success": True,
-                "url": data_url,  # Base64 data URL
+                "url": final_url,  # S3 URL or base64 fallback
                 "format": "png",
                 "size": {"width": 1200, "height": 630},
                 "cost": 0.0,  # Pillow is free

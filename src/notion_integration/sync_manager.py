@@ -711,11 +711,15 @@ class SyncManager:
             if not hero_inserted and hero_url:
                 if first_heading_idx >= 0 and idx == first_heading_idx:
                     # Insert after first heading
-                    result_blocks.append(self._create_image_block(hero_url))
+                    hero_block = self._create_image_block(hero_url)
+                    if hero_block:
+                        result_blocks.append(hero_block)
                     hero_inserted = True
                 elif first_heading_idx < 0 and idx == 0:
                     # No heading found, insert at beginning (after first block)
-                    result_blocks.append(self._create_image_block(hero_url))
+                    hero_block = self._create_image_block(hero_url)
+                    if hero_block:
+                        result_blocks.append(hero_block)
                     hero_inserted = True
 
             # Insert supporting images at intervals
@@ -723,24 +727,30 @@ class SyncManager:
                 supporting_insert_counter += 1
                 if supporting_insert_counter >= supporting_interval:
                     supporting_img = supporting[next_supporting_idx]
-                    result_blocks.append(self._create_image_block(
+                    img_block = self._create_image_block(
                         supporting_img.get('url'),
                         supporting_img.get('alt')
-                    ))
+                    )
+                    if img_block:
+                        result_blocks.append(img_block)
                     next_supporting_idx += 1
                     supporting_insert_counter = 0
 
         # If hero image wasn't inserted yet, add it at the beginning
         if not hero_inserted and hero_url:
-            result_blocks.insert(0, self._create_image_block(hero_url))
+            hero_block = self._create_image_block(hero_url)
+            if hero_block:
+                result_blocks.insert(0, hero_block)
 
         # Add any remaining supporting images at the end
         while next_supporting_idx < len(supporting):
             supporting_img = supporting[next_supporting_idx]
-            result_blocks.append(self._create_image_block(
+            img_block = self._create_image_block(
                 supporting_img.get('url'),
                 supporting_img.get('alt')
-            ))
+            )
+            if img_block:
+                result_blocks.append(img_block)
             next_supporting_idx += 1
 
         logger.info(
@@ -751,7 +761,7 @@ class SyncManager:
 
         return result_blocks
 
-    def _create_image_block(self, url: str, caption: Optional[str] = None) -> Dict[str, Any]:
+    def _create_image_block(self, url: str, caption: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Create a Notion image block.
 
@@ -760,8 +770,23 @@ class SyncManager:
             caption: Optional image caption
 
         Returns:
-            Notion image block object
+            Notion image block object, or None if URL is invalid
         """
+        # Validate URL
+        if not url:
+            logger.warning("Skipping image block: empty URL")
+            return None
+
+        # Skip base64 data URLs (too long for Notion, 2000 char limit)
+        if url.startswith('data:'):
+            logger.warning(f"Skipping base64 image (length: {len(url)} chars, Notion limit: 2000)")
+            return None
+
+        # Check URL length (Notion limit: 2000 characters)
+        if len(url) > 2000:
+            logger.warning(f"Skipping image with URL too long: {len(url)} chars (Notion limit: 2000)")
+            return None
+
         block = {
             'object': 'block',
             'type': 'image',

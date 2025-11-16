@@ -639,8 +639,7 @@ def render_competitor_analysis_tab():
     col1, col2 = st.columns(2)
     with col1:
         cost_estimate(
-            cost_usd=0.0,
-            description="FREE (Gemini API with Google Search grounding)"
+            base_cost=0.0
         )
     with col2:
         time_estimate(
@@ -934,8 +933,7 @@ def render_keyword_research_tab():
     col1, col2 = st.columns(2)
     with col1:
         cost_estimate(
-            cost_usd=0.0,
-            description="FREE (Gemini API with Google Search grounding)"
+            base_cost=0.0
         )
     with col2:
         time_estimate(

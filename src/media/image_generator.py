@@ -43,6 +43,7 @@ Example:
 
 import os
 import asyncio
+import re
 from typing import List, Optional, Dict
 from openai import AsyncOpenAI
 import replicate
@@ -219,6 +220,128 @@ class ImageGenerator:
                 logger.warning("failed_to_load_chutes_key", error=str(e))
 
         return None
+
+    def _create_slug(self, topic: str) -> str:
+        """
+        Create URL-safe slug from topic.
+
+        Args:
+            topic: Article topic (e.g., "Laktoseintoleranz und Laktase")
+
+        Returns:
+            Lowercase slug with hyphens (e.g., "laktoseintoleranz-und-laktase")
+        """
+        # Convert to lowercase
+        slug = topic.lower()
+
+        # Replace umlauts and special characters
+        replacements = {
+            'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss',
+            'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a',
+            'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e',
+            'ì': 'i', 'í': 'i', 'î': 'i', 'ï': 'i',
+            'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o',
+            'ù': 'u', 'ú': 'u', 'û': 'u',
+            'ñ': 'n', 'ç': 'c'
+        }
+        for char, replacement in replacements.items():
+            slug = slug.replace(char, replacement)
+
+        # Remove all non-alphanumeric characters except spaces and hyphens
+        slug = re.sub(r'[^\w\s-]', '', slug)
+
+        # Replace spaces with hyphens
+        slug = re.sub(r'[\s_]+', '-', slug)
+
+        # Remove consecutive hyphens
+        slug = re.sub(r'-+', '-', slug)
+
+        # Strip leading/trailing hyphens
+        slug = slug.strip('-')
+
+        return slug
+
+    async def _download_and_upload_to_s3(
+        self,
+        url: str,
+        topic: str,
+        image_type: str,
+        suffix: str = ""
+    ) -> Optional[str]:
+        """
+        Download image from URL and upload to S3.
+
+        Args:
+            url: Source URL (e.g., Replicate CDN)
+            topic: Article topic for folder structure
+            image_type: Type of image (hero, supporting, platform)
+            suffix: Optional suffix for filename (e.g., hash for supporting images)
+
+        Returns:
+            S3 public URL or None if upload failed
+        """
+        try:
+            from .s3_uploader import get_s3_uploader
+            import base64
+
+            # Download image from URL
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                image_bytes = response.content
+
+            # Detect content type from response headers
+            content_type = response.headers.get('content-type', 'image/png')
+
+            # Create structured path: {user_id}/{article-slug}/{type}/{filename}
+            article_slug = self._create_slug(topic)
+            user_id = "default"  # Single-user MVP, will be user_id in SaaS
+
+            # Determine file extension
+            ext = '.png' if 'png' in content_type else '.jpg'
+
+            # Create filename based on type
+            if image_type == "hero":
+                filename = f"{user_id}/{article_slug}/hero{ext}"
+            elif image_type == "supporting":
+                filename = f"{user_id}/{article_slug}/supporting/{suffix}{ext}"
+            elif image_type == "platform":
+                filename = f"{user_id}/{article_slug}/platform/{suffix}{ext}"
+            else:
+                filename = f"{user_id}/{article_slug}/{image_type}/{suffix}{ext}"
+
+            # Convert to base64 for uploader
+            b64_data = base64.b64encode(image_bytes).decode('utf-8')
+            data_url = f"data:{content_type};base64,{b64_data}"
+
+            # Upload to B2
+            uploader = get_s3_uploader()
+            public_url = uploader.upload_base64_image(
+                data_url,
+                filename=filename,
+                content_type=content_type
+            )
+
+            logger.info(
+                "image_uploaded_to_s3",
+                image_type=image_type,
+                original_url=url[:100],
+                s3_url=public_url,
+                path=filename,
+                size=len(image_bytes)
+            )
+
+            return public_url
+
+        except Exception as e:
+            logger.error(
+                "s3_upload_failed_using_replicate_url",
+                image_type=image_type,
+                error=str(e),
+                original_url=url[:100]
+            )
+            # Fallback to original URL if S3 upload fails
+            return url
 
     async def _expand_prompt_with_llm(
         self,
@@ -642,18 +765,25 @@ Output ONLY the prompt in English, no explanations or quotes."""
         )
 
         # Generate with retry (includes Qwen prompt expansion + Flux)
-        url = await self._generate_with_retry(
+        replicate_url = await self._generate_with_retry(
             prompt=prompt,
             aspect_ratio="16:9",
             topic=topic
         )
 
-        if url is None:
+        if replicate_url is None:
             return {"success": False, "cost": 0.0}
+
+        # Upload to S3 for permanent storage
+        s3_url = await self._download_and_upload_to_s3(
+            url=replicate_url,
+            topic=topic,
+            image_type="hero"
+        )
 
         return {
             "success": True,
-            "url": url,
+            "url": s3_url,  # S3 URL instead of Replicate URL
             "alt_text": f"Hero image for {topic}",
             "aspect_ratio": "16:9",
             "resolution": "2048x2048 (up to 4MP)",
@@ -711,15 +841,26 @@ Output ONLY the prompt in English, no explanations or quotes."""
         )
 
         # Generate with retry (includes Qwen prompt expansion + Flux Dev)
-        url = await self._generate_with_retry(
+        replicate_url = await self._generate_with_retry(
             prompt=prompt,
             aspect_ratio=aspect_ratio,
             topic=topic_with_aspect,
             use_dev_model=True  # Use budget model for supporting images
         )
 
-        if url is None:
+        if replicate_url is None:
             return None
+
+        # Upload to S3 for permanent storage
+        # Use aspect as suffix to distinguish multiple supporting images
+        import hashlib
+        aspect_hash = hashlib.sha256(aspect.encode()).hexdigest()[:8]
+        s3_url = await self._download_and_upload_to_s3(
+            url=replicate_url,
+            topic=topic,
+            image_type="supporting",
+            suffix=f"{aspect_hash}"
+        )
 
         # Calculate resolution based on aspect ratio
         if aspect_ratio == "1:1":
@@ -730,7 +871,7 @@ Output ONLY the prompt in English, no explanations or quotes."""
             resolution = f"~2MP ({aspect_ratio})"
 
         return {
-            "url": url,
+            "url": s3_url,  # S3 URL instead of Replicate URL
             "alt_text": f"Supporting image for {topic} - {aspect}",
             "aspect_ratio": aspect_ratio,
             "resolution": resolution,
@@ -955,16 +1096,59 @@ Output ONLY the prompt in English, no explanations or quotes."""
 
         # Process results
         comparison_images = []
+        # Create structured path: default/{article-slug}/comparison/{model}_{hash}.jpg
+        article_slug = self._create_slug(topic)
+        user_id = "default"  # Single-user MVP, will be user_id in SaaS
+
         for model, result in zip(models, results):
             if isinstance(result, bytes):
-                # Convert bytes to base64 data URL
-                import base64
-                b64_data = base64.b64encode(result).decode('utf-8')
-                data_url = f"data:image/jpeg;base64,{b64_data}"
+                # Upload to B2 instead of storing base64
+                try:
+                    from .s3_uploader import get_s3_uploader
+                    import base64
+                    import hashlib
+
+                    # Create unique filename from content hash
+                    content_hash = hashlib.sha256(result).hexdigest()[:16]
+                    filename = f"{user_id}/{article_slug}/comparison/{model['name'].lower()}_{content_hash}.jpg"
+
+                    # Convert bytes to base64 for uploader
+                    b64_data = base64.b64encode(result).decode('utf-8')
+                    data_url = f"data:image/jpeg;base64,{b64_data}"
+
+                    # Upload to B2
+                    uploader = get_s3_uploader()
+                    public_url = uploader.upload_base64_image(
+                        data_url,
+                        filename=filename,
+                        content_type="image/jpeg"
+                    )
+
+                    logger.info(
+                        "chutes_model_uploaded_to_b2",
+                        model=model["name"],
+                        url=public_url,
+                        path=filename,
+                        size=len(result)
+                    )
+
+                    # Use B2 public URL instead of base64
+                    final_url = public_url
+
+                except Exception as upload_error:
+                    # Fallback to base64 if B2 upload fails
+                    logger.warning(
+                        "chutes_b2_upload_failed_using_base64",
+                        model=model["name"],
+                        error=str(upload_error)
+                    )
+                    import base64
+                    b64_data = base64.b64encode(result).decode('utf-8')
+                    final_url = f"data:image/jpeg;base64,{b64_data}"
 
                 comparison_images.append({
                     "success": True,
-                    "url": data_url,
+                    "url": final_url,
                     "alt_text": f"{topic} - {model['label']}",
                     "model": model["name"],
                     "label": model["label"],
