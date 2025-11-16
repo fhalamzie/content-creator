@@ -668,10 +668,11 @@ Output ONLY the prompt in English, no explanations or quotes."""
         aspect: str,
         domain: Optional[str] = None,
         keywords: Optional[str] = None,
-        themes: Optional[List[str]] = None
+        themes: Optional[List[str]] = None,
+        aspect_ratio: str = "1:1"
     ) -> Optional[Dict]:
         """
-        Generate supporting image with Flux Dev (1:1, ~2MP, $0.003)
+        Generate supporting image with Flux Dev (~2MP, $0.003)
 
         Uses budget Flux Dev model for supporting images (95% cheaper than Ultra).
         Quality is still good, just not premium 4MP like hero images.
@@ -683,6 +684,7 @@ Output ONLY the prompt in English, no explanations or quotes."""
             domain: Domain/vertical (not used currently)
             keywords: Key concepts (not used currently)
             themes: Main themes (not used currently)
+            aspect_ratio: Image aspect ratio (1:1 for Instagram, 9:16 for TikTok, default: 1:1)
 
         Returns:
             Dict with url, alt_text, aspect_ratio, cost or None if failed
@@ -691,6 +693,7 @@ Output ONLY the prompt in English, no explanations or quotes."""
             "generating_flux_supporting_image",
             topic=topic,
             aspect=aspect,
+            aspect_ratio=aspect_ratio,
             model="flux-dev"
         )
 
@@ -710,7 +713,7 @@ Output ONLY the prompt in English, no explanations or quotes."""
         # Generate with retry (includes Qwen prompt expansion + Flux Dev)
         url = await self._generate_with_retry(
             prompt=prompt,
-            aspect_ratio="1:1",
+            aspect_ratio=aspect_ratio,
             topic=topic_with_aspect,
             use_dev_model=True  # Use budget model for supporting images
         )
@@ -718,11 +721,19 @@ Output ONLY the prompt in English, no explanations or quotes."""
         if url is None:
             return None
 
+        # Calculate resolution based on aspect ratio
+        if aspect_ratio == "1:1":
+            resolution = "~2048x2048 (~2MP)"
+        elif aspect_ratio == "9:16":
+            resolution = "~1080x1920 (~2MP)"
+        else:
+            resolution = f"~2MP ({aspect_ratio})"
+
         return {
             "url": url,
             "alt_text": f"Supporting image for {topic} - {aspect}",
-            "aspect_ratio": "1:1",
-            "resolution": "~2048x2048 (~2MP)",
+            "aspect_ratio": aspect_ratio,
+            "resolution": resolution,
             "model": "Flux Dev",
             "cost": self.COST_DEV
         }

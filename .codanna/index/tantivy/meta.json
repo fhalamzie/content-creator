@@ -8,8 +8,8 @@
       "segment_id": "0813db86-b39a-49ab-90bc-13dd0c33c0b5",
       "max_doc": 1519,
       "deletes": {
-        "num_deleted_docs": 81,
-        "opstamp": 11833
+        "num_deleted_docs": 116,
+        "opstamp": 11941
       }
     },
     {
@@ -24,8 +24,8 @@
       "segment_id": "9b110cb0-9d09-4c55-baec-f6b4f126978c",
       "max_doc": 1319,
       "deletes": {
-        "num_deleted_docs": 53,
-        "opstamp": 11833
+        "num_deleted_docs": 83,
+        "opstamp": 11941
       }
     },
     {
@@ -48,8 +48,8 @@
       "segment_id": "bc5584af-cfe7-4efd-98fa-a4ad03d2b365",
       "max_doc": 1131,
       "deletes": {
-        "num_deleted_docs": 62,
-        "opstamp": 11833
+        "num_deleted_docs": 83,
+        "opstamp": 11941
       }
     },
     {
@@ -97,18 +97,49 @@
       "deletes": null
     },
     {
+      "segment_id": "b5e66c07-8338-4972-bfee-84e4784e5659",
+      "max_doc": 51,
+      "deletes": null
+    },
+    {
+      "segment_id": "c10359ef-b754-4324-b737-06c9a0164e7e",
+      "max_doc": 30,
+      "deletes": null
+    },
+    {
       "segment_id": "2dc73e9d-638d-4718-a9d5-9e095ee10896",
       "max_doc": 28,
+      "deletes": {
+        "num_deleted_docs": 1,
+        "opstamp": 11941
+      }
+    },
+    {
+      "segment_id": "17e09239-81e9-4615-9731-b8ae5b02d507",
+      "max_doc": 21,
       "deletes": null
     },
     {
       "segment_id": "7a8d10aa-b0a9-4241-bedd-9838a447124f",
       "max_doc": 13,
-      "deletes": null
+      "deletes": {
+        "num_deleted_docs": 1,
+        "opstamp": 11941
+      }
     },
     {
       "segment_id": "60a08463-d83b-498b-9485-8b9db7816f0e",
       "max_doc": 12,
+      "deletes": null
+    },
+    {
+      "segment_id": "57f25847-8659-4ba9-a236-45801a5d9d2e",
+      "max_doc": 1,
+      "deletes": null
+    },
+    {
+      "segment_id": "078d9415-c903-4b8f-a16f-0b30cb3d0700",
+      "max_doc": 1,
       "deletes": null
     },
     {
@@ -545,5 +576,5 @@
       }
     }
   ],
-  "opstamp": 11833
+  "opstamp": 11945
 }

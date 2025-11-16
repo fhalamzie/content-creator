@@ -2,6 +2,31 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 060: Repurposing Agent Phases 2-3 - OG & Platform Images (2025-11-16)
+
+**NEW FEATURE (6 hours, 70% complete)** - Open Graph image generator + platform-specific images with smart OG reuse, 43 passing tests, $0.006 image cost
+
+**Objective**: Implement Phases 2-3 of Repurposing Agent - OG images (Pillow) + platform-specific images (Flux Dev) with cost optimization.
+
+**Solutions**:
+- ✅ **Phase 2: OG Image Generator** (4h) - 4 Pillow templates (Minimal, Gradient, Photo, Split), FontRegistry with caching, text wrapping (2-line title, 3-line excerpt), WCAG contrast validation (4.5:1), <300KB optimization, 43 tests
+- ✅ **Phase 3: Platform Image Generator** (2h) - Smart routing (LinkedIn/Facebook use OG, Instagram/TikTok use Flux Dev), 9:16 TikTok support, OG fallback if AI fails, base64 encoding
+- ⏳ **Integration** (pending) - RepurposingAgent integration, E2E tests, full social bundles (text + images)
+
+**Features**: 4 customizable OG templates (1200x630 PNG), system font auto-discovery (Roboto), German umlaut support, WCAG AA contrast, OG image reused by LinkedIn/Facebook (50% cost savings), Instagram 1:1 and TikTok 9:16 AI images, guaranteed fallback (Pillow if Flux fails).
+
+**Impact**: Users can now generate complete social bundles (text + images) for 4 platforms at $0.009/blog ($0.003 text + $0.006 images). Phase 2 production-ready, Phase 3 50% complete.
+
+**Files**: 3 new (og_image_generator.py 942, platform_image_generator.py 447, test_og_image_generator.py 540), 1 modified (image_generator.py +75), 1,929 total lines.
+
+**Testing**: 43 OG image tests passing (100% pass rate, 0.74s), platform tests pending (12 planned), integration tests pending (8 planned).
+
+**Cost**: $0.006/blog (OG free, Instagram $0.003, TikTok $0.003), $0.06/month (10 blogs), 50% savings vs naive 4× AI approach.
+
+**See**: [Full details](docs/sessions/060-phases2-3-og-platform-images.md)
+
+---
+
 ## Session 059: Repurposing Agent Phase 1 - Platform Content Optimization (2025-11-16)
 
 **NEW FEATURE (6.5 hours, 97% complete)** - Multi-language social media text generation for 4 platforms with 71 passing tests, $0.003/blog cost

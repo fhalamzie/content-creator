@@ -1,366 +1,221 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/agents/test_repurposing_agent.py",
+      "moduleId": "tests/unit/media/test_og_image_generator.py",
       "tests": [
         {
-          "name": "test_init_with_api_key_succeeds",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_with_api_key_succeeds",
+          "name": "test_get_system_font",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_get_system_font",
           "state": "passed"
         },
         {
-          "name": "test_init_without_api_key_raises_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_without_api_key_raises_error",
+          "name": "test_get_regular_font",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_get_regular_font",
           "state": "passed"
         },
         {
-          "name": "test_init_with_cache_dir_creates_cache_manager",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_with_cache_dir_creates_cache_manager",
+          "name": "test_font_caching",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_font_caching",
           "state": "passed"
         },
         {
-          "name": "test_init_without_cache_dir_no_cache_manager",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_without_cache_dir_no_cache_manager",
+          "name": "test_different_sizes_not_cached",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_different_sizes_not_cached",
           "state": "passed"
         },
         {
-          "name": "test_init_loads_prompt_template",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_loads_prompt_template",
+          "name": "test_fallback_to_default_font",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_fallback_to_default_font",
           "state": "passed"
         },
         {
-          "name": "test_init_raises_error_if_template_load_fails",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestRepurposingAgentInit::test_init_raises_error_if_template_load_fails",
+          "name": "test_invalid_weight_uses_regular",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_invalid_weight_uses_regular",
           "state": "passed"
         },
         {
-          "name": "test_generate_linkedin_content",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_generate_linkedin_content",
+          "name": "test_finds_roboto_fonts",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_finds_roboto_fonts",
           "state": "passed"
         },
         {
-          "name": "test_generate_facebook_content",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_generate_facebook_content",
+          "name": "test_cache_key_format",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_cache_key_format",
           "state": "passed"
         },
         {
-          "name": "test_generate_instagram_content",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_generate_instagram_content",
+          "name": "test_single_line_no_wrap",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_single_line_no_wrap",
           "state": "passed"
         },
         {
-          "name": "test_generate_tiktok_content",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_generate_tiktok_content",
+          "name": "test_two_line_wrap",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_two_line_wrap",
           "state": "passed"
         },
         {
-          "name": "test_content_truncated_if_exceeds_character_limit",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_content_truncated_if_exceeds_character_limit",
+          "name": "test_truncation_with_ellipsis",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_truncation_with_ellipsis",
           "state": "passed"
         },
         {
-          "name": "test_base_agent_generate_failure_raises_repurposing_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_base_agent_generate_failure_raises_repurposing_error",
+          "name": "test_empty_text",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_empty_text",
           "state": "passed"
         },
         {
-          "name": "test_unexpected_error_wrapped_in_repurposing_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGeneratePlatformContent::test_unexpected_error_wrapped_in_repurposing_error",
+          "name": "test_german_umlauts",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_german_umlauts",
           "state": "passed"
         },
         {
-          "name": "test_generate_hashtags_from_keywords",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_generate_hashtags_from_keywords",
+          "name": "test_very_long_single_word",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_very_long_single_word",
           "state": "passed"
         },
         {
-          "name": "test_linkedin_hashtag_limit_5",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_linkedin_hashtag_limit_5",
+          "name": "test_white_on_blue_valid",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_white_on_blue_valid",
           "state": "passed"
         },
         {
-          "name": "test_facebook_hashtag_limit_3",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_facebook_hashtag_limit_3",
+          "name": "test_gray_on_light_gray_invalid",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_gray_on_light_gray_invalid",
           "state": "passed"
         },
         {
-          "name": "test_instagram_hashtag_limit_30",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_instagram_hashtag_limit_30",
+          "name": "test_black_on_white_valid",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_black_on_white_valid",
           "state": "passed"
         },
         {
-          "name": "test_tiktok_hashtag_limit_5",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_tiktok_hashtag_limit_5",
+          "name": "test_white_on_black_valid",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_white_on_black_valid",
           "state": "passed"
         },
         {
-          "name": "test_empty_keywords_returns_empty_hashtags",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_empty_keywords_returns_empty_hashtags",
+          "name": "test_luminance_calculation_white",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_luminance_calculation_white",
           "state": "passed"
         },
         {
-          "name": "test_hashtags_have_hash_prefix",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_hashtags_have_hash_prefix",
+          "name": "test_luminance_calculation_black",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_luminance_calculation_black",
           "state": "passed"
         },
         {
-          "name": "test_multi_word_keyword_becomes_camelcase",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateHashtags::test_multi_word_keyword_becomes_camelcase",
+          "name": "test_luminance_calculation_gray",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_luminance_calculation_gray",
           "state": "passed"
         },
         {
-          "name": "test_generate_all_platforms",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_generate_all_platforms",
+          "name": "test_contrast_ratio_calculation",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_contrast_ratio_calculation",
           "state": "passed"
         },
         {
-          "name": "test_generate_single_platform",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_generate_single_platform",
+          "name": "test_hex_color_parsing",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_hex_color_parsing",
           "state": "passed"
         },
         {
-          "name": "test_result_structure_contains_required_keys",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_result_structure_contains_required_keys",
+          "name": "test_create_minimal_template",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestMinimalTemplate::test_create_minimal_template",
           "state": "passed"
         },
         {
-          "name": "test_character_count_calculation",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_character_count_calculation",
+          "name": "test_minimal_template_with_logo",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestMinimalTemplate::test_minimal_template_with_logo",
           "state": "passed"
         },
         {
-          "name": "test_invalid_platform_raises_value_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_invalid_platform_raises_value_error",
+          "name": "test_minimal_template_long_title",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestMinimalTemplate::test_minimal_template_long_title",
           "state": "passed"
         },
         {
-          "name": "test_empty_platforms_list_raises_value_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_empty_platforms_list_raises_value_error",
+          "name": "test_minimal_template_custom_color",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestMinimalTemplate::test_minimal_template_custom_color",
           "state": "passed"
         },
         {
-          "name": "test_missing_blog_post_keys_raises_value_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_missing_blog_post_keys_raises_value_error",
+          "name": "test_create_gradient_template",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestGradientTemplate::test_create_gradient_template",
           "state": "passed"
         },
         {
-          "name": "test_cost_calculation_across_platforms",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_cost_calculation_across_platforms",
+          "name": "test_gradient_creates_smooth_transition",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestGradientTemplate::test_gradient_creates_smooth_transition",
           "state": "passed"
         },
         {
-          "name": "test_cache_integration_called_when_save_to_cache_true",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_cache_integration_called_when_save_to_cache_true",
+          "name": "test_create_photo_template",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestPhotoTemplate::test_create_photo_template",
           "state": "passed"
         },
         {
-          "name": "test_cache_not_called_when_save_to_cache_false",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_cache_not_called_when_save_to_cache_false",
+          "name": "test_photo_template_applies_overlay",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestPhotoTemplate::test_photo_template_applies_overlay",
           "state": "passed"
         },
         {
-          "name": "test_cache_failure_doesnt_fail_generation",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_cache_failure_doesnt_fail_generation",
+          "name": "test_photo_template_without_background",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestPhotoTemplate::test_photo_template_without_background",
           "state": "passed"
         },
         {
-          "name": "test_all_platforms_failed_raises_repurposing_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_all_platforms_failed_raises_repurposing_error",
+          "name": "test_create_split_template",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestSplitTemplate::test_create_split_template",
           "state": "passed"
         },
         {
-          "name": "test_partial_platform_failure_returns_successful_results",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_partial_platform_failure_returns_successful_results",
+          "name": "test_split_template_has_two_sections",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestSplitTemplate::test_split_template_has_two_sections",
           "state": "passed"
         },
         {
-          "name": "test_hashtags_included_in_results",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestGenerateSocialPosts::test_hashtags_included_in_results",
+          "name": "test_split_template_without_background",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestSplitTemplate::test_split_template_without_background",
           "state": "passed"
         },
         {
-          "name": "test_prompt_contains_platform_name",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_platform_name",
+          "name": "test_generate_minimal_template",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_generate_minimal_template",
           "state": "passed"
         },
         {
-          "name": "test_prompt_contains_blog_title",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_blog_title",
+          "name": "test_generate_all_templates",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_generate_all_templates",
           "state": "passed"
         },
         {
-          "name": "test_prompt_contains_excerpt",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_excerpt",
+          "name": "test_file_size_under_300kb",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_file_size_under_300kb",
           "state": "passed"
         },
         {
-          "name": "test_prompt_contains_keywords",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_keywords",
+          "name": "test_invalid_template_uses_default",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_invalid_template_uses_default",
           "state": "passed"
         },
         {
-          "name": "test_prompt_contains_platform_config_values",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_platform_config_values",
+          "name": "test_generate_with_logo",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_generate_with_logo",
           "state": "passed"
         },
         {
-          "name": "test_prompt_contains_multiple_brand_tones",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestBuildPrompt::test_prompt_contains_multiple_brand_tones",
+          "name": "test_generate_with_background_image",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_generate_with_background_image",
           "state": "passed"
         },
         {
-          "name": "test_load_template_file_exists",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestLoadPromptTemplate::test_load_template_file_exists",
+          "name": "test_caching_same_params",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_caching_same_params",
           "state": "passed"
         },
         {
-          "name": "test_load_template_file_not_found_raises_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestLoadPromptTemplate::test_load_template_file_not_found_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_load_template_read_error_raises_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestLoadPromptTemplate::test_load_template_read_error_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_agent_error_on_base_generate_wrapped",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_agent_error_on_base_generate_wrapped",
-          "state": "passed"
-        },
-        {
-          "name": "test_multiple_platform_errors_listed_in_message",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_multiple_platform_errors_listed_in_message",
-          "state": "passed"
-        },
-        {
-          "name": "test_invalid_blog_post_keys_detailed_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_invalid_blog_post_keys_detailed_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_invalid_platforms_error_lists_valid_options",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_invalid_platforms_error_lists_valid_options",
-          "state": "passed"
-        },
-        {
-          "name": "test_none_api_key_raises_error",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestErrorHandling::test_none_api_key_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_result_cost_is_float",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_result_cost_is_float",
-          "state": "passed"
-        },
-        {
-          "name": "test_result_character_count_is_int",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_result_character_count_is_int",
-          "state": "passed"
-        },
-        {
-          "name": "test_result_hashtags_is_list",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_result_hashtags_is_list",
-          "state": "passed"
-        },
-        {
-          "name": "test_result_tokens_is_dict",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_result_tokens_is_dict",
-          "state": "passed"
-        },
-        {
-          "name": "test_tokens_has_total_key",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestDataTypes::test_tokens_has_total_key",
-          "state": "passed"
-        },
-        {
-          "name": "test_single_character_content",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_single_character_content",
-          "state": "passed"
-        },
-        {
-          "name": "test_zero_cost_response",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_zero_cost_response",
-          "state": "passed"
-        },
-        {
-          "name": "test_whitespace_in_content",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_whitespace_in_content",
-          "state": "passed"
-        },
-        {
-          "name": "test_special_characters_in_keywords",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_special_characters_in_keywords",
-          "state": "passed"
-        },
-        {
-          "name": "test_unicode_content_character_count",
-          "fullName": "tests/unit/agents/test_repurposing_agent.py::TestEdgeCases::test_unicode_content_character_count",
-          "state": "passed"
-        }
-      ]
-    },
-    {
-      "moduleId": "tests/integration/agents/test_repurposing_integration.py",
-      "tests": [
-        {
-          "name": "test_cache_integration_saves_to_disk",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_cache_integration_saves_to_disk",
-          "state": "passed"
-        },
-        {
-          "name": "test_cache_integration_failure_doesnt_block",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_cache_integration_failure_doesnt_block",
-          "state": "passed"
-        },
-        {
-          "name": "test_brand_tone_propagation",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_brand_tone_propagation",
-          "state": "passed"
-        },
-        {
-          "name": "test_cost_tracking_accuracy",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_cost_tracking_accuracy",
-          "state": "passed"
-        },
-        {
-          "name": "test_batch_generation_order",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_batch_generation_order",
-          "state": "passed"
-        },
-        {
-          "name": "test_platform_specific_prompts",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_platform_specific_prompts",
-          "state": "passed"
-        },
-        {
-          "name": "test_german_content_generation",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_german_content_generation",
-          "state": "passed"
-        },
-        {
-          "name": "test_metadata_includes_character_count",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_metadata_includes_character_count",
-          "state": "passed"
-        },
-        {
-          "name": "test_empty_platforms_raises_error",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_empty_platforms_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_missing_blog_post_keys_raises_error",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_missing_blog_post_keys_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_invalid_platform_raises_error",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_invalid_platform_raises_error",
-          "state": "passed"
-        },
-        {
-          "name": "test_hashtag_generation_respects_platform_limits",
-          "fullName": "tests/integration/agents/test_repurposing_integration.py::test_hashtag_generation_respects_platform_limits",
+          "name": "test_error_handling_missing_font",
+          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_error_handling_missing_font",
           "state": "passed"
         }
       ]
