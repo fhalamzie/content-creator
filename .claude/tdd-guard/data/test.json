@@ -1,141 +1,136 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/test_cluster_manager.py",
+      "moduleId": "tests/integration/test_source_cache_integration.py",
       "tests": [
         {
-          "name": "test_cluster_plan_creation",
-          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_plan_creation",
+          "name": "test_save_and_retrieve_source",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_save_and_retrieve_source",
           "state": "passed"
         },
         {
-          "name": "test_cluster_plan_to_dict",
-          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_plan_to_dict",
+          "name": "test_update_existing_source",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_update_existing_source",
           "state": "passed"
         },
         {
-          "name": "test_cluster_plan_from_dict",
-          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_plan_from_dict",
+          "name": "test_quality_scores_vary_by_domain",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_quality_scores_vary_by_domain",
           "state": "passed"
         },
         {
-          "name": "test_internal_link_creation",
-          "fullName": "tests/unit/test_cluster_manager.py::test_internal_link_creation",
+          "name": "test_freshness_tracking",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_freshness_tracking",
           "state": "passed"
         },
         {
-          "name": "test_internal_link_to_dict",
-          "fullName": "tests/unit/test_cluster_manager.py::test_internal_link_to_dict",
+          "name": "test_stale_detection",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_stale_detection",
           "state": "passed"
         },
         {
-          "name": "test_internal_link_from_dict",
-          "fullName": "tests/unit/test_cluster_manager.py::test_internal_link_from_dict",
+          "name": "test_mark_usage",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_mark_usage",
           "state": "passed"
         },
         {
-          "name": "test_cluster_manager_initialization",
-          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_manager_initialization",
+          "name": "test_mark_usage_duplicate_topic",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_mark_usage_duplicate_topic",
           "state": "passed"
         },
         {
-          "name": "test_create_cluster_plan_valid",
-          "fullName": "tests/unit/test_cluster_manager.py::test_create_cluster_plan_valid",
+          "name": "test_get_stale_sources",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_get_stale_sources",
           "state": "passed"
         },
         {
-          "name": "test_create_cluster_plan_invalid_spoke_count",
-          "fullName": "tests/unit/test_cluster_manager.py::test_create_cluster_plan_invalid_spoke_count",
+          "name": "test_get_stats",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_get_stats",
           "state": "passed"
         },
         {
-          "name": "test_get_cluster_articles_with_hub_and_spokes",
-          "fullName": "tests/unit/test_cluster_manager.py::test_get_cluster_articles_with_hub_and_spokes",
+          "name": "test_multiple_topics_same_source",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_multiple_topics_same_source",
           "state": "passed"
         },
         {
-          "name": "test_get_cluster_articles_no_hub",
-          "fullName": "tests/unit/test_cluster_manager.py::test_get_cluster_articles_no_hub",
+          "name": "test_content_preview_truncation",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_content_preview_truncation",
           "state": "passed"
         },
         {
-          "name": "test_extract_main_keyword",
-          "fullName": "tests/unit/test_cluster_manager.py::test_extract_main_keyword",
+          "name": "test_quality_score_recalculation",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_quality_score_recalculation",
           "state": "passed"
         },
         {
-          "name": "test_get_cluster_stats_complete",
-          "fullName": "tests/unit/test_cluster_manager.py::test_get_cluster_stats_complete",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_cluster_stats_partial",
-          "fullName": "tests/unit/test_cluster_manager.py::test_get_cluster_stats_partial",
-          "state": "passed"
-        },
-        {
-          "name": "test_suggest_internal_links_spoke_to_hub",
-          "fullName": "tests/unit/test_cluster_manager.py::test_suggest_internal_links_spoke_to_hub",
-          "state": "passed"
-        },
-        {
-          "name": "test_cluster_plan_json_roundtrip",
-          "fullName": "tests/unit/test_cluster_manager.py::test_cluster_plan_json_roundtrip",
-          "state": "passed"
-        },
-        {
-          "name": "test_internal_link_without_cluster",
-          "fullName": "tests/unit/test_cluster_manager.py::test_internal_link_without_cluster",
+          "name": "test_e_e_a_t_signals_completeness",
+          "fullName": "tests/integration/test_source_cache_integration.py::TestSourceCacheIntegration::test_e_e_a_t_signals_completeness",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "tests/integration/test_cluster_manager_integration.py",
+      "moduleId": "tests/integration/test_deep_researcher_caching.py",
       "tests": [
         {
-          "name": "test_create_and_retrieve_cluster_plan",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_create_and_retrieve_cluster_plan",
+          "name": "test_caching_enabled_when_db_manager_provided",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_caching_enabled_when_db_manager_provided",
           "state": "passed"
         },
         {
-          "name": "test_cluster_with_real_articles",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_cluster_with_real_articles",
+          "name": "test_caching_disabled_when_db_manager_not_provided",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_caching_disabled_when_db_manager_not_provided",
           "state": "passed"
         },
         {
-          "name": "test_cluster_stats_real_database",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_cluster_stats_real_database",
+          "name": "test_sources_saved_to_cache_after_research",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_sources_saved_to_cache_after_research",
           "state": "passed"
         },
         {
-          "name": "test_internal_link_suggestions_real_database",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_internal_link_suggestions_real_database",
+          "name": "test_cache_hit_when_source_already_exists",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_cache_hit_when_source_already_exists",
           "state": "passed"
         },
         {
-          "name": "test_empty_cluster",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_empty_cluster",
+          "name": "test_multiple_topics_share_sources",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_multiple_topics_share_sources",
           "state": "passed"
         },
         {
-          "name": "test_multiple_clusters",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_multiple_clusters",
+          "name": "test_slugify_topic_generates_valid_ids",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_slugify_topic_generates_valid_ids",
           "state": "passed"
         },
         {
-          "name": "test_standalone_articles_not_in_cluster",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_standalone_articles_not_in_cluster",
+          "name": "test_cache_statistics_in_get_statistics",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_cache_statistics_in_get_statistics",
           "state": "passed"
         },
         {
-          "name": "test_cluster_plan_validation",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_cluster_plan_validation",
+          "name": "test_reset_statistics_clears_cache_stats",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_reset_statistics_clears_cache_stats",
           "state": "passed"
         },
         {
-          "name": "test_get_cluster_articles_with_content",
-          "fullName": "tests/integration/test_cluster_manager_integration.py::test_get_cluster_articles_with_content",
+          "name": "test_cache_marks_usage_for_topics",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_cache_marks_usage_for_topics",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_source_context",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_extract_source_context",
+          "state": "passed"
+        },
+        {
+          "name": "test_caching_disabled_does_not_save_sources",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_caching_disabled_does_not_save_sources",
+          "state": "passed"
+        },
+        {
+          "name": "test_high_cache_hit_rate_scenario",
+          "fullName": "tests/integration/test_deep_researcher_caching.py::TestDeepResearcherCacheIntegration::test_high_cache_hit_rate_scenario",
           "state": "passed"
         }
       ]
