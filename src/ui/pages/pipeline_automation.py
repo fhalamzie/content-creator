@@ -225,11 +225,68 @@ async def run_pipeline_async(
 
             # Stage 2: Competitor Research
             progress_bar.progress(0.33)
-            status_text.info("**Stage 2/6**: Researching competitors (Gemini → Tavily fallback)...")
-            competitors_result = await orchestrator.research_competitors(
-                keywords_result["keywords"],
-                customer_info
-            )
+
+            # Check if user wants to skip competitor research
+            if config.get("skip_competitor_research", False):
+                status_text.info("**Stage 2/6**: Skipping competitor research (user preference)...")
+                competitors_result = {
+                    "competitors": [],
+                    "additional_keywords": [],
+                    "market_topics": [],
+                    "cost": 0.0
+                }
+            else:
+                status_text.info("**Stage 2/6**: Researching competitors (Gemini → Tavily fallback)...")
+
+                # Try Stage 2 with timeout protection
+                try:
+                    import asyncio
+                    # Set aggressive timeout (30s max for Stage 2)
+                    competitors_result = await asyncio.wait_for(
+                        orchestrator.research_competitors(
+                            keywords_result["keywords"],
+                            customer_info
+                        ),
+                        timeout=30.0  # 30 second timeout
+                    )
+                except asyncio.TimeoutError:
+                    status_text.warning(
+                        "⚠️ **Stage 2 Timeout**: Competitor research taking too long. "
+                        "Skipping to continue pipeline..."
+                    )
+                    competitors_result = {
+                        "competitors": [],
+                        "additional_keywords": [],
+                        "market_topics": [],
+                        "cost": 0.0,
+                        "error": "Timeout after 30s"
+                    }
+                except Exception as e:
+                    status_text.warning(
+                        f"⚠️ **Stage 2 Error**: {str(e)}. "
+                        "Continuing with Stage 1 keywords only..."
+                    )
+                    competitors_result = {
+                        "competitors": [],
+                        "additional_keywords": [],
+                        "market_topics": [],
+                        "cost": 0.0,
+                        "error": str(e)
+                    }
+
+                # Handle Stage 2 failure gracefully (e.g., Gemini rate limit)
+                if competitors_result.get("error"):
+                    status_text.warning(
+                        f"⚠️ **Stage 2 Warning**: {competitors_result['error']}. "
+                        "Continuing with Stage 1 keywords only..."
+                    )
+                    # Use empty competitor data to continue pipeline
+                    competitors_result = {
+                        "competitors": [],
+                        "additional_keywords": [],
+                        "market_topics": [],
+                        "cost": 0.0
+                    }
 
             # Stage 3: Consolidation
             progress_bar.progress(0.50)
@@ -506,6 +563,12 @@ def render():
                 help="Add +$0.076/topic for AI-generated images"
             )
 
+            skip_competitor_research = st.checkbox(
+                "Skip competitor research (faster, uses website keywords only)",
+                value=config.get("skip_competitor_research", False),
+                help="Skip Stage 2 to avoid Gemini API issues. Pipeline will use Stage 1 keywords only."
+            )
+
             st.divider()
 
             # Cost Preview
@@ -533,7 +596,8 @@ def render():
                         "language": language,
                         "max_topics_to_research": max_topics,
                         "enable_tavily": enable_tavily,
-                        "enable_images": enable_images
+                        "enable_images": enable_images,
+                        "skip_competitor_research": skip_competitor_research
                     }
                     save_pipeline_config(st.session_state.wizard_config)
                     st.session_state.wizard_step = 2

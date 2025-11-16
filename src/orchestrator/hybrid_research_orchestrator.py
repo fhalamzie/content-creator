@@ -615,13 +615,31 @@ Return in strict JSON format matching the schema below."""
             }
 
             # Call Gemini API with grounding (synchronous method wrapped for async)
-            logger.info("calling_gemini_api", grounding=True)
+            # FIX: Create fresh GeminiAgent + use run_in_executor instead of asyncio.to_thread()
+            # This avoids nested event loop issues with asyncio.run() in Streamlit
+            logger.info("creating_fresh_gemini_agent_for_stage2", grounding=True)
+            gemini_agent = GeminiAgent(
+                model="gemini-2.5-flash",
+                api_key=os.getenv("GEMINI_API_KEY"),
+                enable_grounding=True,  # Enable web search for competitor research
+                temperature=0.3,
+                max_tokens=4000
+            )
+
+            logger.info("calling_gemini_api", grounding=True, stage="stage2_before_executor")
             try:
-                result_raw = await asyncio.to_thread(
-                    self.gemini_agent.generate,
-                    prompt=prompt,
-                    response_schema=response_schema
+                # FIX: Use run_in_executor instead of asyncio.to_thread()
+                # This avoids nested event loop issues with asyncio.run() in Streamlit
+                logger.info("stage2_entering_executor", prompt_length=len(prompt))
+                loop = asyncio.get_event_loop()
+                result_raw = await loop.run_in_executor(
+                    None,  # Use default ThreadPoolExecutor
+                    lambda: gemini_agent.generate(
+                        prompt=prompt,
+                        response_schema=response_schema
+                    )
                 )
+                logger.info("stage2_executor_completed", result_keys=list(result_raw.keys()) if result_raw else [])
 
                 # Track successful free API call
                 self.cost_tracker.track_call(
@@ -637,6 +655,30 @@ Return in strict JSON format matching the schema below."""
                     # Parse JSON string if needed
                     import json
                     content_data = json.loads(content_data)
+
+                # Handle case where Gemini returns partial response (array instead of object)
+                # This can happen with the JSON-in-prompt workaround
+                if isinstance(content_data, list):
+                    logger.warning(
+                        "gemini_returned_array_instead_of_object",
+                        message="Gemini returned array instead of full object schema. Using as competitors array."
+                    )
+                    # Treat the array as the competitors field
+                    content_data = {
+                        "competitors": content_data,
+                        "additional_keywords": [],
+                        "market_topics": []
+                    }
+                elif not isinstance(content_data, dict):
+                    logger.error(
+                        "gemini_returned_unexpected_type",
+                        type=type(content_data).__name__
+                    )
+                    content_data = {
+                        "competitors": [],
+                        "additional_keywords": [],
+                        "market_topics": []
+                    }
 
                 # Build result with limits enforced
                 result = {

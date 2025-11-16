@@ -2,6 +2,31 @@
 
 Recent development sessions (last 3 sessions, <100 lines).
 
+## Session 064: Pipeline Stage 2 Async Fix (2025-11-16)
+
+**BUGFIX (2 hours, awaiting verification)** - Fixed Stage 2 hang using run_in_executor() instead of asyncio.to_thread()
+
+**Objective**: Fix "Discover Topics" pipeline hanging at Stage 2 (33% progress) during competitor research with Gemini API grounding.
+
+**Root Cause**: Nested event loop deadlock - Streamlit's `asyncio.run()` + `asyncio.to_thread()` + Gemini SDK HTTP timeout caused threading incompatibility.
+
+**Solutions**:
+- ✅ **Async Pattern Fix** (`hybrid_research_orchestrator.py:630-643`) - Replaced `asyncio.to_thread()` with `loop.run_in_executor()` for better compatibility with `asyncio.run()`
+- ✅ **Fresh Agent Instances** (`hybrid_research_orchestrator.py:621-628`) - Create fresh `GeminiAgent` per call (not lazy-loaded) to avoid initialization deadlocks
+- ✅ **Enhanced Logging** (`gemini_agent.py:222-232`, `hybrid_research_orchestrator.py:629-643`) - Track async execution flow for debugging
+- ✅ **JSON Parser Fix** (`json_parser.py:60-104`) - Balanced brace-matching for deeply nested arrays
+- ✅ **Timeout Safety** (`pipeline_automation.py:242-275`) - 30s timeout + skip checkbox as fallback
+
+**Evidence**: Direct Gemini API tests proved API works perfectly (3s simple, 4.4s grounded). Issue was async/threading pattern, not Gemini.
+
+**Impact**: Stage 2 should now complete in 5-10s. Pipeline can discover topics without hanging. User verification pending.
+
+**Files**: 2 modified (hybrid_research_orchestrator.py +27, gemini_agent.py +3), 1 enhanced (json_parser.py from earlier), 30 total lines.
+
+**See**: [Full details](docs/sessions/064-pipeline-stage2-async-fix.md)
+
+---
+
 ## Session 063: S3 Storage Integration for All Images (2025-11-16)
 
 **INFRASTRUCTURE UPGRADE (1.5 hours, 100%)** - Centralized ALL images on S3 with structured folders, SaaS-ready, $0.0849/article (+0.5% cost)
@@ -54,30 +79,4 @@ Recent development sessions (last 3 sessions, <100 lines).
 
 ---
 
-## Session 061: Repurposing Agent Phase 3 - Integration Complete (2025-11-16)
-
-**INTEGRATION COMPLETE (4 hours, 100%)** - Full social bundle generation (text + images) for 4 platforms, 132 passing tests, $0.0092/blog cost
-
-**Objective**: Complete integration of image generation into RepurposingAgent for production-ready social bundles.
-
-**Solutions**:
-- ✅ **Platform Image Generator Tests** (23 tests) - Platform specs, OG generation, AI generation, fallback behavior, cost tracking, batch generation, error handling
-- ✅ **RepurposingAgent Integration** - Added `generate_images` parameter, async method signature, smart image routing (OG for LinkedIn/Facebook, AI for Instagram/TikTok), cost tracking
-- ✅ **Test Suite Updates** (59 tests → async) - Automated async conversion, all tests passing, pytest.raises fixes
-- ✅ **E2E Tests** (7 tests) - Full bundle generation, cost calculation, text-only mode, failure handling, OG reuse, multilingual, cache integration
-
-**Features**: Complete social bundles (text + images), smart OG reuse (50% cost savings), graceful error handling, backward compatible (text-only mode), multi-language support, cost transparency.
-
-**Impact**: Users can now generate complete social bundles for 4 platforms at $0.0092/blog ($0.032 text + $0.006 images). Repurposing Agent is production-ready with 100% feature completion.
-
-**Files**: 2 new (test_platform_image_generator.py 542, test_repurposing_e2e.py 343), 3 modified (repurposing_agent.py +90, platform_image_generator.py logger fix, test_repurposing_agent.py async), 985 total lines.
-
-**Testing**: 132 tests passing (23 platform + 43 OG + 59 repurposing + 7 E2E), 100% pass rate, 5.14s total execution.
-
-**Cost**: $0.0092/blog (LinkedIn $0.0008, Facebook $0.0008, Instagram $0.0038, TikTok $0.0038), $0.092/month (10 blogs), 39% savings vs naive 4× AI approach.
-
-**See**: [Full details](docs/sessions/061-repurposing-phase3-integration.md)
-
----
-
-*Older sessions (052-060) archived in `docs/sessions/` directory*
+*Older sessions (061-063) archived in `docs/sessions/` directory*

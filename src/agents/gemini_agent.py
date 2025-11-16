@@ -219,14 +219,17 @@ class GeminiAgent:
             )
 
             # Generate content (new SDK API)
+            logger.info("gemini_api_call_starting", model=self.model_name, grounding=use_grounding)
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=full_prompt,
                 config=config
             )
+            logger.info("gemini_api_call_completed", model=self.model_name)
 
             # Extract content
             content = response.text
+            logger.info("gemini_response_text_extracted", content_length=len(content) if content else 0)
 
             if not content or not content.strip():
                 raise GeminiAgentError("Empty response from Gemini API")

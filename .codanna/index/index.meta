@@ -3,13 +3,13 @@
   "data_source": {
     "Tantivy": {
       "path": ".codanna/index/tantivy",
-      "doc_count": 11203,
-      "timestamp": 1763284489
+      "doc_count": 12254,
+      "timestamp": 1763291570
     }
   },
-  "symbol_count": 8118,
+  "symbol_count": 8188,
   "file_count": 174,
-  "last_modified": 1763284489,
+  "last_modified": 1763291570,
   "indexed_paths": [
     "/home/projects/content-creator/tests",
     "/home/projects/content-creator/src"

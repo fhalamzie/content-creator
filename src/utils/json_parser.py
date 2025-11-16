@@ -56,22 +56,52 @@ def extract_json_from_text(text: str, expected_schema: Optional[Dict[str, Any]] 
                 continue
 
     # Strategy 3: Extract from first {...} or [...] block
-    # Find the first { or [ and match to its closing bracket
-    json_patterns = [
-        r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # Nested objects
-        r'\[[^\[\]]*(?:\[[^\[\]]*\][^\[\]]*)*\]',  # Nested arrays
-    ]
+    # Use a more robust approach: find matching braces/brackets
+    def extract_balanced_json(text: str, start_char: str) -> Optional[str]:
+        """Extract balanced JSON starting from first occurrence of start_char."""
+        start_idx = text.find(start_char)
+        if start_idx == -1:
+            return None
 
-    for pattern in json_patterns:
-        matches = re.findall(pattern, text, re.DOTALL)
-        if matches:
-            for match in matches:
-                try:
-                    result = json.loads(match.strip())
-                    logger.info("json_extracted_regex", strategy="regex", pattern=pattern)
-                    return result
-                except json.JSONDecodeError:
-                    continue
+        # Track brace/bracket depth
+        close_char = '}' if start_char == '{' else ']'
+        depth = 0
+        in_string = False
+        escape = False
+
+        for i in range(start_idx, len(text)):
+            char = text[i]
+
+            # Handle string literals (ignore braces inside strings)
+            if char == '"' and not escape:
+                in_string = not in_string
+            elif char == '\\' and in_string:
+                escape = not escape
+                continue
+
+            if not in_string:
+                if char == start_char:
+                    depth += 1
+                elif char == close_char:
+                    depth -= 1
+                    if depth == 0:
+                        # Found matching closing bracket
+                        return text[start_idx:i+1]
+
+            escape = False
+
+        return None
+
+    # Try extracting balanced object first, then array
+    for start_char in ['{', '[']:
+        extracted = extract_balanced_json(text, start_char)
+        if extracted:
+            try:
+                result = json.loads(extracted.strip())
+                logger.info("json_extracted_balanced", strategy="balanced", start_char=start_char)
+                return result
+            except json.JSONDecodeError:
+                continue
 
     # Strategy 4: Try to fix common issues
     # Remove trailing commas before } or ]
