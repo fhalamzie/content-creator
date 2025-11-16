@@ -1,221 +1,46 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/media/test_og_image_generator.py",
+      "moduleId": "tests/e2e/test_repurposing_pipeline_e2e.py",
       "tests": [
         {
-          "name": "test_get_system_font",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_get_system_font",
+          "name": "test_full_pipeline_blog_to_social_posts_text_only",
+          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_full_pipeline_blog_to_social_posts_text_only",
           "state": "passed"
         },
         {
-          "name": "test_get_regular_font",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_get_regular_font",
+          "name": "test_full_pipeline_with_images",
+          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_full_pipeline_with_images",
           "state": "passed"
         },
         {
-          "name": "test_font_caching",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_font_caching",
+          "name": "test_full_pipeline_with_notion_sync",
+          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_full_pipeline_with_notion_sync",
           "state": "passed"
         },
         {
-          "name": "test_different_sizes_not_cached",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_different_sizes_not_cached",
+          "name": "test_pipeline_partial_social_post_failure",
+          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_partial_social_post_failure",
           "state": "passed"
         },
         {
-          "name": "test_fallback_to_default_font",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_fallback_to_default_font",
+          "name": "test_pipeline_multilingual_support",
+          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_multilingual_support",
           "state": "passed"
         },
         {
-          "name": "test_invalid_weight_uses_regular",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_invalid_weight_uses_regular",
+          "name": "test_pipeline_cost_breakdown",
+          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_cost_breakdown",
           "state": "passed"
         },
         {
-          "name": "test_finds_roboto_fonts",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_finds_roboto_fonts",
+          "name": "test_pipeline_handles_missing_blog_data",
+          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_handles_missing_blog_data",
           "state": "passed"
         },
         {
-          "name": "test_cache_key_format",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestFontRegistry::test_cache_key_format",
-          "state": "passed"
-        },
-        {
-          "name": "test_single_line_no_wrap",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_single_line_no_wrap",
-          "state": "passed"
-        },
-        {
-          "name": "test_two_line_wrap",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_two_line_wrap",
-          "state": "passed"
-        },
-        {
-          "name": "test_truncation_with_ellipsis",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_truncation_with_ellipsis",
-          "state": "passed"
-        },
-        {
-          "name": "test_empty_text",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_empty_text",
-          "state": "passed"
-        },
-        {
-          "name": "test_german_umlauts",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_german_umlauts",
-          "state": "passed"
-        },
-        {
-          "name": "test_very_long_single_word",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestTextWrapping::test_very_long_single_word",
-          "state": "passed"
-        },
-        {
-          "name": "test_white_on_blue_valid",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_white_on_blue_valid",
-          "state": "passed"
-        },
-        {
-          "name": "test_gray_on_light_gray_invalid",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_gray_on_light_gray_invalid",
-          "state": "passed"
-        },
-        {
-          "name": "test_black_on_white_valid",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_black_on_white_valid",
-          "state": "passed"
-        },
-        {
-          "name": "test_white_on_black_valid",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_white_on_black_valid",
-          "state": "passed"
-        },
-        {
-          "name": "test_luminance_calculation_white",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_luminance_calculation_white",
-          "state": "passed"
-        },
-        {
-          "name": "test_luminance_calculation_black",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_luminance_calculation_black",
-          "state": "passed"
-        },
-        {
-          "name": "test_luminance_calculation_gray",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_luminance_calculation_gray",
-          "state": "passed"
-        },
-        {
-          "name": "test_contrast_ratio_calculation",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_contrast_ratio_calculation",
-          "state": "passed"
-        },
-        {
-          "name": "test_hex_color_parsing",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestContrastValidation::test_hex_color_parsing",
-          "state": "passed"
-        },
-        {
-          "name": "test_create_minimal_template",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestMinimalTemplate::test_create_minimal_template",
-          "state": "passed"
-        },
-        {
-          "name": "test_minimal_template_with_logo",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestMinimalTemplate::test_minimal_template_with_logo",
-          "state": "passed"
-        },
-        {
-          "name": "test_minimal_template_long_title",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestMinimalTemplate::test_minimal_template_long_title",
-          "state": "passed"
-        },
-        {
-          "name": "test_minimal_template_custom_color",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestMinimalTemplate::test_minimal_template_custom_color",
-          "state": "passed"
-        },
-        {
-          "name": "test_create_gradient_template",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestGradientTemplate::test_create_gradient_template",
-          "state": "passed"
-        },
-        {
-          "name": "test_gradient_creates_smooth_transition",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestGradientTemplate::test_gradient_creates_smooth_transition",
-          "state": "passed"
-        },
-        {
-          "name": "test_create_photo_template",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestPhotoTemplate::test_create_photo_template",
-          "state": "passed"
-        },
-        {
-          "name": "test_photo_template_applies_overlay",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestPhotoTemplate::test_photo_template_applies_overlay",
-          "state": "passed"
-        },
-        {
-          "name": "test_photo_template_without_background",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestPhotoTemplate::test_photo_template_without_background",
-          "state": "passed"
-        },
-        {
-          "name": "test_create_split_template",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestSplitTemplate::test_create_split_template",
-          "state": "passed"
-        },
-        {
-          "name": "test_split_template_has_two_sections",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestSplitTemplate::test_split_template_has_two_sections",
-          "state": "passed"
-        },
-        {
-          "name": "test_split_template_without_background",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestSplitTemplate::test_split_template_without_background",
-          "state": "passed"
-        },
-        {
-          "name": "test_generate_minimal_template",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_generate_minimal_template",
-          "state": "passed"
-        },
-        {
-          "name": "test_generate_all_templates",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_generate_all_templates",
-          "state": "passed"
-        },
-        {
-          "name": "test_file_size_under_300kb",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_file_size_under_300kb",
-          "state": "passed"
-        },
-        {
-          "name": "test_invalid_template_uses_default",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_invalid_template_uses_default",
-          "state": "passed"
-        },
-        {
-          "name": "test_generate_with_logo",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_generate_with_logo",
-          "state": "passed"
-        },
-        {
-          "name": "test_generate_with_background_image",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_generate_with_background_image",
-          "state": "passed"
-        },
-        {
-          "name": "test_caching_same_params",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_caching_same_params",
-          "state": "passed"
-        },
-        {
-          "name": "test_error_handling_missing_font",
-          "fullName": "tests/unit/media/test_og_image_generator.py::TestOGImageGenerator::test_error_handling_missing_font",
+          "name": "test_pipeline_handles_invalid_platform",
+          "fullName": "tests/e2e/test_repurposing_pipeline_e2e.py::test_pipeline_handles_invalid_platform",
           "state": "passed"
         }
       ]

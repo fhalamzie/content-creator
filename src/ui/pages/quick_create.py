@@ -27,8 +27,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 # Import agents and managers
 from src.agents.research_agent import ResearchAgent
 from src.agents.writing_agent import WritingAgent
+from src.agents.repurposing_agent import RepurposingAgent
 from src.media.image_generator import ImageGenerator
+from src.media.platform_image_generator import PlatformImageGenerator
 from src.notion_integration.sync_manager import SyncManager
+from src.notion_integration.social_posts_sync import SocialPostsSync
 from src.notion_integration.notion_client import NotionClient
 from src.cache_manager import CacheManager
 
@@ -67,6 +70,7 @@ async def generate_content_async(
     topic: str,
     config: dict,
     include_images: bool,
+    generate_social_posts: bool,
     num_sections: int,
     content_language: str
 ):
@@ -76,7 +80,8 @@ async def generate_content_async(
     Args:
         topic: Blog topic
         config: Project configuration
-        include_images: Whether to generate images
+        include_images: Whether to generate blog images
+        generate_social_posts: Whether to generate social media posts
         num_sections: Number of article sections (determines supporting images)
         content_language: Content language code
 
@@ -169,7 +174,50 @@ async def generate_content_async(
                     supporting_images = supporting_result.get("images", [])
                     total_cost += supporting_result.get("cost", 0.0)
 
-        # Stage 4: Notion Sync (100%)
+        # Stage 4: Social Media Posts (85%) - Optional
+        social_posts = []
+        social_posts_cost = 0.0
+
+        if generate_social_posts:
+            st.session_state.progress = 0.85
+            st.session_state.status = "📱 Generating social posts..."
+
+            # Initialize PlatformImageGenerator if images enabled
+            platform_image_gen = None
+            if include_images:
+                platform_image_gen = PlatformImageGenerator()
+
+            # Initialize RepurposingAgent
+            repurposing_agent = RepurposingAgent(
+                api_key=openrouter_key,
+                cache_dir=str(cache_manager.cache_dir),
+                image_generator=platform_image_gen
+            )
+
+            # Prepare blog post data
+            blog_post_data = {
+                'title': topic,
+                'excerpt': blog_result.get("content", "")[:200],  # First 200 chars
+                'keywords': [topic],  # Simple keywords from topic
+                'slug': topic.lower().replace(" ", "-")[:50]
+            }
+
+            # Generate social posts for all 4 platforms
+            social_posts_result = await repurposing_agent.generate_social_posts(
+                blog_post=blog_post_data,
+                platforms=["LinkedIn", "Facebook", "Instagram", "TikTok"],
+                brand_tone=[config.get("brand_voice", "Professional")],
+                language=content_language,
+                save_to_cache=True,
+                generate_images=include_images,
+                brand_color="#1a73e8"  # Default brand color
+            )
+
+            social_posts = social_posts_result
+            social_posts_cost = sum(p.get('cost', 0.0) for p in social_posts)
+            total_cost += social_posts_cost
+
+        # Stage 5: Notion Sync (100%)
         st.session_state.progress = 1.0
         st.session_state.status = "📤 Syncing to Notion..."
 
@@ -190,6 +238,8 @@ async def generate_content_async(
             "cache_path": str(cache_path),
             "hero_image_url": hero_image_url,
             "supporting_images": supporting_images,
+            "social_posts": social_posts,
+            "social_posts_cost": social_posts_cost,
             "content": blog_result.get("content", "")
         }
 
@@ -333,10 +383,22 @@ def render():
         # Image generation toggle
         st.divider()
         include_images = st.checkbox(
-            "🖼️ Generate AI Images",
+            "🖼️ Generate AI Images for Blog",
             value=True,
             help="Create photorealistic images with Flux 1.1 Pro Ultra (adds $0.06-0.076 per article)"
         )
+
+        # Social posts generation toggle
+        generate_social_posts = st.checkbox(
+            "📱 Generate Social Media Posts",
+            value=True,
+            help="Create platform-optimized posts for LinkedIn, Facebook, Instagram, and TikTok (adds $0.0092 per article)"
+        )
+
+        if generate_social_posts:
+            st.caption("✨ **Includes**: 4 platform-optimized posts with hashtags" + (
+                " + images (OG + AI)" if include_images else ""
+            ))
 
         # Advanced options (collapsed by default)
         with advanced_options_expander():
@@ -377,8 +439,11 @@ def render():
             else:
                 num_images = 0
 
+            # Calculate social posts cost
+            social_posts_cost_est = 0.0092 if generate_social_posts else 0.0
+
             cost_estimate(
-                base_cost=0.0056,  # Blog writing cost
+                base_cost=0.0056 + social_posts_cost_est,  # Blog + social posts
                 include_images=include_images,
                 num_images=num_images,
                 include_research=True
@@ -425,6 +490,7 @@ def render():
                 topic=topic,
                 config=config,
                 include_images=include_images,
+                generate_social_posts=generate_social_posts,
                 num_sections=num_sections,
                 content_language=content_language
             ))
@@ -448,23 +514,72 @@ def render():
             if result.get("supporting_images"):
                 tabs.extend([f"🖼️ Support {i+1}" for i in range(len(result["supporting_images"]))])
 
+            # Add social posts tabs
+            social_posts = result.get("social_posts", [])
+            if social_posts:
+                for post in social_posts:
+                    platform = post.get("platform", "Unknown")
+                    platform_icons = {
+                        "LinkedIn": "💼",
+                        "Facebook": "👥",
+                        "Instagram": "📸",
+                        "TikTok": "🎵"
+                    }
+                    icon = platform_icons.get(platform, "📱")
+                    tabs.append(f"{icon} {platform}")
+
             tab_objects = st.tabs(tabs)
 
             # Article tab
-            with tab_objects[0]:
+            tab_idx = 0
+            with tab_objects[tab_idx]:
                 st.markdown(result.get("content", ""))
 
             # Hero image tab
             if result.get("hero_image_url"):
-                with tab_objects[1]:
+                tab_idx += 1
+                with tab_objects[tab_idx]:
                     st.image(result["hero_image_url"], use_container_width=True)
 
             # Supporting images tabs
             if result.get("supporting_images"):
                 for i, img in enumerate(result["supporting_images"]):
-                    with tab_objects[i + 2]:
+                    tab_idx += 1
+                    with tab_objects[tab_idx]:
                         st.image(img.get("url", ""), use_container_width=True)
                         st.caption(img.get("alt_text", ""))
+
+            # Social posts tabs
+            if social_posts:
+                for post in social_posts:
+                    tab_idx += 1
+                    with tab_objects[tab_idx]:
+                        platform = post.get("platform", "Unknown")
+                        st.caption(f"**Platform**: {platform}")
+                        st.caption(f"**Character Count**: {post.get('character_count', 0)}")
+
+                        # Show content
+                        st.text_area(
+                            "Post Content",
+                            value=post.get("content", ""),
+                            height=200,
+                            disabled=True,
+                            label_visibility="collapsed"
+                        )
+
+                        # Show hashtags
+                        hashtags = post.get("hashtags", [])
+                        if hashtags:
+                            st.caption(f"**Hashtags**: {' '.join(hashtags)}")
+
+                        # Show image if available
+                        if post.get("image", {}).get("url"):
+                            st.image(post["image"]["url"], use_container_width=True)
+                            st.caption(f"Provider: {post['image'].get('provider', 'unknown')}")
+
+                        # Show cost breakdown
+                        post_cost = post.get("cost", 0.0)
+                        st.caption(f"**Cost**: ${post_cost:.4f}")
 
         else:
             error_message(
