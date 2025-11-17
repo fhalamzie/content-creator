@@ -257,18 +257,18 @@ Pick ONE direction for Session 067+:
 - [x] Snapshot comparison (detect ranking changes)
 - [x] Comprehensive tests (38 tests passing)
 
-**Phase 2B: Content Scoring** (Next session, 2-3 hours)
-- [ ] Fetch & parse HTML from top-ranking URLs
-- [ ] Calculate quality score (0-100 scale):
-  - [ ] Word count analysis (15%)
-  - [ ] Readability scoring - textstat Flesch-Kincaid (20%)
-  - [ ] Keyword optimization (20%)
-  - [ ] Structure quality - H1/H2, lists, images (15%)
-  - [ ] Entity coverage analysis (15%)
-  - [ ] Freshness scoring (15%)
-- [ ] Add content_scores table
-- [ ] Create ContentScorer class
-- [ ] Comprehensive tests (20+ tests)
+**Phase 2B: Content Scoring** ✅ COMPLETE (Session 072 Part 2)
+- [x] Fetch & parse HTML from top-ranking URLs
+- [x] Calculate quality score (0-100 scale):
+  - [x] Word count analysis (15%)
+  - [x] Readability scoring - textstat Flesch-Kincaid (20%)
+  - [x] Keyword optimization (20%)
+  - [x] Structure quality - H1/H2, lists, images (15%)
+  - [x] Entity coverage analysis (15%)
+  - [x] Freshness scoring (15%)
+- [x] Add content_scores table
+- [x] Create ContentScorer class
+- [x] Comprehensive tests (42 tests passing)
 
 **Phase 2C: Difficulty Scoring** (2 hours)
 - [ ] Calculate personalized difficulty (0-100, easy→hard)

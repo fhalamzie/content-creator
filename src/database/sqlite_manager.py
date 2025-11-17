@@ -391,13 +391,60 @@ class SQLiteManager:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_serp_searched_at ON serp_results(searched_at DESC)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_serp_domain ON serp_results(domain)")
 
+            # Content scores table (quality analysis of top-ranking content)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS content_scores (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    url TEXT UNIQUE NOT NULL,
+                    topic_id TEXT,
+
+                    -- Overall score (0-100)
+                    quality_score REAL NOT NULL,
+
+                    -- Individual metric scores (0-1 scale, weighted in quality_score)
+                    word_count_score REAL,
+                    readability_score REAL,
+                    keyword_score REAL,
+                    structure_score REAL,
+                    entity_score REAL,
+                    freshness_score REAL,
+
+                    -- Metadata
+                    word_count INTEGER,
+                    flesch_reading_ease REAL,
+                    keyword_density REAL,
+                    h1_count INTEGER,
+                    h2_count INTEGER,
+                    h3_count INTEGER,
+                    list_count INTEGER,
+                    image_count INTEGER,
+                    entity_count INTEGER,
+                    published_date TIMESTAMP,
+
+                    -- Content tracking
+                    content_hash TEXT,
+
+                    -- Fetch tracking
+                    fetched_at TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                    FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE SET NULL
+                )
+            """)
+
+            # Indexes for content scores
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_content_scores_url ON content_scores(url)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_content_scores_topic_id ON content_scores(topic_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_content_scores_quality ON content_scores(quality_score DESC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_content_scores_fetched_at ON content_scores(fetched_at DESC)")
+
             conn.commit()
         finally:
             # Only close if not using persistent connection
             if not self._persistent_conn:
                 conn.close()
 
-        logger.info("schema_created", tables=["documents", "topics", "research_reports", "blog_posts", "social_posts", "sources", "serp_results"])
+        logger.info("schema_created", tables=["documents", "topics", "research_reports", "blog_posts", "social_posts", "sources", "serp_results", "content_scores"])
 
         # Run migrations for existing databases
         self._run_migrations()
@@ -1440,6 +1487,309 @@ class SQLiteManager:
         )
 
         return snapshots
+
+    # === Content Scores Operations ===
+
+    def save_content_score(
+        self,
+        url: str,
+        quality_score: float,
+        metrics: dict,
+        topic_id: Optional[str] = None
+    ) -> int:
+        """
+        Save content quality score for a URL.
+
+        Args:
+            url: URL of the content
+            quality_score: Overall quality score (0-100)
+            metrics: Dict containing:
+                - word_count_score: float (0-1)
+                - readability_score: float (0-1)
+                - keyword_score: float (0-1)
+                - structure_score: float (0-1)
+                - entity_score: float (0-1)
+                - freshness_score: float (0-1)
+                - word_count: int
+                - flesch_reading_ease: float
+                - keyword_density: float
+                - h1_count: int
+                - h2_count: int
+                - h3_count: int
+                - list_count: int
+                - image_count: int
+                - entity_count: int
+                - published_date: str (ISO timestamp, optional)
+                - content_hash: str
+            topic_id: Optional topic ID to associate with
+
+        Returns:
+            Content score ID
+
+        Example:
+            >>> score_id = db.save_content_score(
+            ...     url="https://example.com/article",
+            ...     quality_score=85.5,
+            ...     metrics={
+            ...         "word_count_score": 0.9,
+            ...         "readability_score": 0.8,
+            ...         "keyword_score": 0.85,
+            ...         "structure_score": 0.9,
+            ...         "entity_score": 0.75,
+            ...         "freshness_score": 1.0,
+            ...         "word_count": 2500,
+            ...         "flesch_reading_ease": 65.0,
+            ...         "keyword_density": 2.5,
+            ...         "h1_count": 1,
+            ...         "h2_count": 5,
+            ...         "h3_count": 10,
+            ...         "list_count": 3,
+            ...         "image_count": 4,
+            ...         "entity_count": 15,
+            ...         "published_date": "2025-01-15T10:00:00",
+            ...         "content_hash": "abc123..."
+            ...     },
+            ...     topic_id="proptech-trends-2025"
+            ... )
+        """
+        fetched_at = datetime.utcnow().isoformat()
+
+        with self._get_connection() as conn:
+            # Check if URL already exists
+            cursor = conn.execute(
+                "SELECT id FROM content_scores WHERE url = ?",
+                (url,)
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                # Update existing score
+                conn.execute(
+                    """
+                    UPDATE content_scores SET
+                        topic_id = ?,
+                        quality_score = ?,
+                        word_count_score = ?,
+                        readability_score = ?,
+                        keyword_score = ?,
+                        structure_score = ?,
+                        entity_score = ?,
+                        freshness_score = ?,
+                        word_count = ?,
+                        flesch_reading_ease = ?,
+                        keyword_density = ?,
+                        h1_count = ?,
+                        h2_count = ?,
+                        h3_count = ?,
+                        list_count = ?,
+                        image_count = ?,
+                        entity_count = ?,
+                        published_date = ?,
+                        content_hash = ?,
+                        fetched_at = ?,
+                        updated_at = ?
+                    WHERE url = ?
+                    """,
+                    (
+                        topic_id,
+                        quality_score,
+                        metrics.get("word_count_score"),
+                        metrics.get("readability_score"),
+                        metrics.get("keyword_score"),
+                        metrics.get("structure_score"),
+                        metrics.get("entity_score"),
+                        metrics.get("freshness_score"),
+                        metrics.get("word_count"),
+                        metrics.get("flesch_reading_ease"),
+                        metrics.get("keyword_density"),
+                        metrics.get("h1_count"),
+                        metrics.get("h2_count"),
+                        metrics.get("h3_count"),
+                        metrics.get("list_count"),
+                        metrics.get("image_count"),
+                        metrics.get("entity_count"),
+                        metrics.get("published_date"),
+                        metrics.get("content_hash"),
+                        fetched_at,
+                        fetched_at,
+                        url
+                    )
+                )
+                score_id = existing[0]
+                logger.info(
+                    "content_score_updated",
+                    url=url,
+                    quality_score=quality_score,
+                    score_id=score_id
+                )
+            else:
+                # Insert new score
+                cursor = conn.execute(
+                    """
+                    INSERT INTO content_scores (
+                        url, topic_id, quality_score,
+                        word_count_score, readability_score, keyword_score,
+                        structure_score, entity_score, freshness_score,
+                        word_count, flesch_reading_ease, keyword_density,
+                        h1_count, h2_count, h3_count,
+                        list_count, image_count, entity_count,
+                        published_date, content_hash, fetched_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        url,
+                        topic_id,
+                        quality_score,
+                        metrics.get("word_count_score"),
+                        metrics.get("readability_score"),
+                        metrics.get("keyword_score"),
+                        metrics.get("structure_score"),
+                        metrics.get("entity_score"),
+                        metrics.get("freshness_score"),
+                        metrics.get("word_count"),
+                        metrics.get("flesch_reading_ease"),
+                        metrics.get("keyword_density"),
+                        metrics.get("h1_count"),
+                        metrics.get("h2_count"),
+                        metrics.get("h3_count"),
+                        metrics.get("list_count"),
+                        metrics.get("image_count"),
+                        metrics.get("entity_count"),
+                        metrics.get("published_date"),
+                        metrics.get("content_hash"),
+                        fetched_at
+                    )
+                )
+                score_id = cursor.lastrowid
+                logger.info(
+                    "content_score_saved",
+                    url=url,
+                    quality_score=quality_score,
+                    score_id=score_id
+                )
+
+            conn.commit()
+
+        return score_id
+
+    def get_content_score(self, url: str) -> Optional[dict]:
+        """
+        Get content score by URL.
+
+        Args:
+            url: URL to lookup
+
+        Returns:
+            Dict with score data or None if not found
+
+        Example:
+            >>> score = db.get_content_score("https://example.com/article")
+            >>> if score:
+            ...     print(f"Quality: {score['quality_score']}/100")
+        """
+        with self._get_connection(readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(
+                "SELECT * FROM content_scores WHERE url = ?",
+                (url,)
+            )
+            row = cursor.fetchone()
+
+            if not row:
+                return None
+
+            return dict(row)
+
+    def get_content_scores_by_topic(
+        self,
+        topic_id: str,
+        min_score: Optional[float] = None,
+        limit: Optional[int] = None
+    ) -> List[dict]:
+        """
+        Get all content scores for a topic.
+
+        Args:
+            topic_id: Topic ID
+            min_score: Minimum quality score filter (0-100)
+            limit: Maximum number of results
+
+        Returns:
+            List of content score dicts, ordered by quality_score DESC
+
+        Example:
+            >>> scores = db.get_content_scores_by_topic("proptech-trends", min_score=80)
+            >>> print(f"Found {len(scores)} high-quality articles")
+        """
+        with self._get_connection(readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+
+            query = "SELECT * FROM content_scores WHERE topic_id = ?"
+            params = [topic_id]
+
+            if min_score is not None:
+                query += " AND quality_score >= ?"
+                params.append(min_score)
+
+            query += " ORDER BY quality_score DESC"
+
+            if limit is not None:
+                query += " LIMIT ?"
+                params.append(limit)
+
+            cursor = conn.execute(query, params)
+            rows = cursor.fetchall()
+
+            return [dict(row) for row in rows]
+
+    def get_top_content_scores(
+        self,
+        limit: int = 10,
+        min_score: Optional[float] = None
+    ) -> List[dict]:
+        """
+        Get top-scoring content across all topics.
+
+        Useful for learning from the best content.
+
+        Args:
+            limit: Maximum number of results (default: 10)
+            min_score: Minimum quality score filter
+
+        Returns:
+            List of content score dicts, ordered by quality_score DESC
+
+        Example:
+            >>> top_content = db.get_top_content_scores(limit=5, min_score=90)
+            >>> for content in top_content:
+            ...     print(f"{content['url']}: {content['quality_score']}/100")
+        """
+        with self._get_connection(readonly=True) as conn:
+            conn.row_factory = sqlite3.Row
+
+            if min_score is not None:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM content_scores
+                    WHERE quality_score >= ?
+                    ORDER BY quality_score DESC
+                    LIMIT ?
+                    """,
+                    (min_score, limit)
+                )
+            else:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM content_scores
+                    ORDER BY quality_score DESC
+                    LIMIT ?
+                    """,
+                    (limit,)
+                )
+
+            rows = cursor.fetchall()
+
+            return [dict(row) for row in rows]
 
     # === Transaction Support ===
 

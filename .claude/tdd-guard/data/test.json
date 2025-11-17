@@ -1,206 +1,221 @@
 {
   "testModules": [
     {
-      "moduleId": "tests/unit/test_serp_analyzer.py",
+      "moduleId": "tests/unit/test_content_scorer.py",
       "tests": [
         {
-          "name": "test_extract_domain_basic",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_basic",
+          "name": "test_score_word_count_very_low",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_word_count_very_low",
           "state": "passed"
         },
         {
-          "name": "test_extract_domain_with_www",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_with_www",
+          "name": "test_score_word_count_low",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_word_count_low",
           "state": "passed"
         },
         {
-          "name": "test_extract_domain_with_subdomain",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_with_subdomain",
+          "name": "test_score_word_count_optimal",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_word_count_optimal",
           "state": "passed"
         },
         {
-          "name": "test_extract_domain_with_query_params",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_with_query_params",
+          "name": "test_score_word_count_high",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_word_count_high",
           "state": "passed"
         },
         {
-          "name": "test_extract_domain_empty_url",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_empty_url",
+          "name": "test_score_word_count_very_high",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_word_count_very_high",
           "state": "passed"
         },
         {
-          "name": "test_extract_domain_invalid_url",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_extract_domain_invalid_url",
+          "name": "test_score_readability_very_difficult",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_readability_very_difficult",
           "state": "passed"
         },
         {
-          "name": "test_estimate_authority_gov_domain",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_gov_domain",
+          "name": "test_score_readability_difficult",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_readability_difficult",
           "state": "passed"
         },
         {
-          "name": "test_estimate_authority_edu_domain",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_edu_domain",
+          "name": "test_score_readability_optimal",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_readability_optimal",
           "state": "passed"
         },
         {
-          "name": "test_estimate_authority_known_news_site",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_known_news_site",
+          "name": "test_score_readability_easy",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_readability_easy",
           "state": "passed"
         },
         {
-          "name": "test_estimate_authority_position_1_3",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_position_1_3",
+          "name": "test_score_readability_very_easy",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_readability_very_easy",
           "state": "passed"
         },
         {
-          "name": "test_estimate_authority_position_4_7",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_position_4_7",
+          "name": "test_calculate_keyword_density_basic",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_calculate_keyword_density_basic",
           "state": "passed"
         },
         {
-          "name": "test_estimate_authority_position_8_10",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_estimate_authority_position_8_10",
+          "name": "test_calculate_keyword_density_case_insensitive",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_calculate_keyword_density_case_insensitive",
           "state": "passed"
         },
         {
-          "name": "test_analyze_serp_basic",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_analyze_serp_basic",
+          "name": "test_score_keyword_density_under_optimized",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_keyword_density_under_optimized",
           "state": "passed"
         },
         {
-          "name": "test_analyze_serp_empty",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_analyze_serp_empty",
+          "name": "test_score_keyword_density_optimal",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_keyword_density_optimal",
           "state": "passed"
         },
         {
-          "name": "test_analyze_serp_calculates_averages",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_analyze_serp_calculates_averages",
+          "name": "test_score_keyword_density_high",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_keyword_density_high",
           "state": "passed"
         },
         {
-          "name": "test_analyze_serp_domain_authority",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_analyze_serp_domain_authority",
+          "name": "test_score_keyword_density_stuffing",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_keyword_density_stuffing",
           "state": "passed"
         },
         {
-          "name": "test_compare_snapshots_new_entrants",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_new_entrants",
+          "name": "test_analyze_structure_basic",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_analyze_structure_basic",
           "state": "passed"
         },
         {
-          "name": "test_compare_snapshots_dropouts",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_dropouts",
+          "name": "test_score_structure_optimal",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_structure_optimal",
           "state": "passed"
         },
         {
-          "name": "test_compare_snapshots_position_up",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_position_up",
+          "name": "test_score_structure_no_h1",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_structure_no_h1",
           "state": "passed"
         },
         {
-          "name": "test_compare_snapshots_position_down",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_position_down",
+          "name": "test_score_structure_multiple_h1",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_structure_multiple_h1",
           "state": "passed"
         },
         {
-          "name": "test_compare_snapshots_stable_urls",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_compare_snapshots_stable_urls",
+          "name": "test_extract_entities_basic",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_extract_entities_basic",
           "state": "passed"
         },
         {
-          "name": "test_results_to_dict",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_results_to_dict",
+          "name": "test_extract_entities_filters_common_words",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_extract_entities_filters_common_words",
           "state": "passed"
         },
         {
-          "name": "test_results_to_dict_empty",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_results_to_dict_empty",
+          "name": "test_score_entity_coverage_low",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_entity_coverage_low",
           "state": "passed"
         },
         {
-          "name": "test_search_empty_query",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_search_empty_query",
+          "name": "test_score_entity_coverage_optimal",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_entity_coverage_optimal",
           "state": "passed"
         },
         {
-          "name": "test_search_whitespace_query",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_search_whitespace_query",
+          "name": "test_score_entity_coverage_high",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_entity_coverage_high",
           "state": "passed"
         },
         {
-          "name": "test_search_invalid_max_results_too_low",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_search_invalid_max_results_too_low",
+          "name": "test_score_freshness_recent",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_freshness_recent",
           "state": "passed"
         },
         {
-          "name": "test_search_invalid_max_results_too_high",
-          "fullName": "tests/unit/test_serp_analyzer.py::TestSERPAnalyzer::test_search_invalid_max_results_too_high",
+          "name": "test_score_freshness_medium",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_freshness_medium",
+          "state": "passed"
+        },
+        {
+          "name": "test_score_freshness_old",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_freshness_old",
+          "state": "passed"
+        },
+        {
+          "name": "test_score_freshness_unknown",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_freshness_unknown",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_published_date_meta_tag",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_extract_published_date_meta_tag",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_published_date_time_tag",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_extract_published_date_time_tag",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_text_removes_scripts",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_extract_text_removes_scripts",
+          "state": "passed"
+        },
+        {
+          "name": "test_extract_text_removes_nav",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_extract_text_removes_nav",
+          "state": "passed"
+        },
+        {
+          "name": "test_count_words_basic",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_count_words_basic",
+          "state": "passed"
+        },
+        {
+          "name": "test_score_to_dict",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_score_to_dict",
+          "state": "passed"
+        },
+        {
+          "name": "test_weights_sum_to_one",
+          "fullName": "tests/unit/test_content_scorer.py::TestContentScorer::test_weights_sum_to_one",
           "state": "passed"
         }
       ]
     },
     {
-      "moduleId": "tests/integration/test_serp_integration.py",
+      "moduleId": "tests/integration/test_content_scoring_integration.py",
       "tests": [
         {
-          "name": "test_save_and_retrieve_serp_results",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_save_and_retrieve_serp_results",
+          "name": "test_save_and_retrieve_content_score",
+          "fullName": "tests/integration/test_content_scoring_integration.py::TestContentScoringIntegration::test_save_and_retrieve_content_score",
           "state": "passed"
         },
         {
-          "name": "test_save_empty_results",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_save_empty_results",
+          "name": "test_update_existing_content_score",
+          "fullName": "tests/integration/test_content_scoring_integration.py::TestContentScoringIntegration::test_update_existing_content_score",
           "state": "passed"
         },
         {
-          "name": "test_get_serp_results_by_query",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_serp_results_by_query",
+          "name": "test_get_content_scores_by_topic",
+          "fullName": "tests/integration/test_content_scoring_integration.py::TestContentScoringIntegration::test_get_content_scores_by_topic",
           "state": "passed"
         },
         {
-          "name": "test_get_serp_results_with_limit",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_serp_results_with_limit",
+          "name": "test_get_content_scores_with_min_score_filter",
+          "fullName": "tests/integration/test_content_scoring_integration.py::TestContentScoringIntegration::test_get_content_scores_with_min_score_filter",
           "state": "passed"
         },
         {
-          "name": "test_get_latest_serp_snapshot",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_latest_serp_snapshot",
+          "name": "test_get_top_content_scores",
+          "fullName": "tests/integration/test_content_scoring_integration.py::TestContentScoringIntegration::test_get_top_content_scores",
           "state": "passed"
         },
         {
-          "name": "test_get_latest_serp_snapshot_no_results",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_latest_serp_snapshot_no_results",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_serp_history",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_serp_history",
-          "state": "passed"
-        },
-        {
-          "name": "test_get_serp_history_with_limit",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_get_serp_history_with_limit",
-          "state": "passed"
-        },
-        {
-          "name": "test_real_search_basic",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_real_search_basic",
-          "state": "skipped"
-        },
-        {
-          "name": "test_real_search_with_region",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_real_search_with_region",
-          "state": "passed"
-        },
-        {
-          "name": "test_full_workflow_search_analyze_save",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_full_workflow_search_analyze_save",
-          "state": "passed"
-        },
-        {
-          "name": "test_full_workflow_track_changes_over_time",
-          "fullName": "tests/integration/test_serp_integration.py::TestSERPIntegration::test_full_workflow_track_changes_over_time",
+          "name": "test_full_scoring_workflow_with_mock_html",
+          "fullName": "tests/integration/test_content_scoring_integration.py::TestContentScoringIntegration::test_full_scoring_workflow_with_mock_html",
           "state": "passed"
         }
       ]

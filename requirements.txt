@@ -28,6 +28,11 @@ pydantic>=2.5.0
 # ===== SERP Analysis =====
 duckduckgo-search>=5.0.0  # Free SERP search (no API key required)
 
+# ===== Content Analysis =====
+beautifulsoup4>=4.12.0  # HTML parsing
+textstat>=0.7.3  # Readability scoring (Flesch-Kincaid, etc.)
+lxml>=5.0.0  # Fast HTML/XML parsing
+
 # ===== Optional: Social Media Publishing =====
 # linkedin-api>=2.0.0  # Uncomment when implementing LinkedIn publishing
 # facebook-sdk>=3.1.0  # Uncomment when implementing Facebook publishing
