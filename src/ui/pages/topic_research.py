@@ -1301,10 +1301,513 @@ def render_keyword_research_tab():
                 st.rerun()
 
 
+def render_serp_analysis_tab():
+    """Render Tab 4: SERP Analysis (Content Intelligence)."""
+    import os
+    from src.ui.components.help import (
+        feature_explanation,
+        cost_estimate,
+        what_happens_next
+    )
+    from src.research.serp_analyzer import SERPAnalyzer
+    from src.research.content_scorer import ContentScorer
+    from src.research.difficulty_scorer import DifficultyScorer
+    from src.database.sqlite_manager import SQLiteManager
+    from src.utils.logger import get_logger
+
+    logger = get_logger(__name__)
+
+    # Tab-level explanation
+    feature_explanation(
+        title="When to use SERP Analysis",
+        what="Analyze the top 10 Google results to understand what content wins and how hard it is to rank",
+        why="Data-driven insights into content quality, difficulty, and actionable targets (word count, structure, etc.)",
+        when="Use before creating content to know exactly what it takes to rank. Essential for competitive topics.",
+        icon="🎯"
+    )
+
+    st.divider()
+
+    st.subheader("🎯 SERP Intelligence Analysis")
+
+    # Cost and time estimates
+    col1, col2 = st.columns(2)
+    with col1:
+        cost_estimate(base_cost=0.0)
+        st.caption("💡 **100% FREE** - DuckDuckGo search + CPU-based analysis")
+    with col2:
+        st.caption("⏱️ **Time**: ~15-30 seconds (depends on content fetch)")
+
+    st.divider()
+
+    # Input form
+    topic = st.text_input(
+        "Topic or Keyword",
+        placeholder="e.g., PropTech AI automation, sustainable fashion trends, B2B SaaS pricing",
+        help="Topic to analyze - we'll search top 10 results and score them",
+        key="serp_topic_input"
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        region = st.selectbox(
+            "Search Region",
+            options=["wt-wt", "de-de", "us-en", "uk-en"],
+            format_func=lambda x: {
+                "wt-wt": "🌍 Worldwide",
+                "de-de": "🇩🇪 Germany",
+                "us-en": "🇺🇸 United States",
+                "uk-en": "🇬🇧 United Kingdom"
+            }[x],
+            help="Region for search results",
+            key="serp_region"
+        )
+
+    with col2:
+        max_results = st.slider(
+            "Results to Analyze",
+            min_value=3,
+            max_value=10,
+            value=10,
+            help="Number of top results to analyze (3-10)",
+            key="serp_max_results"
+        )
+
+    # Advanced options
+    with st.expander("🔧 Advanced Options"):
+        save_to_db = st.checkbox(
+            "Save results to database",
+            value=True,
+            help="Store SERP snapshots for historical tracking",
+            key="serp_save_db"
+        )
+        fetch_content = st.checkbox(
+            "Fetch and score content quality",
+            value=True,
+            help="Analyze top results for quality metrics (adds ~10-20s)",
+            key="serp_fetch_content"
+        )
+        calculate_difficulty = st.checkbox(
+            "Calculate difficulty score",
+            value=True,
+            help="Get personalized difficulty and recommendations",
+            key="serp_calc_difficulty"
+        )
+
+    # What happens next
+    what_happens_next([
+        "🔍 Search DuckDuckGo for top 10 results (FREE, no API key)",
+        "📊 Extract URLs, titles, snippets, domains",
+        "🏆 Estimate domain authority for each result",
+        "📝 Fetch and analyze content quality (6 metrics)" if fetch_content else "⏭️ Skip content quality analysis",
+        "🎯 Calculate personalized difficulty score" if calculate_difficulty else "⏭️ Skip difficulty calculation",
+        "💾 Save snapshot to database for tracking" if save_to_db else "⏭️ Results not saved to database"
+    ])
+
+    # Analyze button
+    analyze_button = st.button(
+        "🔍 Analyze SERP",
+        type="primary",
+        use_container_width=True,
+        key="run_serp_analysis"
+    )
+
+    # Process analysis
+    if analyze_button and topic:
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        try:
+            # Initialize components
+            status_text.text("🔧 Initializing SERP analyzer...")
+            progress_bar.progress(5)
+
+            serp_analyzer = SERPAnalyzer()
+            content_scorer = ContentScorer() if fetch_content else None
+            difficulty_scorer = DifficultyScorer() if calculate_difficulty else None
+            db_manager = SQLiteManager("data/topics.db") if save_to_db else None
+
+            # Step 1: Search SERP
+            status_text.text(f"🔍 Searching '{topic}' on DuckDuckGo...")
+            progress_bar.progress(10)
+
+            serp_results = serp_analyzer.search(
+                query=topic,
+                max_results=max_results,
+                region=region
+            )
+
+            progress_bar.progress(30)
+            status_text.text(f"✅ Found {len(serp_results)} results! Analyzing SERP...")
+
+            # Analyze SERP
+            serp_analysis = serp_analyzer.analyze_serp(serp_results)
+
+            progress_bar.progress(40)
+
+            # Step 2: Score content quality (optional)
+            content_scores = []
+            if content_scorer and fetch_content:
+                status_text.text("📝 Fetching and scoring content quality...")
+
+                for i, result in enumerate(serp_results, 1):
+                    try:
+                        status_text.text(f"📝 Scoring {i}/{len(serp_results)}: {result.domain}...")
+                        score = content_scorer.score_url(
+                            url=result.url,
+                            target_keyword=topic
+                        )
+                        content_scores.append({
+                            "url": result.url,
+                            "domain": result.domain,
+                            "quality_score": score.quality_score,
+                            "word_count": score.word_count,
+                            "flesch_reading_ease": score.flesch_reading_ease,
+                            "keyword_density": score.keyword_density,
+                            "h1_count": score.h1_count,
+                            "h2_count": score.h2_count,
+                            "h3_count": score.h3_count,
+                            "list_count": score.list_count,
+                            "image_count": score.image_count,
+                            "entity_count": score.entity_count,
+                            "published_date": score.published_date,
+                            "content_hash": score.content_hash,
+                            # Individual scores
+                            "word_count_score": score.word_count_score,
+                            "readability_score": score.readability_score,
+                            "keyword_score": score.keyword_score,
+                            "structure_score": score.structure_score,
+                            "entity_score": score.entity_score,
+                            "freshness_score": score.freshness_score
+                        })
+                        progress_bar.progress(40 + (i / len(serp_results)) * 30)
+                    except Exception as e:
+                        logger.warning(f"Failed to score {result.url}: {e}")
+                        continue
+
+                status_text.text(f"✅ Scored {len(content_scores)}/{len(serp_results)} URLs")
+                progress_bar.progress(70)
+
+            # Step 3: Calculate difficulty (optional)
+            difficulty_data = None
+            if difficulty_scorer and calculate_difficulty and content_scores:
+                status_text.text("🎯 Calculating difficulty score...")
+                progress_bar.progress(75)
+
+                # Convert SERP results to dicts
+                serp_dicts = [
+                    {
+                        "position": r.position,
+                        "url": r.url,
+                        "title": r.title,
+                        "snippet": r.snippet,
+                        "domain": r.domain
+                    }
+                    for r in serp_results
+                ]
+
+                difficulty = difficulty_scorer.calculate_difficulty(
+                    topic_id=topic,
+                    serp_results=serp_dicts,
+                    content_scores=content_scores
+                )
+
+                difficulty_data = {
+                    "topic_id": difficulty.topic_id,
+                    "difficulty_score": difficulty.difficulty_score,
+                    "content_quality_score": difficulty.content_quality_score,
+                    "domain_authority_score": difficulty.domain_authority_score,
+                    "content_length_score": difficulty.content_length_score,
+                    "freshness_score": difficulty.freshness_score,
+                    "target_word_count": difficulty.target_word_count,
+                    "target_h2_count": difficulty.target_h2_count,
+                    "target_image_count": difficulty.target_image_count,
+                    "target_quality_score": difficulty.target_quality_score,
+                    "avg_competitor_quality": difficulty.avg_competitor_quality,
+                    "avg_competitor_word_count": difficulty.avg_competitor_word_count,
+                    "high_authority_percentage": difficulty.high_authority_percentage,
+                    "freshness_requirement": difficulty.freshness_requirement,
+                    "estimated_ranking_time": difficulty.estimated_ranking_time,
+                    "analyzed_at": difficulty.analyzed_at.isoformat()
+                }
+
+                # Get recommendations
+                recommendations = difficulty_scorer.generate_recommendations(difficulty)
+
+                difficulty_data["recommendations"] = [
+                    {
+                        "category": rec.category,
+                        "priority": rec.priority,
+                        "message": rec.message,
+                        "target_value": rec.target_value
+                    }
+                    for rec in recommendations
+                ]
+
+                progress_bar.progress(85)
+
+            # Step 4: Save to database (optional)
+            if db_manager and save_to_db:
+                status_text.text("💾 Saving snapshot to database...")
+                progress_bar.progress(90)
+
+                # Save SERP results
+                results_list = [
+                    {
+                        "position": r.position,
+                        "url": r.url,
+                        "title": r.title,
+                        "snippet": r.snippet,
+                        "domain": r.domain
+                    }
+                    for r in serp_results
+                ]
+
+                db_manager.save_serp_results(
+                    topic_id=topic,
+                    search_query=topic,
+                    results=results_list
+                )
+
+                # Save content scores
+                if content_scores:
+                    for score in content_scores:
+                        db_manager.save_content_score(
+                            topic_id=topic,
+                            **score
+                        )
+
+                # Save difficulty score
+                if difficulty_data:
+                    db_manager.save_difficulty_score(
+                        topic_id=topic,
+                        **{k: v for k, v in difficulty_data.items() if k != "recommendations"}
+                    )
+
+                progress_bar.progress(95)
+
+            # Store in session state
+            st.session_state.serp_analysis_result = {
+                "topic": topic,
+                "serp_results": [
+                    {
+                        "position": r.position,
+                        "url": r.url,
+                        "title": r.title,
+                        "snippet": r.snippet,
+                        "domain": r.domain
+                    }
+                    for r in serp_results
+                ],
+                "serp_analysis": serp_analysis,
+                "content_scores": content_scores,
+                "difficulty_data": difficulty_data,
+                "region": region
+            }
+
+            progress_bar.progress(100)
+            status_text.text("✅ SERP analysis complete!")
+
+            st.success(f"✅ Analyzed {len(serp_results)} results" +
+                      (f", scored {len(content_scores)} URLs" if content_scores else "") +
+                      (f", difficulty: {difficulty_data['difficulty_score']:.0f}/100" if difficulty_data else ""))
+
+        except Exception as e:
+            st.error(f"❌ SERP analysis failed: {str(e)}")
+            progress_bar.empty()
+            status_text.empty()
+            import traceback
+            st.exception(e)
+            return
+
+    # Display results
+    if st.session_state.get("serp_analysis_result"):
+        st.divider()
+        st.subheader(f"📊 Results for '{st.session_state.serp_analysis_result['topic']}'")
+
+        result = st.session_state.serp_analysis_result
+        serp_results = result["serp_results"]
+        serp_analysis = result["serp_analysis"]
+        content_scores = result.get("content_scores", [])
+        difficulty_data = result.get("difficulty_data")
+
+        # Metrics row
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("SERP Results", len(serp_results))
+        with col2:
+            if difficulty_data:
+                diff_score = difficulty_data["difficulty_score"]
+                diff_label = "🟢 Easy" if diff_score < 40 else "🟡 Medium" if diff_score < 70 else "🔴 Hard"
+                st.metric("Difficulty", f"{diff_score:.0f}/100", diff_label)
+            else:
+                st.metric("Content Scored", len(content_scores))
+        with col3:
+            # Calculate high authority count from domain_authority_estimate
+            domain_authority = serp_analysis.get("domain_authority_estimate", {})
+            high_da = sum(1 for auth in domain_authority.values() if auth == "high")
+            st.metric("High DA Sites", f"{high_da}/{len(serp_results)}")
+        with col4:
+            if content_scores:
+                avg_quality = sum(s["quality_score"] for s in content_scores) / len(content_scores)
+                st.metric("Avg Quality", f"{avg_quality:.0f}/100")
+            else:
+                st.metric("Total Domains", serp_analysis.get("unique_domains", 0))
+
+        # Results tabs
+        tab_names = ["🔍 SERP Results", "📊 Content Quality", "🎯 Difficulty & Recommendations", "📈 Analysis", "🔍 Raw Data"]
+        tabs = st.tabs(tab_names)
+
+        with tabs[0]:
+            st.markdown("### Top 10 Results")
+            for r in serp_results:
+                with st.expander(f"#{r['position']}: {r['title'][:80]}... ({r['domain']})"):
+                    st.caption(f"**URL**: {r['url']}")
+                    st.caption(f"**Domain**: {r['domain']}")
+                    st.text(r['snippet'])
+
+        with tabs[1]:
+            st.markdown("### Content Quality Scores")
+            if content_scores:
+                import pandas as pd
+
+                # Summary table
+                df_data = []
+                for score in content_scores:
+                    df_data.append({
+                        "Domain": score["domain"],
+                        "Quality": f"{score['quality_score']:.0f}/100",
+                        "Words": score["word_count"],
+                        "Readability": f"{score['flesch_reading_ease']:.0f}",
+                        "H2s": score["h2_count"],
+                        "Images": score["image_count"],
+                        "Entities": score["entity_count"]
+                    })
+                df = pd.DataFrame(df_data)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+
+                # Detailed breakdown
+                st.markdown("### Metric Breakdown (0-1 scale)")
+                for i, score in enumerate(content_scores[:5], 1):  # Show top 5
+                    with st.expander(f"#{i}: {score['domain']} - {score['quality_score']:.0f}/100"):
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Word Count", f"{score['word_count_score']:.2f}")
+                            st.metric("Readability", f"{score['readability_score']:.2f}")
+                        with col2:
+                            st.metric("Keyword Opt", f"{score['keyword_score']:.2f}")
+                            st.metric("Structure", f"{score['structure_score']:.2f}")
+                        with col3:
+                            st.metric("Entities", f"{score['entity_score']:.2f}")
+                            st.metric("Freshness", f"{score['freshness_score']:.2f}")
+            else:
+                st.info("Content quality analysis was not enabled")
+
+        with tabs[2]:
+            st.markdown("### Difficulty Score & Recommendations")
+            if difficulty_data:
+                # Difficulty gauge
+                diff = difficulty_data["difficulty_score"]
+                diff_color = "🟢" if diff < 40 else "🟡" if diff < 70 else "🔴"
+                st.markdown(f"## {diff_color} {diff:.0f}/100 Difficulty")
+
+                # Component breakdown
+                st.markdown("#### Component Scores")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Content Quality", f"{difficulty_data['content_quality_score']*100:.0f}")
+                with col2:
+                    st.metric("Domain Authority", f"{difficulty_data['domain_authority_score']*100:.0f}")
+                with col3:
+                    st.metric("Content Length", f"{difficulty_data['content_length_score']*100:.0f}")
+                with col4:
+                    st.metric("Freshness", f"{difficulty_data['freshness_score']*100:.0f}")
+
+                st.divider()
+
+                # Targets
+                st.markdown("#### Your Targets to Rank")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Target Words", difficulty_data["target_word_count"])
+                with col2:
+                    st.metric("Target H2s", difficulty_data["target_h2_count"])
+                with col3:
+                    st.metric("Target Images", difficulty_data["target_image_count"])
+                with col4:
+                    st.metric("Target Quality", f"{difficulty_data['target_quality_score']:.0f}/100")
+
+                st.divider()
+
+                # Competitive intel
+                st.markdown("#### Competitive Intelligence")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Avg Competitor Quality", f"{difficulty_data['avg_competitor_quality']:.0f}/100")
+                with col2:
+                    st.metric("Avg Competitor Words", difficulty_data["avg_competitor_word_count"])
+                with col3:
+                    st.metric("High DA %", f"{difficulty_data['high_authority_percentage']:.0f}%")
+
+                st.info(f"⏱️ **Estimated Ranking Time**: {difficulty_data['estimated_ranking_time']}")
+                st.caption(f"📅 **Freshness Required**: {difficulty_data['freshness_requirement']}")
+
+                st.divider()
+
+                # Recommendations
+                st.markdown("#### Actionable Recommendations")
+                recommendations = difficulty_data.get("recommendations", [])
+                if recommendations:
+                    # Group by priority
+                    critical = [r for r in recommendations if r["priority"] == "critical"]
+                    high = [r for r in recommendations if r["priority"] == "high"]
+                    medium = [r for r in recommendations if r["priority"] == "medium"]
+
+                    if critical:
+                        st.markdown("**🔴 Critical Actions**")
+                        for rec in critical:
+                            st.error(f"• {rec['message']}")
+
+                    if high:
+                        st.markdown("**🟡 High Priority**")
+                        for rec in high:
+                            st.warning(f"• {rec['message']}")
+
+                    if medium:
+                        st.markdown("**🟢 Medium Priority**")
+                        for rec in medium:
+                            st.info(f"• {rec['message']}")
+                else:
+                    st.info("No specific recommendations available")
+            else:
+                st.info("Difficulty calculation was not enabled")
+
+        with tabs[3]:
+            st.markdown("### SERP Analysis")
+            st.json(serp_analysis)
+
+        with tabs[4]:
+            st.json(result)
+
+        # Action buttons
+        st.divider()
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("📤 Export to Quick Create", use_container_width=True, key="export_serp_btn"):
+                st.session_state.imported_serp_analysis = result
+                st.success("✅ SERP analysis exported! Navigate to Quick Create to use these insights.")
+
+        with col2:
+            if st.button("🗑️ Clear Results", use_container_width=True, key="clear_serp_btn"):
+                st.session_state.serp_analysis_result = None
+                st.rerun()
+
+
 def render():
-    """Render Topic Research Lab page with 3 tabs."""
+    """Render Topic Research Lab page with 4 tabs."""
     st.title("🔬 Research Lab")
-    st.caption("Comprehensive research tools: Deep topic research, competitor analysis, and SEO keyword discovery")
+    st.caption("Comprehensive research tools: Deep topic research, competitor analysis, SEO keywords, and SERP intelligence")
 
     # Render config sidebar (shared across all tabs)
     config = render_config_sidebar()
@@ -1312,10 +1815,11 @@ def render():
     st.divider()
 
     # Tab navigation
-    tab1, tab2, tab3 = st.tabs([
+    tab1, tab2, tab3, tab4 = st.tabs([
         "🔍 Topic Research",
         "🏢 Competitor Analysis",
-        "🔑 Keyword Research"
+        "🔑 Keyword Research",
+        "🎯 SERP Analysis"
     ])
 
     with tab1:
@@ -1326,3 +1830,6 @@ def render():
 
     with tab3:
         render_keyword_research_tab()
+
+    with tab4:
+        render_serp_analysis_tab()

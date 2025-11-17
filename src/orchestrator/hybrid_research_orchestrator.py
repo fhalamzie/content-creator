@@ -40,6 +40,9 @@ from src.utils.research_cache import save_research_to_cache
 from src.processors.deduplicator import Deduplicator
 from src.collectors.autocomplete_collector import AutocompleteCollector, ExpansionType
 from src.collectors.trends_collector import TrendsCollector
+from src.research.serp_analyzer import SERPAnalyzer
+from src.research.content_scorer import ContentScorer
+from src.research.difficulty_scorer import DifficultyScorer
 
 logger = get_logger(__name__)
 
@@ -71,6 +74,10 @@ class HybridResearchOrchestrator:
         enable_trends: bool = True,
         topic_discovery_language: str = "en",
         topic_discovery_region: str = "US",
+        # Intelligence features (Phase 2)
+        enable_serp_analysis: bool = False,
+        enable_content_scoring: bool = False,
+        enable_difficulty_scoring: bool = False,
         db_path: str = "data/topics.db"
     ):
         """
@@ -89,6 +96,9 @@ class HybridResearchOrchestrator:
             enable_trends: Enable Google Trends collector (TRENDING)
             topic_discovery_language: Language for topic discovery (default: en)
             topic_discovery_region: Region for trends (default: US)
+            enable_serp_analysis: Enable SERP Top 10 analysis (default: False)
+            enable_content_scoring: Enable content quality scoring (default: False)
+            enable_difficulty_scoring: Enable difficulty scoring (default: False)
             db_path: Path to SQLite database for collectors (default: data/topics.db)
         """
         self.enable_tavily = enable_tavily
@@ -103,6 +113,9 @@ class HybridResearchOrchestrator:
         self.enable_trends = enable_trends
         self.topic_discovery_language = topic_discovery_language
         self.topic_discovery_region = topic_discovery_region
+        self.enable_serp_analysis = enable_serp_analysis
+        self.enable_content_scoring = enable_content_scoring
+        self.enable_difficulty_scoring = enable_difficulty_scoring
 
         # Initialize components (lazy loading)
         self._researcher = None
@@ -112,6 +125,11 @@ class HybridResearchOrchestrator:
         self._topic_validator = None
         self._tavily_backend = None
         self._cost_tracker = CostTracker()  # Always initialized for cost tracking
+
+        # Intelligence components (lazy loading)
+        self._serp_analyzer = None
+        self._content_scorer = None
+        self._difficulty_scorer = None
 
         # Initialize topic discovery infrastructure
         self._db_manager = None
@@ -139,7 +157,8 @@ class HybridResearchOrchestrator:
             collectors=f"{sum([enable_rss, enable_thenewsapi, enable_autocomplete, enable_trends])} collectors",
             reranking=enable_reranking,
             synthesis=enable_synthesis,
-            topic_discovery=f"autocomplete={enable_autocomplete}, trends={enable_trends}"
+            topic_discovery=f"autocomplete={enable_autocomplete}, trends={enable_trends}",
+            intelligence=f"serp={enable_serp_analysis}, content={enable_content_scoring}, difficulty={enable_difficulty_scoring}"
         )
 
     @property
@@ -240,6 +259,30 @@ class HybridResearchOrchestrator:
             )
             logger.info("trends_collector_initialized", region=self.topic_discovery_region)
         return self._trends_collector if self.enable_trends else None
+
+    @property
+    def serp_analyzer(self) -> Optional[SERPAnalyzer]:
+        """Lazy load SERP analyzer"""
+        if self.enable_serp_analysis and self._serp_analyzer is None:
+            self._serp_analyzer = SERPAnalyzer()
+            logger.info("serp_analyzer_initialized")
+        return self._serp_analyzer if self.enable_serp_analysis else None
+
+    @property
+    def content_scorer(self) -> Optional[ContentScorer]:
+        """Lazy load content scorer"""
+        if self.enable_content_scoring and self._content_scorer is None:
+            self._content_scorer = ContentScorer()
+            logger.info("content_scorer_initialized")
+        return self._content_scorer if self.enable_content_scoring else None
+
+    @property
+    def difficulty_scorer(self) -> Optional[DifficultyScorer]:
+        """Lazy load difficulty scorer"""
+        if self.enable_difficulty_scoring and self._difficulty_scorer is None:
+            self._difficulty_scorer = DifficultyScorer()
+            logger.info("difficulty_scorer_initialized")
+        return self._difficulty_scorer if self.enable_difficulty_scoring else None
 
     async def extract_website_keywords(
         self,
@@ -1826,6 +1869,9 @@ Return JSON:
                 - image_cost: float - Image generation cost
                 - cost: float - Total cost
                 - duration_sec: float - Processing time
+                - serp_data: Optional[Dict] - SERP analysis results (if enabled)
+                - content_scores: List[Dict] - Content quality scores (if enabled)
+                - difficulty_data: Optional[Dict] - Difficulty analysis (if enabled)
         """
         logger.info("stage5_topic_research", topic=topic)
         start_time = datetime.now()
@@ -1875,6 +1921,165 @@ Return JSON:
             total_cost += synthesis_result.get("cost", 0.0) + image_cost
             logger.info("synthesis_complete", word_count=synthesis_result.get("word_count", 0), image_cost=image_cost)
 
+        # Step 4: Content Intelligence (SERP analysis, content scoring, difficulty scoring)
+        serp_data = None
+        content_scores = []
+        difficulty_data = None
+
+        if self.enable_serp_analysis or self.enable_content_scoring or self.enable_difficulty_scoring:
+            try:
+                # Step 4a: SERP Analysis
+                if self.serp_analyzer:
+                    logger.info("intelligence_serp_analysis_start", topic=topic)
+                    # Run synchronous search in thread pool
+                    serp_results = await asyncio.to_thread(
+                        self.serp_analyzer.search,
+                        query=topic,
+                        max_results=10
+                    )
+                    if serp_results:
+                        # Convert SERPResult dataclass to dict for compatibility
+                        serp_results_dict = [
+                            {
+                                "position": r.position,
+                                "url": r.url,
+                                "link": r.url,  # Alias for compatibility
+                                "title": r.title,
+                                "snippet": r.snippet,
+                                "domain": r.domain
+                            }
+                            for r in serp_results
+                        ]
+
+                        serp_analysis = self.serp_analyzer.analyze_serp(serp_results)
+
+                        # Set serp_data FIRST (before database save)
+                        serp_data = {
+                            "results": serp_results_dict,
+                            "analysis": serp_analysis
+                        }
+
+                        # Then save SERP snapshot to database (optional, non-critical)
+                        if self._db_manager:
+                            try:
+                                topic_id = topic.lower().replace(" ", "-")
+                                self._db_manager.save_serp_results(
+                                    topic_id=topic_id,
+                                    search_query=topic,
+                                    results=serp_results_dict
+                                )
+                                logger.info("serp_results_saved_to_db", topic_id=topic_id)
+                            except Exception as db_error:
+                                logger.warning("serp_db_save_failed", error=str(db_error))
+                                # Continue - db save failure is non-critical
+
+                        logger.info("intelligence_serp_analysis_complete",
+                                  num_results=len(serp_results),
+                                  avg_position=serp_analysis.get("avg_position"))
+
+                # Step 4b: Content Scoring
+                if self.content_scorer and serp_data:
+                    logger.info("intelligence_content_scoring_start", topic=topic)
+                    for i, result in enumerate(serp_data["results"][:10], 1):
+                        url = result.get("url") or result.get("link")
+                        if url:
+                            try:
+                                # Run synchronous scoring in thread pool
+                                score = await asyncio.to_thread(
+                                    self.content_scorer.score_url,
+                                    url=url,
+                                    target_keyword=topic
+                                )
+                                # Convert ContentScore dataclass to dict
+                                score_data = {
+                                    "url": score.url,
+                                    "position": i,
+                                    "quality_score": score.quality_score,
+                                    "word_count": score.word_count,
+                                    "flesch_reading_ease": score.flesch_reading_ease,
+                                    "keyword_density": score.keyword_density,
+                                    "h1_count": score.h1_count,
+                                    "h2_count": score.h2_count,
+                                    "h3_count": score.h3_count,
+                                    "list_count": score.list_count,
+                                    "image_count": score.image_count,
+                                    "entity_count": score.entity_count,
+                                    "published_date": score.published_date,
+                                    "content_hash": score.content_hash
+                                }
+
+                                # Add to content_scores list FIRST
+                                content_scores.append(score_data)
+
+                                # Then save to database (optional, non-critical)
+                                if self._db_manager:
+                                    try:
+                                        topic_id = topic.lower().replace(" ", "-")
+                                        self._db_manager.save_content_score(
+                                            topic_id=topic_id,
+                                            url=url,
+                                            score_data=score_data
+                                        )
+                                    except Exception as db_error:
+                                        logger.warning("content_score_db_save_failed",
+                                                     url=url, error=str(db_error))
+                                        # Continue - db save failure is non-critical
+                            except Exception as e:
+                                logger.warning("content_scoring_failed", url=url, error=str(e))
+                    logger.info("intelligence_content_scoring_complete",
+                              scored_urls=len(content_scores))
+
+                # Step 4c: Difficulty Scoring
+                if self.difficulty_scorer and content_scores and serp_data:
+                    logger.info("intelligence_difficulty_scoring_start", topic=topic)
+                    topic_id = topic.lower().replace(" ", "-")
+                    # Run synchronous calculation in thread pool
+                    difficulty_score_obj = await asyncio.to_thread(
+                        self.difficulty_scorer.calculate_difficulty,
+                        topic_id=topic_id,
+                        serp_results=serp_data["results"],
+                        content_scores=content_scores
+                    )
+
+                    # Convert DifficultyScore dataclass to dict FIRST
+                    difficulty_data = {
+                        "topic_id": difficulty_score_obj.topic_id,
+                        "difficulty_score": difficulty_score_obj.difficulty_score,
+                        "content_quality_score": difficulty_score_obj.content_quality_score,
+                        "domain_authority_score": difficulty_score_obj.domain_authority_score,
+                        "content_length_score": difficulty_score_obj.content_length_score,
+                        "freshness_score": difficulty_score_obj.freshness_score,
+                        "target_word_count": difficulty_score_obj.target_word_count,
+                        "target_h2_count": difficulty_score_obj.target_h2_count,
+                        "target_image_count": difficulty_score_obj.target_image_count,
+                        "target_quality_score": difficulty_score_obj.target_quality_score,
+                        "avg_competitor_quality": difficulty_score_obj.avg_competitor_quality,
+                        "avg_competitor_word_count": difficulty_score_obj.avg_competitor_word_count,
+                        "high_authority_percentage": difficulty_score_obj.high_authority_percentage,
+                        "freshness_requirement": difficulty_score_obj.freshness_requirement,
+                        "ranking_time_estimate": difficulty_score_obj.estimated_ranking_time
+                    }
+
+                    logger.info("intelligence_difficulty_scoring_complete",
+                              difficulty_score=difficulty_data["difficulty_score"],
+                              ranking_time_estimate=difficulty_data["ranking_time_estimate"])
+
+                    # Then save to database (optional, non-critical)
+                    if self._db_manager:
+                        try:
+                            self._db_manager.save_difficulty_score(
+                                topic_id=topic_id,
+                                difficulty_data=difficulty_data
+                            )
+                            logger.info("difficulty_score_saved_to_db", topic_id=topic_id)
+                        except Exception as db_error:
+                            logger.warning("difficulty_db_save_failed", error=str(db_error))
+                            # Continue - db save failure is non-critical
+
+            except Exception as e:
+                logger.warning("intelligence_analysis_failed", topic=topic, error=str(e))
+                # Don't fail the pipeline if intelligence fails (non-critical)
+
         duration = (datetime.now() - start_time).total_seconds()
 
         # Save research to cache for reuse (if article generated)
@@ -1900,7 +2105,11 @@ Return JSON:
             "supporting_images": supporting_images,
             "image_cost": image_cost,
             "cost": total_cost,
-            "duration_sec": duration
+            "duration_sec": duration,
+            # Intelligence data (Phase 2)
+            "serp_data": serp_data,
+            "content_scores": content_scores,
+            "difficulty_data": difficulty_data
         }
 
     async def run_pipeline(

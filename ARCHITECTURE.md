@@ -357,7 +357,84 @@ except RateLimitError:  # 429, "rate", "quota", "limit"
 **Test Coverage**:
 - Orchestrator: 48 tests (28 unit + 6 Stage 1 + 11 Stage 2 + 3 Stage 4.5)
 - Fallback/E2E: 28 tests (15 CostTracker + 7 fallback + 6 E2E)
-- Total: 76 tests, 100% passing
+- Intelligence (Phase 2): 10 tests (6 unit + 4 integration)
+- Total: 86 tests, 100% passing
+
+### Phase 2: Content Intelligence (Sessions 072-073)
+
+**Goal**: Data-driven topic selection with SERP analysis, content quality scoring, and difficulty estimation.
+
+**Architecture**: Optional intelligence layer integrated into Stage 5 (`research_topic()`) pipeline.
+
+**3 Intelligence Components** (all FREE, CPU-only):
+
+**Step 4a: SERP Analysis** (`SERPAnalyzer`)
+- DuckDuckGo search for top 10 results (FREE, no API key)
+- Domain authority estimation (heuristic-based)
+- Position tracking and analysis
+- Historical snapshots for ranking changes
+- **Output**: `serp_data` dict with results + analysis
+- **Database**: Saved to `serp_results` table (topic_id → snapshots over time)
+
+**Step 4b: Content Quality Scoring** (`ContentScorer`)
+- Fetches + parses HTML from top-ranking URLs
+- **6-Metric Scoring** (0-100 scale, weighted):
+  - Word count (15%): Optimal 1500-3000 words
+  - Readability (20%): Flesch Reading Ease 60-80
+  - Keyword optimization (20%): Density 1.5-2.5%
+  - Structure (15%): H1/H2/H3 count, lists, images
+  - Entity coverage (15%): Named entities (people, places, orgs)
+  - Freshness (15%): Publication date recency
+- **Output**: `content_scores` list with quality metrics for each URL
+- **Database**: Saved to `content_scores` table (url + topic_id → metrics)
+
+**Step 4c: Difficulty Scoring** (`DifficultyScorer`)
+- Analyzes SERP + content scores to calculate personalized difficulty
+- **4-Factor Weighted Scoring** (0-100 scale, easy→hard):
+  - Average content quality (40%): Higher quality = harder
+  - Domain authority (30%): More high-authority domains = harder
+  - Content length requirements (20%): Longer content = harder
+  - Freshness requirements (10%): Recent content needed = harder
+- **Actionable Recommendations**:
+  - Target word count, H2 count, image count, quality score
+  - Ranking time estimates (2-4 months → 12-18 months)
+  - Prioritized actions (critical/high/medium)
+- **Output**: `difficulty_data` dict with score + recommendations
+- **Database**: Saved to `difficulty_scores` table (topic_id → difficulty analysis)
+
+**Integration Pattern** (Async-Safe):
+```python
+# All scorers are synchronous, wrapped with asyncio.to_thread()
+serp_results = await asyncio.to_thread(
+    self.serp_analyzer.search, query=topic, max_results=10
+)
+
+# Data is set FIRST (before database saves)
+serp_data = {"results": [...], "analysis": {...}}
+
+# Database saves are OPTIONAL (wrapped in try/except)
+try:
+    self._db_manager.save_serp_results(...)
+except Exception:
+    logger.warning("db_save_failed")  # Continue - non-critical
+```
+
+**Backward Compatibility**:
+- Intelligence features are **disabled by default** (`enable_serp_analysis=False`)
+- Pipeline works identically when disabled (result fields are None/empty)
+- Database saves are best-effort (failures don't break pipeline)
+
+**Cost**: $0.067-$0.082/article (NO CHANGE - all intelligence is FREE, CPU-only)
+
+**Test Coverage**:
+- Unit tests: 6 tests (orchestrator initialization, lazy loading, disabled state)
+- Integration tests: 4 tests (full pipeline, partial failures, backward compatibility, persistence)
+- All 10 tests passing
+
+**Future Enhancements** (Phase 2D):
+- UI integration (Research Lab tab for interactive SERP analysis)
+- Notion schema updates (difficulty_score, content_score fields)
+- Performance tracking dashboard
 
 ## Performance & Cost
 

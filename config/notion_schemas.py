@@ -241,6 +241,26 @@ RESEARCH_DATA_SCHEMA = {
                 ]
             }
         },
+        # Intelligence fields (Phase 2)
+        "Difficulty Score": {
+            "number": {
+                "format": "number"
+            }
+        },
+        "Content Quality Score": {
+            "number": {
+                "format": "number"
+            }
+        },
+        "SERP Data": {
+            "rich_text": {}  # JSON string with SERP analysis results
+        },
+        "Ranking Time Estimate": {
+            "rich_text": {}  # e.g., "2-4 months", "12-18 months"
+        },
+        "Recommendations": {
+            "rich_text": {}  # Actionable recommendations from difficulty scoring
+        },
         "Blog Post": {
             "relation": {
                 "database_id": None,  # Set dynamically to Blog Posts DB
