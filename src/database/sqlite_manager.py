@@ -11,7 +11,7 @@ import sqlite3
 import json
 from contextlib import contextmanager
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 
 from src.models.document import Document
@@ -437,6 +437,49 @@ class SQLiteManager:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_content_scores_topic_id ON content_scores(topic_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_content_scores_quality ON content_scores(quality_score DESC)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_content_scores_fetched_at ON content_scores(fetched_at DESC)")
+
+            # Difficulty scores table (competitive difficulty analysis)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS difficulty_scores (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    topic_id TEXT UNIQUE NOT NULL,
+
+                    -- Overall difficulty (0-100, easy→hard)
+                    difficulty_score REAL NOT NULL,
+
+                    -- Component scores (0-1 scale, weighted in difficulty_score)
+                    content_quality_score REAL,
+                    domain_authority_score REAL,
+                    content_length_score REAL,
+                    freshness_score REAL,
+
+                    -- Recommendations
+                    target_word_count INTEGER,
+                    target_h2_count INTEGER,
+                    target_image_count INTEGER,
+                    target_quality_score REAL,
+
+                    -- Competitive metadata
+                    avg_competitor_quality REAL,
+                    avg_competitor_word_count INTEGER,
+                    high_authority_percentage REAL,
+                    freshness_requirement TEXT,
+
+                    -- Timing estimates
+                    estimated_ranking_time TEXT,
+
+                    -- Analysis tracking
+                    analyzed_at TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                    FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
+                )
+            """)
+
+            # Indexes for difficulty scores
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_difficulty_scores_topic_id ON difficulty_scores(topic_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_difficulty_scores_difficulty ON difficulty_scores(difficulty_score DESC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_difficulty_scores_analyzed_at ON difficulty_scores(analyzed_at DESC)")
 
             conn.commit()
         finally:
@@ -1786,6 +1829,248 @@ class SQLiteManager:
                     """,
                     (limit,)
                 )
+
+            rows = cursor.fetchall()
+
+            return [dict(row) for row in rows]
+
+    # === Difficulty Score Methods ===
+
+    def save_difficulty_score(
+        self,
+        topic_id: str,
+        difficulty_score: float,
+        metrics: Dict,
+    ) -> int:
+        """
+        Save or update difficulty score for a topic.
+
+        Args:
+            topic_id: Topic identifier
+            difficulty_score: Overall difficulty (0-100, easy→hard)
+            metrics: Dict with component scores and recommendations
+
+        Returns:
+            Difficulty score ID
+
+        Example:
+            >>> metrics = {
+            ...     "content_quality_score": 0.7,
+            ...     "domain_authority_score": 0.6,
+            ...     "content_length_score": 0.5,
+            ...     "freshness_score": 0.4,
+            ...     "target_word_count": 2500,
+            ...     "target_h2_count": 6,
+            ...     "target_image_count": 5,
+            ...     "target_quality_score": 85.0,
+            ...     "avg_competitor_quality": 80.0,
+            ...     "avg_competitor_word_count": 2300,
+            ...     "high_authority_percentage": 60.0,
+            ...     "freshness_requirement": "< 6 months",
+            ...     "estimated_ranking_time": "6-9 months",
+            ...     "analyzed_at": "2025-01-17T10:00:00"
+            ... }
+            >>> score_id = db.save_difficulty_score("proptech-2025", 65.5, metrics)
+        """
+        logger.info(
+            "saving_difficulty_score",
+            topic_id=topic_id,
+            difficulty=difficulty_score
+        )
+
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO difficulty_scores (
+                    topic_id,
+                    difficulty_score,
+                    content_quality_score,
+                    domain_authority_score,
+                    content_length_score,
+                    freshness_score,
+                    target_word_count,
+                    target_h2_count,
+                    target_image_count,
+                    target_quality_score,
+                    avg_competitor_quality,
+                    avg_competitor_word_count,
+                    high_authority_percentage,
+                    freshness_requirement,
+                    estimated_ranking_time,
+                    analyzed_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(topic_id) DO UPDATE SET
+                    difficulty_score = excluded.difficulty_score,
+                    content_quality_score = excluded.content_quality_score,
+                    domain_authority_score = excluded.domain_authority_score,
+                    content_length_score = excluded.content_length_score,
+                    freshness_score = excluded.freshness_score,
+                    target_word_count = excluded.target_word_count,
+                    target_h2_count = excluded.target_h2_count,
+                    target_image_count = excluded.target_image_count,
+                    target_quality_score = excluded.target_quality_score,
+                    avg_competitor_quality = excluded.avg_competitor_quality,
+                    avg_competitor_word_count = excluded.avg_competitor_word_count,
+                    high_authority_percentage = excluded.high_authority_percentage,
+                    freshness_requirement = excluded.freshness_requirement,
+                    estimated_ranking_time = excluded.estimated_ranking_time,
+                    analyzed_at = excluded.analyzed_at,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (
+                    topic_id,
+                    difficulty_score,
+                    metrics.get("content_quality_score"),
+                    metrics.get("domain_authority_score"),
+                    metrics.get("content_length_score"),
+                    metrics.get("freshness_score"),
+                    metrics.get("target_word_count"),
+                    metrics.get("target_h2_count"),
+                    metrics.get("target_image_count"),
+                    metrics.get("target_quality_score"),
+                    metrics.get("avg_competitor_quality"),
+                    metrics.get("avg_competitor_word_count"),
+                    metrics.get("high_authority_percentage"),
+                    metrics.get("freshness_requirement"),
+                    metrics.get("estimated_ranking_time"),
+                    metrics.get("analyzed_at")
+                )
+            )
+
+            conn.commit()
+
+            logger.info(
+                "difficulty_score_saved",
+                topic_id=topic_id,
+                score_id=cursor.lastrowid
+            )
+
+            return cursor.lastrowid
+
+    def get_difficulty_score(self, topic_id: str) -> Optional[dict]:
+        """
+        Get difficulty score for a topic.
+
+        Args:
+            topic_id: Topic identifier
+
+        Returns:
+            Difficulty score dict or None if not found
+
+        Example:
+            >>> score = db.get_difficulty_score("proptech-2025")
+            >>> if score:
+            ...     print(f"Difficulty: {score['difficulty_score']}/100")
+            ...     print(f"Target: {score['target_word_count']} words")
+        """
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM difficulty_scores WHERE topic_id = ?",
+                (topic_id,)
+            )
+
+            row = cursor.fetchone()
+
+            return dict(row) if row else None
+
+    def get_difficulty_scores_by_range(
+        self,
+        min_difficulty: Optional[float] = None,
+        max_difficulty: Optional[float] = None,
+        limit: int = 50
+    ) -> List[dict]:
+        """
+        Get difficulty scores within a difficulty range.
+
+        Args:
+            min_difficulty: Minimum difficulty (inclusive)
+            max_difficulty: Maximum difficulty (inclusive)
+            limit: Maximum number of results (default: 50)
+
+        Returns:
+            List of difficulty score dicts, ordered by difficulty DESC
+
+        Example:
+            >>> # Get easy topics (difficulty < 40)
+            >>> easy_topics = db.get_difficulty_scores_by_range(max_difficulty=40)
+            >>>
+            >>> # Get hard topics (difficulty > 70)
+            >>> hard_topics = db.get_difficulty_scores_by_range(min_difficulty=70)
+            >>>
+            >>> # Get medium topics (40-70)
+            >>> medium_topics = db.get_difficulty_scores_by_range(
+            ...     min_difficulty=40,
+            ...     max_difficulty=70
+            ... )
+        """
+        with self._get_connection() as conn:
+            # Build query based on filters
+            conditions = []
+            params = []
+
+            if min_difficulty is not None:
+                conditions.append("difficulty_score >= ?")
+                params.append(min_difficulty)
+
+            if max_difficulty is not None:
+                conditions.append("difficulty_score <= ?")
+                params.append(max_difficulty)
+
+            params.append(limit)
+
+            where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+            cursor = conn.execute(
+                f"""
+                SELECT * FROM difficulty_scores
+                WHERE {where_clause}
+                ORDER BY difficulty_score DESC
+                LIMIT ?
+                """,
+                params
+            )
+
+            rows = cursor.fetchall()
+
+            return [dict(row) for row in rows]
+
+    def get_all_difficulty_scores(
+        self,
+        limit: int = 100,
+        order_by: str = "difficulty"
+    ) -> List[dict]:
+        """
+        Get all difficulty scores.
+
+        Args:
+            limit: Maximum number of results (default: 100)
+            order_by: Sort order - "difficulty", "analyzed_at" (default: "difficulty")
+
+        Returns:
+            List of difficulty score dicts
+
+        Example:
+            >>> # Get 10 hardest topics
+            >>> hardest = db.get_all_difficulty_scores(limit=10, order_by="difficulty")
+            >>>
+            >>> # Get 10 most recently analyzed
+            >>> recent = db.get_all_difficulty_scores(limit=10, order_by="analyzed_at")
+        """
+        with self._get_connection() as conn:
+            if order_by == "analyzed_at":
+                order_clause = "analyzed_at DESC"
+            else:
+                order_clause = "difficulty_score DESC"
+
+            cursor = conn.execute(
+                f"""
+                SELECT * FROM difficulty_scores
+                ORDER BY {order_clause}
+                LIMIT ?
+                """,
+                (limit,)
+            )
 
             rows = cursor.fetchall()
 
