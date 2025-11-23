@@ -186,4 +186,58 @@ Recent development sessions (last 3 sessions, <100 lines).
 
 ---
 
-*Older sessions (068-070) archived in `docs/sessions/` directory*
+## Session 049: FastAPI Migration - Phase 0 Code Reviews (2025-11-23)
+
+**PLANNING (6 hours)** - Comprehensive pre-migration code review, 10,510 LOC analyzed, 155-213h async conversion scope
+
+**Objective**: Deep analysis of current codebase before FastAPI/Postgres migration to identify async conversion needs, performance bottlenecks, and migration risks.
+
+**Approach**: Launched 5 parallel subagents with "very thorough" exploration to review all major components.
+
+**Components Reviewed**:
+- ✅ **Agents** (4,513 LOC) - 100% sync, BaseAgent critical blocker, 28-41h conversion
+- ✅ **Collectors** (~2,000 LOC) - 5/6 sync, 17-24h conversion
+- ✅ **Database** (797 LOC) - **CRITICAL data loss risk**, 68-90h migration (11+ normalized tables)
+- ✅ **Processors** (1,134 LOC) - 100% sync, **50x perf gain available**, 23-32h conversion
+- ✅ **Notion** (1,766 LOC) - Well-architected, 17-23h straightforward conversion
+
+**Critical Findings**:
+- ❌ **Data Loss Risk**: Pydantic fields (`competitors`, `content_gaps`, `keywords`, `supporting_images`) in memory only, lost on restart
+- ❌ **BaseAgent Blocker**: All 8 agents depend on synchronous BaseAgent, must convert first (8-12h)
+- ❌ **100% Synchronous**: No async/await anywhere (except TheNewsAPICollector)
+- 🚀 **50x Performance Opportunity**: Processors (100s → 2s with async parallelization)
+- 🚀 **10x Batch Improvement**: 10 topics (1170-1750s → 120-180s with full async)
+
+**Migration Scope**:
+- Total: 155-213 hours (~5 weeks)
+- Critical Path: Database (68-90h) → BaseAgent (8-12h) → Agents (16-24h) → Processors/Collectors/Notion (parallel)
+- Quick Wins: Processors (50x gain, 2-3h each)
+
+**Performance Projections** (conservative):
+- uvloop: 2-4x event loop
+- orjson: 2x JSON parsing
+- asyncpg: 5x database
+- Processors: 50x parallelization
+- Overall: 20-50x (workload dependent)
+
+**Deliverables**:
+- `docs/AGENTS_DEEP_REVIEW_PHASE0.md` (4,513 LOC analysis)
+- `docs/phase-0-collectors-deep-review.md` (~2,000 LOC analysis)
+- `docs/phase0_processors_deep_review.md` (1,134 LOC analysis)
+- `docs/PHASE0_SYNTHESIS.md` (600+ line comprehensive synthesis)
+- `docs/sessions/049-fastapi-migration-phase0-code-reviews.md` (session log)
+- Updated `TASKS.md` (Phase 1 tasks, CRITICAL PRIORITY section)
+- Updated `FASTAPI_MIGRATION_PLAN.md` (Phase 0 findings integrated)
+
+**Next Steps**: Phase 1 - Database Migration (68-90h, 2 weeks)
+- Critical decision required: Data loss mitigation (fix persistence OR accept loss)
+- Set up PostgreSQL 16 + Redis 7+ (local + VPS)
+- Design 11+ normalized tables, SQLAlchemy async models, repository layer, Alembic migrations
+
+**See**: [Full synthesis](docs/PHASE0_SYNTHESIS.md) | [Session log](docs/sessions/049-fastapi-migration-phase0-code-reviews.md) | [Migration plan](docs/FASTAPI_MIGRATION_PLAN.md)
+
+---
+
+## Session 048: Image Quality Enhancements & Multilingual Architecture (2025-11-11)
+
+*Older sessions (048, 068-070) archived in `docs/sessions/` directory*
