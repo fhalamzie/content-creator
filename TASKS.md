@@ -40,6 +40,161 @@
 
 ---
 
+## CRITICAL PRIORITY - FastAPI Migration to Production Architecture
+
+**Goal**: Migrate Streamlit MVP monolith to production-grade FastAPI backend with PostgreSQL, 100% TDD, and VPS deployment
+
+**Target Domain**: übergabeprotokoll24.de
+
+### Phase 0: Pre-Migration Code Reviews ✅ COMPLETE (Session 049)
+
+**Status**: 5/5 subagent reviews complete, ready for synthesis
+
+**Completed** (6 hours - parallel execution):
+- [x] **Agents Review** (4,513 LOC analyzed) → `docs/AGENTS_DEEP_REVIEW_PHASE0.md`
+  - 9 core agents: BaseAgent, GeminiAgent, Competitors, Keywords, ContentGap, SERP, Writing, FactChecker, UniversalTopic
+  - Finding: 100% synchronous, 28-41 hours async conversion needed
+  - Critical blocker: BaseAgent must convert first (all agents depend on it)
+  - Missing tests: GeminiAgent (0 tests)
+
+- [x] **Collectors Review** (~2,000 LOC) → `docs/phase-0-collectors-deep-review.md`
+  - 6 collectors: RSS, Reddit, Trends, Autocomplete, FeedDiscovery, TheNewsAPI
+  - Finding: 5/6 fully synchronous (TheNewsAPICollector already async)
+  - Effort: 17-24 hours (1 week) or 4-6 weeks sequential
+  - Easy wins: AutocompleteCollector (2-3h), TrendsCollector (2-3h)
+
+- [x] **Database Review** (797 LOC) → Inline report (Session 049)
+  - SQLiteManager: Fully synchronous, well-structured repository pattern
+  - **CRITICAL**: Pydantic fields not persisted (`competitors`, `content_gaps`, `keywords`, `supporting_images` in memory only)
+  - **Data loss risk**: Lost on application restart
+  - Effort: 68-90 hours (2 weeks) for 11+ normalized tables
+
+- [x] **Processors Review** (1,134 LOC) → `docs/phase0_processors_deep_review.md`
+  - 4 processors: LLMProcessor, EntityExtractor, Deduplicator, TopicClusterer
+  - Finding: 100% synchronous, in-memory caching only
+  - **MASSIVE performance gains available**: 50x improvement (100-200s → 2-4s)
+  - Effort: 23-32 hours (1 week)
+
+- [x] **Notion Integration Review** (1,766 LOC) → Inline report (Session 049)
+  - Well-architected: RateLimiter → NotionClient → TopicsSync
+  - `notion-client` uses httpx (AsyncClient available)
+  - Effort: 17-23 hours (1 week) - straightforward conversion
+
+**Total Async Conversion Scope**: 155-213 hours (~5 weeks)
+
+**Performance Gains Expected**:
+- Event loop (uvloop): 2-4x
+- JSON (orjson): 2x
+- Database (asyncpg + Postgres): 5x
+- Processors (parallel): 50x
+- **Overall: 20-50x improvement** 🚀
+
+### Phase 1: Synthesis & Planning (NEXT - Option 1)
+
+**Goal**: Consolidate findings and create actionable implementation roadmap
+
+**Tasks**:
+- [ ] **Create Phase 0 Synthesis Document** (2-3 hours)
+  - [ ] Consolidate all 5 code review findings
+  - [ ] Identify critical path (BaseAgent → Database → Processors → ...)
+  - [ ] Document migration risks and mitigation strategies
+  - [ ] Create phased implementation order with dependencies
+
+- [ ] **Update FASTAPI_MIGRATION_PLAN.md** (1 hour)
+  - [ ] Add specific refactoring priorities based on reviews
+  - [ ] Add effort estimates per phase
+  - [ ] Add critical path identification
+  - [ ] Add risk assessment and mitigation strategies
+
+- [ ] **Create Phase 2 Implementation Checklist** (0.5 hours)
+  - [ ] Break down Phase 2 into actionable tasks
+  - [ ] Assign effort estimates
+  - [ ] Identify dependencies and blockers
+  - [ ] Define success criteria per task
+
+**Estimated Effort**: 3.5-4.5 hours
+
+**Benefits**:
+- ✅ Single source of truth for migration
+- ✅ Clear implementation roadmap
+- ✅ Risk mitigation strategies documented
+- ✅ Stakeholder-ready plan
+
+### Phase 2: Database Migration (After Phase 1)
+
+**Goal**: Implement normalized PostgreSQL schema with async SQLAlchemy
+
+**Tasks** (68-90 hours):
+- [ ] Schema design (11+ normalized tables): 8-12 hours
+- [ ] SQLAlchemy async models: 12-16 hours
+- [ ] Repository layer with asyncpg: 20-24 hours
+- [ ] Alembic migrations: 8-12 hours
+- [ ] Data migration scripts: 4-6 hours
+- [ ] Testing (100% critical path): 16-20 hours
+
+**Prerequisites**:
+- [ ] Fix in-memory data persistence bug OR accept data loss
+- [ ] Set up PostgreSQL 16 locally + on VPS
+- [ ] Configure asyncpg connection pool
+
+**Success Criteria**:
+- ✅ All 11+ tables created with foreign keys
+- ✅ Alembic migrations working
+- ✅ 100% repository layer test coverage
+- ✅ No data loss (all Pydantic fields persisted)
+
+### Phase 3: Async Agent Conversion (After Phase 2)
+
+**Critical Path**: BaseAgent → Individual Agents
+
+**Tasks** (28-41 hours):
+- [ ] Convert BaseAgent to async: 8-12 hours (BLOCKER - do first)
+- [ ] Convert individual agents (8 agents × 2-3h): 16-24 hours
+- [ ] Add GeminiAgent test suite: 2-3 hours
+- [ ] Refactor UniversalTopicAgent dependencies: 2-3 hours
+
+**Success Criteria**:
+- ✅ All agents use async/await
+- ✅ GeminiAgent has >90% test coverage
+- ✅ UniversalTopicAgent dependency injection working
+
+### Architecture Decisions Confirmed
+
+**Backend**:
+- ✅ FastAPI 0.121.3 (async web framework)
+- ✅ Pydantic 2.12.4 (strict type safety)
+- ✅ SQLAlchemy 2.0.44 (async ORM)
+- ✅ asyncpg 0.30.0 (5x faster than psycopg3)
+- ✅ PostgreSQL 16 (ACID, full-text search, pgvector)
+
+**Performance**:
+- ✅ uvloop 0.29+ (2-4x event loop speed)
+- ✅ orjson 3.11.4 (2x JSON parsing speed)
+
+**Testing**:
+- ✅ 100% TDD approach
+- ✅ 95%+ coverage overall
+- ✅ 100% coverage on critical paths (services, repositories, API)
+- ✅ mypy --strict (maximum type safety)
+
+**Deployment**:
+- ✅ Docker + Docker Compose (multi-stage builds)
+- ✅ GitHub Actions CI/CD
+- ✅ VPS deployment (übergabeprotokoll24.de)
+- ✅ Caddy 2+ (reverse proxy, auto-SSL)
+
+**Database**:
+- ✅ Direct Postgres cutover (no dual-write)
+- ✅ Fully normalized schema (no JSONB)
+- ✅ Alembic migrations
+
+**Jobs**:
+- ✅ Huey + Redis (keep existing stack)
+
+**See**: [docs/FASTAPI_MIGRATION_PLAN.md](docs/FASTAPI_MIGRATION_PLAN.md) (2,277 lines - single source of truth)
+
+---
+
 ## High Priority - Universal Topic Research Agent
 
 **Status**: Core components complete, E2E testing in progress
