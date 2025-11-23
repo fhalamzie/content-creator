@@ -167,14 +167,17 @@ streamlit_app.py
 
 | Layer | Technology | Rationale |
 |-------|-----------|-----------|
-| **API Framework** | FastAPI 0.115+ | Async-first, OpenAPI, Pydantic native |
-| **ASGI Server** | Uvicorn | High performance, WebSocket support |
+| **API Framework** | FastAPI 0.121.3 | Async-first, OpenAPI, Pydantic native, Python 3.14 support |
+| **ASGI Server** | Uvicorn 0.34+ with uvloop | High performance, WebSocket support, 2-4x faster event loop |
+| **Event Loop** | uvloop 0.29+ | 2-4x faster than asyncio, drop-in replacement (libuv-based) |
+| **JSON Library** | orjson 3.11.4 | Fastest JSON library (Rust-based), dataclass/datetime support |
 | **Database** | PostgreSQL 16+ | ACID, full-text search, JSONB, pgvector |
-| **ORM** | SQLAlchemy 2.0+ | Type-safe, async support, migrations |
-| **Migrations** | Alembic | Schema versioning, rollback support |
-| **Cache/Queue** | Redis 7+ | In-memory speed, pub/sub, Celery backend |
+| **ORM** | SQLAlchemy 2.0.44 | Type-safe, async support, migrations |
+| **Postgres Driver** | asyncpg 0.30.0 | 5x faster than psycopg3, PostgreSQL 17 support |
+| **Migrations** | Alembic 1.14+ | Schema versioning, rollback support |
+| **Cache/Queue** | Redis 7+ | In-memory speed, pub/sub, Huey backend |
 | **Task Queue** | Huey + Redis | Simple, lightweight, sufficient for MVP |
-| **Validation** | Pydantic 2.10+ | Runtime validation, strict types |
+| **Validation** | Pydantic 2.12.4 | Runtime validation, strict types, Python 3.14 support |
 | **Testing** | pytest + pytest-asyncio | Async support, fixtures, parametrize |
 | **Coverage** | coverage.py + pytest-cov | 95%+ overall, 100% critical paths |
 | **Mocking** | pytest-mock + responses | HTTP mocking, API stubbing |
@@ -2189,20 +2192,230 @@ docker-compose -f docker-compose.production.yml up -d api-prod-1:previous-tag
 
 ---
 
-## 📋 Implementation Checklist (Phase 1)
+## 🚀 Performance Optimizations
+
+### uvloop Integration
+
+**Performance**: 2-4x faster than default asyncio event loop
+
+```python
+# app/main.py
+import uvloop
+from fastapi import FastAPI
+
+# Install uvloop as default event loop
+uvloop.install()
+
+app = FastAPI(title="Content Creator API")
+
+# Or in production with Uvicorn:
+# uvicorn app.main:app --loop uvloop
+```
+
+**Benchmarks** ([source](https://github.com/MagicStack/uvloop)):
+- Default asyncio: 2,200 tasks/sec
+- uvloop: 4,700 tasks/sec
+- **Result**: 2.1x improvement
+
+### orjson Integration
+
+**Performance**: Fastest JSON library for Python (Rust-based)
+
+```python
+# app/main.py
+from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
+
+app = FastAPI(
+    title="Content Creator API",
+    default_response_class=ORJSONResponse  # Use orjson by default
+)
+
+# For custom serialization
+import orjson
+
+def custom_serializer(obj):
+    """Custom JSON serialization with orjson"""
+    return orjson.dumps(
+        obj,
+        option=orjson.OPT_NAIVE_UTC | orjson.OPT_SERIALIZE_NUMPY
+    )
+```
+
+**Important**: orjson returns `bytes`, not `str`. FastAPI's `ORJSONResponse` handles this automatically.
+
+**Supported natively**:
+- dataclasses
+- datetime, date, time
+- UUID
+- numpy arrays
+- Decimal
+
+### asyncpg Configuration
+
+**Performance**: 5x faster than psycopg3
+
+```python
+# app/core/config.py
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/db"
+
+    # asyncpg connection pool settings
+    DB_POOL_SIZE: int = 20
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 3600  # 1 hour
+
+# app/db/session.py
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    pool_timeout=settings.DB_POOL_TIMEOUT,
+    pool_recycle=settings.DB_POOL_RECYCLE,
+    echo=False,  # Disable SQL logging in production
+)
+```
+
+---
+
+## 🔍 Pre-Migration Code Review (Phase 0)
+
+**Duration**: 2 days
+**Goal**: Deep analysis of current codebase before migration
+
+### Review Strategy
+
+Launch **6 parallel subagents** to review different components:
+
+#### Wave 1: Core Components
+
+1. **Agents Review** (`src/agents/`)
+   - CompetitorResearchAgent
+   - KeywordResearchAgent
+   - ContentPipeline
+   - HybridResearchOrchestrator
+   - **Focus**: Business logic patterns, coupling, API design implications
+
+2. **Collectors Review** (`src/collectors/`)
+   - RSSCollector
+   - RedditCollector
+   - TrendsCollector
+   - AutocompleteCollector
+   - **Focus**: Data ingestion patterns, async opportunities, error handling
+
+3. **Research Review** (`src/research/`)
+   - DeepResearcher
+   - ContentSynthesizer
+   - MultiStageReranker
+   - Backend abstraction layer
+   - **Focus**: Complex workflows, service layer design, performance bottlenecks
+
+#### Wave 2: Infrastructure
+
+4. **Database Review** (`src/database/`)
+   - SQLiteManager
+   - Current schema
+   - Data models (Topic, Document, Collection)
+   - **Focus**: Migration requirements, data transformation needs, normalization opportunities
+
+5. **Processors Review** (`src/processors/`)
+   - Deduplicator
+   - TopicClusterer
+   - EntityExtractor
+   - LLMProcessor
+   - **Focus**: Async conversion needs, service integration, performance optimization
+
+6. **Integration Review** (`src/notion_integration/`)
+   - TopicsSync
+   - RateLimiter
+   - NotionClient
+   - **Focus**: External API patterns, error handling, background task design
+
+### Review Deliverables
+
+Each agent will produce:
+- **Architecture analysis**: Current patterns, dependencies, coupling
+- **Technical debt**: Code smells, TODOs, deprecated patterns
+- **Test coverage gaps**: What's missing, what needs improvement
+- **Refactoring recommendations**: Changes needed for migration
+- **API design insights**: How to expose functionality via REST
+- **Data model analysis**: Current structure vs normalized schema needs
+
+### Review Questions to Answer
+
+1. **Can existing agents be wrapped as services?** Or do they need refactoring?
+2. **What business logic is in UI code?** (needs to move to service layer)
+3. **Which components are tightly coupled?** (need dependency injection)
+4. **What async patterns are missing?** (SQLite is sync, what else?)
+5. **Are there performance bottlenecks?** (before we optimize)
+6. **What test coverage is missing?** (critical for migration confidence)
+7. **How is error handling done?** (need standardized API errors)
+8. **What configuration is hardcoded?** (needs environment variables)
+
+### Timeline
+
+- **Day 1**: Launch 6 subagents in parallel, review reports
+- **Day 2**: Synthesize findings, update migration plan
+- **Output**: Comprehensive pre-migration analysis document
+
+---
+
+## 📋 Updated Implementation Plan
+
+### Phase 0: Pre-Migration Code Review (NEW)
+
+**Duration**: 2 days
+**Deliverable**: Code review report with refactoring recommendations
+
+- [ ] Launch subagent reviews (6 parallel)
+- [ ] Analyze findings and create recommendations
+- [ ] Update migration plan based on discoveries
+- [ ] Identify components that can be reused vs need rewrite
+
+### Phase 1: Foundation (Week 1-2)
+
+**Updated checklist with performance libraries:**
 
 - [ ] Create `content-creator-api/` directory structure
-- [ ] Initialize FastAPI app (`app/main.py`)
-- [ ] Set up `pyproject.toml` with dependencies
+- [ ] Initialize FastAPI app (`app/main.py`) with uvloop
+- [ ] Configure orjson as default JSON serializer
+- [ ] Set up `pyproject.toml` with all dependencies (uvloop, orjson, asyncpg)
 - [ ] Configure Alembic (`alembic init`)
 - [ ] Write normalized schema migrations
-- [ ] Create SQLAlchemy models (async)
+- [ ] Create SQLAlchemy models (async with asyncpg)
 - [ ] Write SQLite export script
-- [ ] Write Postgres import script
+- [ ] Write Postgres import script (use asyncpg for speed)
 - [ ] Configure pytest with async support
 - [ ] Set up GitHub Actions CI workflow
 - [ ] Add mypy strict configuration
 - [ ] Create Docker Compose for local dev
 - [ ] Document setup in README
+- [ ] Add performance benchmarks (compare with/without uvloop)
 
-**Ready to start?** Let me know and we'll begin with Phase 1!
+---
+
+## 🎯 Decision Point
+
+**Should we run the code review (Phase 0) before Phase 1?**
+
+**Option A: Review First** (Recommended)
+- ✅ Start code review tomorrow (2 days)
+- ✅ Update migration plan with findings
+- ✅ Begin Phase 1 with full context
+- **Timeline**: Phase 1 starts in 3 days
+
+**Option B: Start Phase 1 Immediately**
+- ✅ Begin FastAPI skeleton today
+- ⚠️ May discover issues mid-migration
+- ⚠️ Possible rework if patterns need changing
+- **Timeline**: Phase 1 starts today
+
+**My recommendation**: **Option A** - The 2-day investment will save 1-2 weeks of rework.
+
+**What would you like to do?**
