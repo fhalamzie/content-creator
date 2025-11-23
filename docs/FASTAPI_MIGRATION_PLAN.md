@@ -1,24 +1,42 @@
 # FastAPI Backend Migration Plan
 
 **Project:** Content Creator - Production Architecture Upgrade
-**Version:** 1.0
-**Status:** Planning Phase
+**Version:** 1.1 (Aligned)
+**Status:** Planning Phase - Ready for Implementation
 **Date:** 2025-11-23
-**Estimated Duration:** 8-12 weeks
+**Estimated Duration:** 6-8 weeks
+**Domain:** übergabeprotokoll24.de
 
 ---
 
 ## 🎯 Executive Summary
 
-Migrate from Streamlit monolith to production-grade architecture with:
+Migrate from Streamlit MVP to production-grade architecture with:
 - **FastAPI** REST API backend (strict type safety, async-first)
-- **Postgres** database (scalable, ACID-compliant, full-text search)
-- **100% TDD** with 100% test coverage (pytest + coverage.py)
-- **CI/CD** via GitHub Actions (automated testing, deployment)
-- **Docker** containerization (reproducible, portable)
+- **PostgreSQL 16** database (fully normalized, ACID-compliant, full-text search)
+- **95%+ test coverage** (100% on critical paths: services, repositories, API)
+- **CI/CD** via GitHub Actions (automated testing, deployment to VPS)
+- **Docker** containerization (VPS deployment via GitHub)
+- **Huey + Redis** for background tasks
+- **Caddy** for SSL/reverse proxy
 - **React** frontend (Phase 2 - separate plan)
 
-**Migration Strategy:** Incremental (strangler fig pattern) - zero downtime, gradual rollout
+**Migration Strategy:** Direct cutover to Postgres (no dual-write needed - MVP with no production users)
+
+---
+
+## ✅ Architecture Decisions (Confirmed)
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Migration** | Direct Postgres cutover | MVP stage, no production users, faster implementation |
+| **API Design** | Thin API + Rich Services | Testable, reusable business logic |
+| **Background Jobs** | Huey + Redis | Simple, already in use, sufficient for MVP |
+| **Test Coverage** | 95%+ overall, 100% critical | Pragmatic balance of speed vs quality |
+| **Type Safety** | mypy --strict | Maximum compile-time error detection |
+| **Database Schema** | Fully normalized | Strict schema, foreign keys, complex queries |
+| **Authentication** | Designed but not enforced | API ready for auth, add later when needed |
+| **Deployment** | VPS via GitHub Actions | Docker on VPS, Caddy SSL, domain ready |
 
 ---
 
@@ -155,15 +173,16 @@ streamlit_app.py
 | **ORM** | SQLAlchemy 2.0+ | Type-safe, async support, migrations |
 | **Migrations** | Alembic | Schema versioning, rollback support |
 | **Cache/Queue** | Redis 7+ | In-memory speed, pub/sub, Celery backend |
-| **Task Queue** | Celery | Distributed workers, retry logic, monitoring |
+| **Task Queue** | Huey + Redis | Simple, lightweight, sufficient for MVP |
 | **Validation** | Pydantic 2.10+ | Runtime validation, strict types |
 | **Testing** | pytest + pytest-asyncio | Async support, fixtures, parametrize |
-| **Coverage** | coverage.py + pytest-cov | 100% target, branch coverage |
+| **Coverage** | coverage.py + pytest-cov | 95%+ overall, 100% critical paths |
 | **Mocking** | pytest-mock + responses | HTTP mocking, API stubbing |
 | **CI/CD** | GitHub Actions | Free for public repos, matrix builds |
 | **Linting** | Ruff + mypy | Fast linting, strict type checking |
 | **Formatting** | Ruff | Black-compatible, fast |
 | **Containerization** | Docker + Docker Compose | Multi-stage builds, dev/prod parity |
+| **Reverse Proxy** | Caddy 2+ | Automatic SSL, simple config |
 | **Monitoring** | Prometheus + Grafana | Metrics, dashboards, alerts |
 | **Logging** | structlog + JSON | Structured, searchable, ELK-ready |
 
@@ -171,7 +190,23 @@ streamlit_app.py
 
 ## 🗄️ Database Migration Strategy
 
-### Postgres Schema Design
+### Migration Approach: Direct Cutover
+
+**Strategy**: Since we're in MVP stage with no production users, we'll do a **direct migration** from SQLite to PostgreSQL:
+
+1. ✅ Design normalized Postgres schema
+2. ✅ Create migration scripts (Alembic)
+3. ✅ Write data export from SQLite
+4. ✅ Import to Postgres with validation
+5. ✅ Update connection strings
+6. ✅ Test thoroughly in local dev
+7. ✅ Deploy to VPS
+
+**Timeline**: 1 week (Phase 1)
+
+---
+
+### Postgres Schema Design (Fully Normalized)
 
 ```sql
 -- Enable extensions
@@ -179,7 +214,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";    -- Fuzzy search
 CREATE EXTENSION IF NOT EXISTS "pgvector";   -- Vector similarity (future)
 
--- Topics (primary entity)
+-- ============================================================================
+-- TOPICS (Primary Entity)
+-- ============================================================================
 CREATE TABLE topics (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR(500) NOT NULL,
@@ -204,20 +241,15 @@ CREATE TABLE topics (
     -- Status
     status VARCHAR(50) NOT NULL DEFAULT 'discovered',
 
-    -- Research results (JSONB for flexibility)
+    -- Research results
     research_report TEXT,
-    citations JSONB DEFAULT '[]',
-    competitors JSONB DEFAULT '[]',
-    content_gaps JSONB DEFAULT '[]',
-    keywords JSONB DEFAULT '{}',
 
     -- Content metadata
     word_count INTEGER,
     content_score NUMERIC(5,2),
 
-    -- Images
+    -- Images (normalized in separate table)
     hero_image_url TEXT,
-    supporting_images JSONB DEFAULT '[]',
 
     -- Notion sync
     notion_id VARCHAR(100) UNIQUE,
@@ -227,9 +259,114 @@ CREATE TABLE topics (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    -- Indexes
     CONSTRAINT topics_status_check CHECK (status IN ('discovered', 'validated', 'researched', 'drafted', 'published', 'archived'))
 );
+
+-- ============================================================================
+-- CITATIONS (Normalized)
+-- ============================================================================
+CREATE TABLE citations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    url TEXT NOT NULL,
+    title VARCHAR(500),
+    source VARCHAR(200),
+    cited_at TIMESTAMPTZ DEFAULT NOW(),
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE(topic_id, url)
+);
+
+CREATE INDEX idx_citations_topic_id ON citations(topic_id);
+
+-- ============================================================================
+-- COMPETITORS (Normalized)
+-- ============================================================================
+CREATE TABLE competitors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+
+    -- Competitor info
+    name VARCHAR(200) NOT NULL,
+    website TEXT,
+    description TEXT,
+
+    -- Social handles
+    linkedin_url TEXT,
+    twitter_url TEXT,
+    facebook_url TEXT,
+
+    -- Analysis
+    content_strategy TEXT,
+    posting_frequency VARCHAR(100),
+    strengths TEXT,
+    weaknesses TEXT,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_competitors_topic_id ON competitors(topic_id);
+
+-- ============================================================================
+-- CONTENT GAPS (Normalized)
+-- ============================================================================
+CREATE TABLE content_gaps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+
+    gap_description TEXT NOT NULL,
+    opportunity_score NUMERIC(3,2) DEFAULT 0.5,  -- 0.0 to 1.0
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_content_gaps_topic_id ON content_gaps(topic_id);
+
+-- ============================================================================
+-- KEYWORDS (Normalized)
+-- ============================================================================
+CREATE TABLE keywords (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+
+    keyword VARCHAR(200) NOT NULL,
+    type VARCHAR(50) NOT NULL,  -- primary, secondary, long_tail
+
+    -- Metrics
+    search_volume VARCHAR(50),  -- "1K-10K", "10K-100K", etc.
+    competition VARCHAR(20),    -- Low, Medium, High
+    difficulty INTEGER CHECK (difficulty BETWEEN 0 AND 100),
+    intent VARCHAR(50),         -- Informational, Commercial, Transactional
+
+    -- Trends
+    trending BOOLEAN DEFAULT FALSE,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE(topic_id, keyword)
+);
+
+CREATE INDEX idx_keywords_topic_id ON keywords(topic_id);
+CREATE INDEX idx_keywords_type ON keywords(type);
+
+-- ============================================================================
+-- SUPPORTING IMAGES (Normalized)
+-- ============================================================================
+CREATE TABLE supporting_images (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+
+    url TEXT NOT NULL,
+    alt_text VARCHAR(500),
+    size VARCHAR(20),      -- "1024x1024", "2048x2048", etc.
+    quality VARCHAR(20),   -- "standard", "hd", "ultra"
+    position INTEGER,      -- Order in article
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_supporting_images_topic_id ON supporting_images(topic_id);
 
 -- Indexes for performance
 CREATE INDEX idx_topics_status ON topics(status);
@@ -374,29 +511,33 @@ CREATE TRIGGER collections_updated_at_trigger
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
-### Migration Approach
+### SQLite to Postgres Data Migration
 
-**Option 1: Dual-Write Pattern** (RECOMMENDED)
-1. Keep SQLite for reads (existing system)
-2. Write to both SQLite + Postgres (new code)
-3. Verify data consistency (monitoring)
-4. Switch reads to Postgres (feature flag)
-5. Retire SQLite
+**Approach**: Simple export/import (no need for dual-write since MVP has no production users)
 
-**Option 2: Snapshot + Streaming**
-1. Export SQLite to Postgres (one-time)
-2. Set up change data capture (CDC)
-3. Stream changes to Postgres
-4. Cutover when caught up
+```bash
+# 1. Export from SQLite
+python scripts/export_sqlite.py --output data/export.json
 
-**Option 3: Big Bang**
-1. Freeze writes
-2. Export full database
-3. Import to Postgres
-4. Switch over
-5. Resume writes
+# 2. Validate export
+python scripts/validate_export.py --input data/export.json
 
-**Recommendation**: **Option 1** (dual-write) for zero downtime
+# 3. Import to Postgres
+python scripts/import_postgres.py --input data/export.json
+
+# 4. Verify data integrity
+python scripts/verify_migration.py
+
+# 5. Run test suite against Postgres
+pytest tests/ --db=postgresql
+```
+
+**Data Mapping** (SQLite → Postgres normalized tables):
+- Topics table → topics, citations, keywords, competitors, content_gaps, supporting_images
+- Documents table → documents (1:1)
+- Collections table → collections (1:1)
+
+**Timeline**: 2-3 days (scripting + validation)
 
 ---
 
@@ -817,7 +958,7 @@ addopts =
     --cov=app
     --cov-report=html
     --cov-report=term-missing
-    --cov-fail-under=100
+    --cov-fail-under=95
     --strict-markers
     --asyncio-mode=auto
 
@@ -957,7 +1098,7 @@ jobs:
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \
-            --cov-fail-under=100 \
+            --cov-fail-under=95 \
             -v
 
       - name: Upload coverage to Codecov
@@ -1595,11 +1736,408 @@ content-creator-api/
 
 ---
 
+## 🚀 VPS Deployment Architecture
+
+### Deployment Stack
+
+**Domain**: `übergabeprotokoll24.de`
+
+**Environments**:
+- **Local**: Docker Compose (development with hot reload)
+- **Staging**: `staging.übergabeprotokoll24.de` (VPS subdomain)
+- **Production**: `api.übergabeprotokoll24.de` (VPS main API endpoint)
+
+### VPS Setup
+
+```
+VPS (Docker + Caddy)
+├── Caddy (Reverse Proxy + SSL)
+│   ├── Auto SSL via Let's Encrypt
+│   ├── HTTP/2 enabled
+│   └── Auto redirect HTTP → HTTPS
+│
+├── FastAPI (×2-4 instances)
+│   └── Load balanced via Caddy
+│
+├── PostgreSQL 16
+│   └── Persistent volume
+│
+├── Redis 7
+│   ├── Cache
+│   └── Huey queue backend
+│
+└── Huey Workers (×2)
+    └── Background tasks
+```
+
+### Caddyfile Configuration
+
+```caddy
+# /etc/caddy/Caddyfile
+
+# Staging environment
+staging.übergabeprotokoll24.de {
+    reverse_proxy api-staging:8000 {
+        lb_policy round_robin
+        health_uri /api/v1/admin/health
+        health_interval 10s
+        health_timeout 5s
+    }
+
+    # CORS headers
+    header Access-Control-Allow-Origin *
+    header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    header Access-Control-Allow-Headers "Content-Type, Authorization"
+
+    # Logging
+    log {
+        output file /var/log/caddy/staging.log
+        format json
+    }
+}
+
+# Production environment
+api.übergabeprotokoll24.de {
+    reverse_proxy api-prod-1:8000 api-prod-2:8000 {
+        lb_policy round_robin
+        health_uri /api/v1/admin/health
+        health_interval 10s
+        health_timeout 5s
+    }
+
+    # Rate limiting (optional - can add Caddy module)
+    # @ratelimit {
+    #     path /api/v1/*
+    # }
+    # rate_limit @ratelimit {
+    #     zone api_zone 10m
+    #     rate 100r/m
+    # }
+
+    # Security headers
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    header X-Content-Type-Options "nosniff"
+    header X-Frame-Options "DENY"
+    header X-XSS-Protection "1; mode=block"
+
+    # Logging
+    log {
+        output file /var/log/caddy/production.log
+        format json
+    }
+}
+```
+
+### Docker Compose (Production - VPS)
+
+```yaml
+# docker-compose.production.yml
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-prod
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: content_creator_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-prod
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-prod-1:
+    image: ghcr.io/fhalamzie/content-creator:latest
+    container_name: api-prod-1
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/content_creator_prod
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+
+  api-prod-2:
+    image: ghcr.io/fhalamzie/content-creator:latest
+    container_name: api-prod-2
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/content_creator_prod
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+
+  worker-1:
+    image: ghcr.io/fhalamzie/content-creator:latest
+    container_name: worker-prod-1
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/content_creator_prod
+      REDIS_URL: redis://redis:6379/0
+      HUEY_QUEUE_NAME: content_creator_tasks
+      ENVIRONMENT: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+    command: huey_consumer app.tasks.huey_tasks.huey -w 4
+
+  worker-2:
+    image: ghcr.io/fhalamzie/content-creator:latest
+    container_name: worker-prod-2
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/content_creator_prod
+      REDIS_URL: redis://redis:6379/0
+      HUEY_QUEUE_NAME: content_creator_tasks
+      ENVIRONMENT: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+    command: huey_consumer app.tasks.huey_tasks.huey -w 4
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./logs:/var/log/caddy
+    restart: unless-stopped
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  backend:
+    driver: bridge
+```
+
+### GitHub Actions Deployment Workflow
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main       # Production
+      - develop    # Staging
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: production
+
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Deploy to staging VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/content-creator/staging
+            docker-compose -f docker-compose.staging.yml pull
+            docker-compose -f docker-compose.staging.yml up -d
+            docker-compose -f docker-compose.staging.yml logs --tail=100
+
+  deploy-production:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://api.übergabeprotokoll24.de
+
+    steps:
+      - name: Deploy to production VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/content-creator/production
+            docker-compose -f docker-compose.production.yml pull
+            docker-compose -f docker-compose.production.yml up -d --no-deps --build api-prod-1
+            sleep 10
+            docker-compose -f docker-compose.production.yml up -d --no-deps --build api-prod-2
+            docker-compose -f docker-compose.production.yml logs --tail=100
+```
+
+### VPS Initial Setup (One-Time)
+
+```bash
+# SSH to VPS
+ssh user@your-vps-ip
+
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Create directories
+sudo mkdir -p /opt/content-creator/{staging,production}
+sudo chown -R $USER:$USER /opt/content-creator
+
+# Install Caddy (if not using Docker version)
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install caddy
+
+# Set up firewall
+sudo ufw allow 22/tcp   # SSH
+sudo ufw allow 80/tcp   # HTTP
+sudo ufw allow 443/tcp  # HTTPS
+sudo ufw enable
+
+# Clone repository (for compose files)
+cd /opt/content-creator/production
+git clone https://github.com/fhalamzie/content-creator.git .
+
+# Set up environment variables
+cp .env.example .env.production
+nano .env.production  # Add secrets
+
+# First deployment
+docker-compose -f docker-compose.production.yml up -d
+```
+
+### Deployment Commands
+
+```bash
+# Deploy to staging (manual)
+ssh user@vps
+cd /opt/content-creator/staging
+git pull origin develop
+docker-compose -f docker-compose.staging.yml pull
+docker-compose -f docker-compose.staging.yml up -d
+
+# Deploy to production (manual)
+ssh user@vps
+cd /opt/content-creator/production
+git pull origin main
+docker-compose -f docker-compose.production.yml pull
+docker-compose -f docker-compose.production.yml up -d --no-deps --build api-prod-1
+sleep 10  # Wait for first instance
+docker-compose -f docker-compose.production.yml up -d --no-deps --build api-prod-2
+
+# View logs
+docker-compose logs -f api-prod-1
+
+# Rollback
+docker-compose -f docker-compose.production.yml up -d api-prod-1:previous-tag
+```
+
+---
+
 ## ✅ Success Criteria
 
 ### Technical
 
-- [x] **100% test coverage** - All code covered by tests
+- [ ] **95%+ test coverage** - All code covered by tests (100% on critical paths)
 - [ ] **100% type safety** - mypy --strict passing
 - [ ] **Zero security vulnerabilities** - Trivy + Bandit clean
 - [ ] **API response time <100ms** - p95 latency
@@ -1612,17 +2150,59 @@ content-creator-api/
 - [ ] **API documentation complete** - OpenAPI + examples
 - [ ] **Deployment automated** - One-command deploy
 - [ ] **Monitoring in place** - Metrics + alerts
-- [ ] **Zero downtime migration** - Gradual rollout
+- [ ] **VPS deployment working** - Automated CI/CD pipeline
 
 ---
 
 ## 🎯 Next Steps
 
-1. **Review this plan** - Gather feedback, adjust estimates
-2. **Set up repo structure** - Create branches, directories
-3. **Phase 1 kickoff** - Start with database schema
-4. **Weekly check-ins** - Progress reviews, blockers
+### Phase 1: Foundation (Week 1-2)
+
+1. **Set up project structure**
+   - Create FastAPI project skeleton
+   - Set up Alembic for migrations
+   - Configure pytest with 95%+ coverage target
+
+2. **Design and implement normalized Postgres schema**
+   - Topics, Citations, Keywords, Competitors, Content Gaps, Supporting Images
+   - Documents, Collections tables
+   - Full-text search with tsvector
+   - Write Alembic migrations
+
+3. **SQLite → Postgres migration scripts**
+   - Export script
+   - Import script with data transformation
+   - Validation script
+
+4. **Basic FastAPI skeleton**
+   - Health check endpoint
+   - Database connection (async SQLAlchemy)
+   - Redis connection
+   - Error handling middleware
+
+5. **CI/CD setup**
+   - GitHub Actions for tests
+   - Ruff + mypy --strict
+   - Coverage enforcement (95%+)
+
+**Deliverable**: Working API with health endpoint, Postgres connected, CI passing
 
 ---
 
-**Questions? Comments?** Let's discuss before we start implementation!
+## 📋 Implementation Checklist (Phase 1)
+
+- [ ] Create `content-creator-api/` directory structure
+- [ ] Initialize FastAPI app (`app/main.py`)
+- [ ] Set up `pyproject.toml` with dependencies
+- [ ] Configure Alembic (`alembic init`)
+- [ ] Write normalized schema migrations
+- [ ] Create SQLAlchemy models (async)
+- [ ] Write SQLite export script
+- [ ] Write Postgres import script
+- [ ] Configure pytest with async support
+- [ ] Set up GitHub Actions CI workflow
+- [ ] Add mypy strict configuration
+- [ ] Create Docker Compose for local dev
+- [ ] Document setup in README
+
+**Ready to start?** Let me know and we'll begin with Phase 1!
